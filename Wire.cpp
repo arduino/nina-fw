@@ -57,11 +57,15 @@ void TwoWire::begin(void) {
   _dev->slave_addr.addr = 0;
   _dev->slave_addr.en_10bit = 0;
 
-  gpio_set_direction((gpio_num_t)g_ADigitalPinMap[_uc_pinSCL], GPIO_MODE_INPUT_OUTPUT_OD);
-  gpio_set_pull_mode((gpio_num_t)g_ADigitalPinMap[_uc_pinSCL], GPIO_PULLUP_ONLY);
+  gpio_config_t gpioConf;
 
-  gpio_set_direction((gpio_num_t)g_ADigitalPinMap[_uc_pinSDA], GPIO_MODE_INPUT_OUTPUT_OD);
-  gpio_set_pull_mode((gpio_num_t)g_ADigitalPinMap[_uc_pinSDA], GPIO_PULLUP_ONLY);
+  gpioConf.intr_type = GPIO_INTR_DISABLE;
+  gpioConf.mode = GPIO_MODE_INPUT_OUTPUT_OD;
+  gpioConf.pin_bit_mask = (1 << g_ADigitalPinMap[_uc_pinSCL]) | (1 << g_ADigitalPinMap[_uc_pinSDA]);
+  gpioConf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  gpioConf.pull_up_en = GPIO_PULLUP_ENABLE;
+
+  gpio_config(&gpioConf);    
 
   if (_peripheral == PERIPH_I2C0_MODULE) {
     gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_OUT_IDX, 0,  0);
