@@ -21,12 +21,17 @@ extern "C" {
 #include <string.h>
 
 #include <driver/gpio.h>
+#include <esp_intr.h>
+#include <rom/ets_sys.h>
 #include <soc/gpio_sig_map.h>
 }
 
 #include <Arduino.h>
 
 #include "Wire.h"
+
+#define ETS_I2C0_INUM  0
+#define ETS_I2C1_INUM  1
 
 TwoWire::TwoWire(periph_module_t peripheralModule, i2c_dev_t* i2cDev, uint8_t pinSDA, uint8_t pinSCL)
 {
@@ -72,13 +77,80 @@ void TwoWire::begin(void) {
     gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_OUT_IDX, 0,  0);
     gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_IN_IDX, 0);
     gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_IN_IDX, 0);
+  } else if (_peripheral == PERIPH_I2C1_MODULE) {
+    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_OUT_IDX, 0,  0);
+    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_OUT_IDX, 0,  0);
+    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_IN_IDX, 0);
+    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_IN_IDX, 0);
   }
 }
 
 void TwoWire::begin(uint8_t address) {
   //Slave mode
 
-  #warning "TwoWire begin address not implemented"
+  periph_module_enable(_peripheral);
+
+  setClock(TWI_CLOCK);
+
+  _dev->ctr.val = 0;
+  _dev->ctr.ms_mode = 0;
+  _dev->ctr.sda_force_out = 1;
+  _dev->ctr.scl_force_out = 1;
+  _dev->ctr.clk_en = 1;
+
+  _dev->fifo_conf.tx_fifo_empty_thrhd = 0;
+  _dev->fifo_conf.rx_fifo_full_thrhd = 0x1f;
+
+  _dev->timeout.tout = 50000;
+  _dev->fifo_conf.nonfifo_en = 0;
+
+  _dev->slave_addr.addr = (address);
+  _dev->slave_addr.en_10bit = 0;
+
+  gpio_config_t gpioConf;
+
+  gpioConf.intr_type = GPIO_INTR_DISABLE;
+  gpioConf.mode = GPIO_MODE_INPUT_OUTPUT_OD;
+  gpioConf.pin_bit_mask = (1 << g_ADigitalPinMap[_uc_pinSCL]) | (1 << g_ADigitalPinMap[_uc_pinSDA]);
+  gpioConf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  gpioConf.pull_up_en = GPIO_PULLUP_ENABLE;
+
+  gpio_config(&gpioConf);    
+
+  if (_peripheral == PERIPH_I2C0_MODULE) {
+    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_OUT_IDX, 0,  0);
+    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_OUT_IDX, 0,  0);
+    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_IN_IDX, 0);
+    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_IN_IDX, 0);
+  } else if (_peripheral == PERIPH_I2C1_MODULE) {
+    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_OUT_IDX, 0,  0);
+    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_OUT_IDX, 0,  0);
+    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_IN_IDX, 0);
+    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_IN_IDX, 0);
+  }
+
+  if (_peripheral == PERIPH_I2C0_MODULE) {
+    ESP_INTR_DISABLE(ETS_I2C0_INUM);
+    intr_matrix_set(0, ETS_I2C_EXT0_INTR_SOURCE, ETS_I2C0_INUM);
+    xt_set_interrupt_handler(ETS_I2C_EXT0_INTR_SOURCE, TwoWire::onService, this);
+    ESP_INTR_ENABLE(ETS_I2C0_INUM);
+  } else if (_peripheral == PERIPH_I2C1_MODULE) {
+    ESP_INTR_DISABLE(ETS_I2C1_INUM);
+    intr_matrix_set(0, ETS_I2C_EXT1_INTR_SOURCE, ETS_I2C1_INUM);
+    xt_set_interrupt_handler(ETS_I2C1_INUM, TwoWire::onService, this);
+    ESP_INTR_ENABLE(ETS_I2C1_INUM);
+  }
+
+  _dev->fifo_conf.tx_fifo_rst = 1;
+  _dev->fifo_conf.tx_fifo_rst = 0;
+  _dev->fifo_conf.rx_fifo_rst = 1;
+  _dev->fifo_conf.rx_fifo_rst = 0;
+
+  _dev->int_clr.val = 0xFFFFFFFF;
+  _dev->int_ena.val = 0;
+  _dev->int_ena.trans_complete = 1;
+  _dev->int_ena.slave_tran_comp = 1;
+  _dev->int_ena.rx_fifo_full = 1;
 }
 
 void TwoWire::setClock(uint32_t baudrate) {
@@ -253,7 +325,48 @@ void TwoWire::onRequest(void(*function)(void))
 
 void TwoWire::onService(void)
 {
-  #warning "TwoWire onService not implemented"
+  if (_dev->int_status.rx_fifo_full) {
+    while(!rxBuffer.isFull() && _dev->status_reg.rx_fifo_cnt) {
+      rxBuffer.store_char(_dev->fifo_data.data);
+    }
+
+    // reset fifo
+    _dev->fifo_conf.rx_fifo_rst = 1;
+    _dev->fifo_conf.rx_fifo_rst = 0;
+
+    _dev->int_clr.rx_fifo_full = 1;
+  }
+
+  if (_dev->int_status.slave_tran_comp) {
+    if (rxBuffer.available() > 0) {
+      // repeated start detected
+      if (onReceiveCallback) {
+        onReceiveCallback(rxBuffer.available());
+      }
+
+      rxBuffer.clear();
+    }
+
+    while(!rxBuffer.isFull() && (_dev->status_reg.rx_fifo_cnt > 1)) {
+      rxBuffer.store_char(_dev->fifo_data.data);
+    }
+    
+    _dev->int_clr.slave_tran_comp = 1;
+  }
+
+  if (_dev->int_status.trans_complete) {
+    while(!rxBuffer.isFull() && _dev->status_reg.rx_fifo_cnt) {
+      rxBuffer.store_char(_dev->fifo_data.data);
+    }
+
+    if (onReceiveCallback) {
+      onReceiveCallback(rxBuffer.available());
+    }
+
+    rxBuffer.clear();
+
+    _dev->int_clr.trans_complete = 1;
+  }
 }
 
 uint8_t TwoWire::startTransmission(uint8_t address)
@@ -391,6 +504,13 @@ uint8_t TwoWire::receiveData(uint8_t nack)
   }
 
   return _dev->fifo_data.data;
+}
+
+void TwoWire::onService(void* arg)
+{
+  TwoWire* wire = (TwoWire*)arg;
+
+  wire->onService();
 }
 
 TwoWire Wire(PERIPH_I2C0_MODULE, &I2C0, SDA, SCL);
