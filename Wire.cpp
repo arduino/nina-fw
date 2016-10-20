@@ -338,19 +338,37 @@ void TwoWire::onService(void)
   }
 
   if (_dev->int_status.slave_tran_comp) {
-    if (rxBuffer.available() > 0) {
-      // repeated start detected
-      if (onReceiveCallback) {
-        onReceiveCallback(rxBuffer.available());
+    if (_dev->status_reg.slave_rw) {
+      // read
+      txBuffer.clear();
+
+      transmissionBegun = true;
+
+      if (onRequestCallback) {
+        onRequestCallback();
       }
 
-      rxBuffer.clear();
+      transmissionBegun = false;
+
+      while (txBuffer.available()) {
+        _dev->fifo_data.data = txBuffer.read_char();
+      }
+    } else {
+      //write
+      if (rxBuffer.available() > 0) {
+        // repeated start detected
+        if (onReceiveCallback) {
+          onReceiveCallback(rxBuffer.available());
+        }
+
+        rxBuffer.clear();
+      }
+
+      while(!rxBuffer.isFull() && (_dev->status_reg.rx_fifo_cnt > 1)) {
+        rxBuffer.store_char(_dev->fifo_data.data);
+      }
     }
 
-    while(!rxBuffer.isFull() && (_dev->status_reg.rx_fifo_cnt > 1)) {
-      rxBuffer.store_char(_dev->fifo_data.data);
-    }
-    
     _dev->int_clr.slave_tran_comp = 1;
   }
 
@@ -359,7 +377,7 @@ void TwoWire::onService(void)
       rxBuffer.store_char(_dev->fifo_data.data);
     }
 
-    if (onReceiveCallback) {
+    if (onReceiveCallback && rxBuffer.available()) {
       onReceiveCallback(rxBuffer.available());
     }
 
