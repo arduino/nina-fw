@@ -170,6 +170,14 @@ void TwoWire::setClock(uint32_t baudrate) {
 }
 
 void TwoWire::end() {
+  _dev->int_ena.val = 0;
+  
+  if (_peripheral == PERIPH_I2C0_MODULE) {
+    ESP_INTR_DISABLE(ETS_I2C0_INUM);
+  } else if (_peripheral == PERIPH_I2C1_MODULE) {
+    ESP_INTR_DISABLE(ETS_I2C1_INUM);
+  }
+
   gpio_set_direction((gpio_num_t)g_ADigitalPinMap[_uc_pinSCL], GPIO_MODE_INPUT);
   gpio_set_pull_mode((gpio_num_t)g_ADigitalPinMap[_uc_pinSCL], GPIO_FLOATING);
 
