@@ -57,7 +57,6 @@ class TwoWire : public Stream
     virtual int peek(void);
     virtual void flush(void);
     void onReceive(void(*)(int));
-    void onRequest(void(*)(void));
 
     inline size_t write(unsigned long n) { return write((uint8_t)n); }
     inline size_t write(long n) { return write((uint8_t)n); }
@@ -72,7 +71,6 @@ class TwoWire : public Stream
     uint8_t stopTransmission();
     uint8_t sendData(uint8_t);
     uint8_t receiveData(uint8_t& value, uint8_t nack);
-
 
     static void onService(void* arg);
 
@@ -93,7 +91,6 @@ class TwoWire : public Stream
     uint8_t txAddress;
 
     // Callback user functions
-    void (*onRequestCallback)(void);
     void (*onReceiveCallback)(int);
 
     // TWI clock frequency

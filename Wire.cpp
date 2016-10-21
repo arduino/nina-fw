@@ -331,11 +331,6 @@ void TwoWire::onReceive(void(*function)(int))
   onReceiveCallback = function;
 }
 
-void TwoWire::onRequest(void(*function)(void))
-{
-  onRequestCallback = function;
-}
-
 void TwoWire::onService(void)
 {
   if (_dev->int_status.rx_fifo_full) {
@@ -351,22 +346,7 @@ void TwoWire::onService(void)
   }
 
   if (_dev->int_status.slave_tran_comp) {
-    if (_dev->status_reg.slave_rw) {
-      // read
-      txBuffer.clear();
-
-      transmissionBegun = true;
-
-      if (onRequestCallback) {
-        onRequestCallback();
-      }
-
-      transmissionBegun = false;
-
-      while (txBuffer.available()) {
-        _dev->fifo_data.data = txBuffer.read_char();
-      }
-    } else {
+    if (_dev->status_reg.slave_rw == 0) {
       //write
       if (rxBuffer.available() > 0) {
         // repeated start detected
