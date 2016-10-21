@@ -71,14 +71,14 @@ class TwoWire : public Stream
     uint8_t startTransmission(uint8_t);
     uint8_t stopTransmission();
     uint8_t sendData(uint8_t);
-    uint8_t receiveData(uint8_t nack);
+    uint8_t receiveData(uint8_t& value, uint8_t nack);
 
 
     static void onService(void* arg);
 
   private:
     periph_module_t _peripheral;
-    i2c_dev_t* _dev;
+    volatile i2c_dev_t* _dev;
 
     uint8_t _uc_pinSDA;
     uint8_t _uc_pinSCL;

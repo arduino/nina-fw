@@ -171,7 +171,7 @@ void TwoWire::setClock(uint32_t baudrate) {
 
 void TwoWire::end() {
   _dev->int_ena.val = 0;
-  
+
   if (_peripheral == PERIPH_I2C0_MODULE) {
     ESP_INTR_DISABLE(ETS_I2C0_INUM);
   } else if (_peripheral == PERIPH_I2C1_MODULE) {
@@ -207,10 +207,15 @@ uint8_t TwoWire::requestFrom(uint8_t address, size_t quantity, bool stopBit)
 
   result = startTransmission(((address << 1) & 0xFF) | 0x01);
 
-  while (rxBuffer.available() < (int)quantity) {
+  while (result == 0 && rxBuffer.available() < (int)quantity) {
     uint8_t nack = (rxBuffer.available() == (int)(quantity - 1));
+    uint8_t value;
 
-    rxBuffer.store_char(receiveData(nack));
+    result = receiveData(value, nack);
+
+    if (result == 0) {
+      rxBuffer.store_char(value);
+    }
   }
 
   if (stopBit) {
@@ -409,8 +414,8 @@ uint8_t TwoWire::startTransmission(uint8_t address)
   _dev->fifo_data.data = address;
 
   _dev->command[1].byte_num = 1;
-  _dev->command[1].ack_en = 0;
-  _dev->command[1].ack_exp = 1;
+  _dev->command[1].ack_en = 1;
+  _dev->command[1].ack_exp = 0;
   _dev->command[1].ack_val = 0;
   _dev->command[1].op_code = 1; // WRITE
   _dev->command[1].done = 0;
@@ -426,9 +431,7 @@ uint8_t TwoWire::startTransmission(uint8_t address)
   // send commands and wait
   _dev->int_clr.val = 0xFFFFFFFF;
   _dev->ctr.trans_start = 1;
-  while(!_dev->command[1].done && !_dev->int_raw.arbitration_lost && !_dev->int_raw.time_out && !_dev->int_raw.ack_err) {
-    delay(1);
-  }
+  while(!_dev->command[1].done && !_dev->int_raw.arbitration_lost && !_dev->int_raw.time_out && !_dev->int_raw.ack_err);
 
   if (_dev->int_raw.arbitration_lost) {
     return 4;
@@ -462,9 +465,7 @@ uint8_t TwoWire::stopTransmission()
   // send commands and wait
   _dev->int_clr.val = 0xFFFFFFFF;
   _dev->ctr.trans_start = 1;
-  while(!_dev->command[0].done && !_dev->int_raw.arbitration_lost && !_dev->int_raw.time_out && !_dev->int_raw.ack_err) {
-    delay(1);
-  }
+  while(!_dev->command[0].done && !_dev->int_raw.arbitration_lost && !_dev->int_raw.time_out && !_dev->int_raw.ack_err);
 
   return 0;
 }
@@ -475,8 +476,8 @@ uint8_t TwoWire::sendData(uint8_t b)
   _dev->fifo_data.data = b;
 
   _dev->command[0].byte_num = 1;
-  _dev->command[0].ack_en = 0;
-  _dev->command[0].ack_exp = 1;
+  _dev->command[0].ack_en = 1;
+  _dev->command[0].ack_exp = 0;
   _dev->command[0].ack_val = 0;
   _dev->command[0].op_code = 1; // WRITE
   _dev->command[0].done = 0;
@@ -505,7 +506,7 @@ uint8_t TwoWire::sendData(uint8_t b)
   }
 }
 
-uint8_t TwoWire::receiveData(uint8_t nack)
+uint8_t TwoWire::receiveData(uint8_t& value, uint8_t nack)
 {
   _dev->command[0].byte_num = 1;
   _dev->command[0].ack_en = 0;
@@ -525,11 +526,18 @@ uint8_t TwoWire::receiveData(uint8_t nack)
   // send commands and wait
   _dev->int_clr.val = 0xFFFFFFFF;
   _dev->ctr.trans_start = 1;
-  while(!_dev->command[0].done) {
-    delay(1);
-  }
+  while(!_dev->command[0].done && !_dev->int_raw.arbitration_lost && !_dev->int_raw.time_out && !_dev->int_raw.ack_err);
 
-  return _dev->fifo_data.data;
+  if (_dev->int_raw.arbitration_lost) {
+    return 4;
+  } else if (_dev->int_raw.ack_err) {
+    return 3;
+  } else if (_dev->int_raw.time_out) {
+    return 3;
+  } else {
+    value = _dev->fifo_data.data;
+    return 0;
+  }
 }
 
 void TwoWire::onService(void* arg)
