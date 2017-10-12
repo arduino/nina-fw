@@ -514,6 +514,13 @@ br_ssl_engine_init_rand(br_ssl_engine_context *cc)
 	}
 #endif
 
+#ifdef ARDUINO
+	unsigned char tmp[32];
+	#warning "br_ssl_engine_init_rand: fake entropy injected!"
+	br_ssl_engine_inject_entropy(cc, tmp, sizeof(tmp));
+	cc->rng_os_rand_done = 1;
+#endif
+
 	if (!cc->rng_init_done) {
 		br_ssl_engine_fail(cc, BR_ERR_NO_RANDOM);
 		return 0;
