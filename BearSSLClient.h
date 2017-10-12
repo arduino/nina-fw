@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <Client.h>
 
+#include "bearssl/bearssl.h"
+
 class BearSSLClient : public Client {
 
 public:
@@ -26,7 +28,17 @@ public:
   using Print::write;
 
 private:
+  static int clientRead(void *ctx, unsigned char *buf, size_t len);
+  static int clientWrite(void *ctx, const unsigned char *buf, size_t len);
+
+private:
   Client* _client;
+
+  br_ssl_client_context _sc;
+  br_x509_minimal_context _xc;
+  unsigned char _iobuf[BR_SSL_BUFSIZE_MONO/*BR_SSL_BUFSIZE_BIDI*/];
+  br_sslio_context _ioc;
+  int _peek;
 };
 
 #endif
