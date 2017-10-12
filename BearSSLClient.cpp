@@ -1,3 +1,5 @@
+#include <limits.h>
+
 #include "BearSSLTrustAnchors.h"
 
 #include "BearSSLClient.h"
@@ -45,24 +47,26 @@ size_t BearSSLClient::write(const uint8_t *buf, size_t size)
 
 int BearSSLClient::available()
 {
-  #warning "BearSSLClient::available() only one byte per time!"
+  int available = br_sslio_read(&_ioc, NULL, INT_MAX);
 
-  byte b;
-
-  if (_peek == -1 && br_sslio_read(&_ioc, &b, sizeof(b)) == sizeof(b)) {
-    _peek = b;
-
-    return 1;
+  if (available < 0) {
+    available = 0;
   }
 
-  return (_peek == -1) ? 0 : 1;
+  return available;
 }
 
 int BearSSLClient::read()
 {
+  byte b;
+
   if (_peek != -1) {
-    byte b = _peek;
+    b = _peek;
     _peek = -1;
+    return b;
+  }
+
+  if (read(&b, sizeof(b)) == sizeof(b)) {
     return b;
   }
 
@@ -76,7 +80,9 @@ int BearSSLClient::read(uint8_t *buf, size_t size)
 
 int BearSSLClient::peek()
 {
-  available();
+  if (_peek == -1) {
+    _peek = read();
+  }
 
   return _peek;
 }
