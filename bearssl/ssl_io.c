@@ -156,6 +156,11 @@ br_sslio_read(br_sslio_context *ctx, void *dst, size_t len)
 		return -1;
 	}
 	buf = br_ssl_engine_recvapp_buf(ctx->engine, &alen);
+#ifdef ARDUINO
+	if (dst == NULL) {
+		return (int)alen;
+	}
+#endif
 	if (alen > len) {
 		alen = len;
 	}
