@@ -154,6 +154,9 @@
  *
 #define BR_ARMEL_CORTEXM_GCC   1
  */
+#ifdef ARDUINO
+#define BR_ARMEL_CORTEXM_GCC   1
+#endif
 
 /*
  * When BR_AES_X86NI is enabled, the AES implementation using the x86 "NI"
