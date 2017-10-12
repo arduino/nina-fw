@@ -28,6 +28,7 @@ public:
   using Print::write;
 
 private:
+  int connectSSL(const char* host);
   static int clientRead(void *ctx, unsigned char *buf, size_t len);
   static int clientWrite(void *ctx, const unsigned char *buf, size_t len);
 

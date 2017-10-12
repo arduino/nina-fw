@@ -14,9 +14,11 @@ BearSSLClient::~BearSSLClient()
 
 int BearSSLClient::connect(IPAddress ip, uint16_t port)
 {
-  #warning "BearSSLClient::connect(IPAddress ip, uint16_t port) is not implemented!"
+  if (!_client->connect(ip, port)) {
+    return 0;
+  }
 
-  return 0;
+  return connectSSL(NULL);
 }
 
 int BearSSLClient::connect(const char* host, uint16_t port)
@@ -25,49 +27,7 @@ int BearSSLClient::connect(const char* host, uint16_t port)
     return 0;
   }
 
-  /*
-   * Initialise the client context:
-   * -- Use the "full" profile (all supported algorithms).
-   * -- The provided X.509 validation engine is initialised, with
-   *    the hardcoded trust anchor.
-   */
-  br_ssl_client_init_full(&_sc, &_xc, TAs, TAs_NUM);
-
-  /*
-   * Set the I/O buffer to the provided array. We allocated a
-   * buffer large enough for full-duplex behaviour with all
-   * allowed sizes of SSL records, hence we set the last argument
-   * to 1 (which means "split the buffer into separate input and
-   * output areas").
-   */
-  br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), /*1*/0);
-
-  /*
-   * Reset the client context, for a new handshake. We provide the
-   * target host name: it will be used for the SNI extension. The
-   * last parameter is 0: we are not trying to resume a session.
-   */
-  br_ssl_client_reset(&_sc, host, 0);
-
-  /*
-   * Initialise the simplified I/O wrapper context, to use our
-   * SSL client context, and the two callbacks for socket I/O.
-   */
-  br_sslio_init(&_ioc, &_sc.eng, BearSSLClient::clientRead, _client, BearSSLClient::clientWrite, _client);
-
-  br_sslio_flush(&_ioc);
-
-  while (1) {
-    unsigned state = br_ssl_engine_current_state(&_sc.eng);
-
-    if (state & BR_SSL_SENDAPP) {
-      break;
-    } else if (state & BR_SSL_CLOSED) {
-      return 0;
-    }
-  }
-
-  return 1;
+  return connectSSL(host);
 }
 
 size_t BearSSLClient::write(uint8_t b)
@@ -174,6 +134,53 @@ uint8_t BearSSLClient::connected()
 BearSSLClient::operator bool()
 {
   return (*_client);  
+}
+
+int BearSSLClient::connectSSL(const char* host)
+{
+  /*
+   * Initialise the client context:
+   * -- Use the "full" profile (all supported algorithms).
+   * -- The provided X.509 validation engine is initialised, with
+   *    the hardcoded trust anchor.
+   */
+  br_ssl_client_init_full(&_sc, &_xc, TAs, TAs_NUM);
+
+  /*
+   * Set the I/O buffer to the provided array. We allocated a
+   * buffer large enough for full-duplex behaviour with all
+   * allowed sizes of SSL records, hence we set the last argument
+   * to 1 (which means "split the buffer into separate input and
+   * output areas").
+   */
+  br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), /*1*/0);
+
+  /*
+   * Reset the client context, for a new handshake. We provide the
+   * target host name: it will be used for the SNI extension. The
+   * last parameter is 0: we are not trying to resume a session.
+   */
+  br_ssl_client_reset(&_sc, host, 0);
+
+  /*
+   * Initialise the simplified I/O wrapper context, to use our
+   * SSL client context, and the two callbacks for socket I/O.
+   */
+  br_sslio_init(&_ioc, &_sc.eng, BearSSLClient::clientRead, _client, BearSSLClient::clientWrite, _client);
+
+  br_sslio_flush(&_ioc);
+
+  while (1) {
+    unsigned state = br_ssl_engine_current_state(&_sc.eng);
+
+    if (state & BR_SSL_SENDAPP) {
+      break;
+    } else if (state & BR_SSL_CLOSED) {
+      return 0;
+    }
+  }
+
+  return 1;
 }
 
 // #define DEBUGSERIAL Serial
