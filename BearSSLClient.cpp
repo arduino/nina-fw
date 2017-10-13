@@ -152,7 +152,7 @@ int BearSSLClient::connectSSL(const char* host)
    * to 1 (which means "split the buffer into separate input and
    * output areas").
    */
-  br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), /*1*/0);
+  br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), 1);
 
   /*
    * Reset the client context, for a new handshake. We provide the
