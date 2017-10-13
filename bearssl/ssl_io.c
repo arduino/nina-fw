@@ -184,6 +184,38 @@ br_sslio_read_all(br_sslio_context *ctx, void *dst, size_t len)
 	return 0;
 }
 
+#ifdef ARDUINO
+int br_sslio_read_available(br_sslio_context *ctx)
+{
+	size_t alen;
+
+	if (run_until(ctx, BR_SSL_RECVAPP) < 0) {
+		return -1;
+	}
+	br_ssl_engine_recvapp_buf(ctx->engine, &alen);
+	return (int)alen;
+}
+
+int br_sslio_peek(br_sslio_context *ctx, void *dst, size_t len)
+{
+	unsigned char *buf;
+	size_t alen;
+
+	if (len == 0) {
+		return 0;
+	}
+	if (run_until(ctx, BR_SSL_RECVAPP) < 0) {
+		return -1;
+	}
+	buf = br_ssl_engine_recvapp_buf(ctx->engine, &alen);
+	if (alen > len) {
+		alen = len;
+	}
+	memcpy(dst, buf, alen);
+	return (int)alen;
+}
+#endif
+
 /* see bearssl_ssl.h */
 int
 br_sslio_write(br_sslio_context *ctx, const void *src, size_t len)

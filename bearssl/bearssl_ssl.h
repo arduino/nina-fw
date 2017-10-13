@@ -3895,6 +3895,11 @@ int br_sslio_read(br_sslio_context *cc, void *dst, size_t len);
  */
 int br_sslio_read_all(br_sslio_context *cc, void *dst, size_t len);
 
+#ifdef ARDUINO
+int br_sslio_read_available(br_sslio_context *cc);
+int br_sslio_peek(br_sslio_context *cc, void *dst, size_t len);
+#endif
+
 /**
  * \brief Write some application data unto a SSL connection.
  *
