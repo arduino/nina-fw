@@ -188,9 +188,22 @@ br_sslio_read_all(br_sslio_context *ctx, void *dst, size_t len)
 int br_sslio_read_available(br_sslio_context *ctx)
 {
 	size_t alen;
+	unsigned state = br_ssl_engine_current_state(ctx->engine);
 
-	if (run_until(ctx, BR_SSL_RECVAPP) < 0) {
-		return -1;
+	if (state & BR_SSL_RECVREC) {
+		unsigned char *buf;
+		size_t len;
+		int rlen;
+
+		buf = br_ssl_engine_recvrec_buf(ctx->engine, &len);
+		rlen = ctx->low_read(ctx->read_context, buf, len);
+		if (rlen < 0) {
+			br_ssl_engine_fail(ctx->engine, BR_ERR_IO);
+			return -1;
+		}
+		if (rlen > 0) {
+			br_ssl_engine_recvrec_ack(ctx->engine, rlen);
+		}
 	}
 	br_ssl_engine_recvapp_buf(ctx->engine, &alen);
 	return (int)alen;
@@ -204,8 +217,22 @@ int br_sslio_peek(br_sslio_context *ctx, void *dst, size_t len)
 	if (len == 0) {
 		return 0;
 	}
-	if (run_until(ctx, BR_SSL_RECVAPP) < 0) {
-		return -1;
+	unsigned state = br_ssl_engine_current_state(ctx->engine);
+
+	if (state & BR_SSL_RECVREC) {
+		unsigned char *buf;
+		size_t len;
+		int rlen;
+
+		buf = br_ssl_engine_recvrec_buf(ctx->engine, &len);
+		rlen = ctx->low_read(ctx->read_context, buf, len);
+		if (rlen < 0) {
+			br_ssl_engine_fail(ctx->engine, BR_ERR_IO);
+			return -1;
+		}
+		if (rlen > 0) {
+			br_ssl_engine_recvrec_ack(ctx->engine, rlen);
+		}
 	}
 	buf = br_ssl_engine_recvapp_buf(ctx->engine, &alen);
 	if (alen > len) {
