@@ -50,6 +50,9 @@
  *
 #define BR_LOMUL   1
  */
+#ifdef ARDUINO
+#define BR_LOMUL   1
+#endif
 
 /*
  * When BR_SLOW_MUL is enabled, multiplications are assumed to be
