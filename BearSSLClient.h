@@ -39,7 +39,6 @@ private:
   br_x509_minimal_context _xc;
   unsigned char _iobuf[BR_SSL_BUFSIZE_MONO/*BR_SSL_BUFSIZE_BIDI*/];
   br_sslio_context _ioc;
-  int _peek;
 };
 
 #endif
