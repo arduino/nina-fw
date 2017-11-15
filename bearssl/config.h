@@ -128,9 +128,6 @@
  *
 #define BR_USE_UNIX_TIME   1
  */
-#ifdef ARDUINO
-#define BR_USE_UNIX_TIME   1
-#endif
 
 /*
  * When BR_USE_WIN32_TIME is enabled, the X.509 validation engine obtains
