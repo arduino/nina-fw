@@ -24,15 +24,3 @@ void ArduinoBearSSLClass::onGetTime(unsigned long(*callback)(void))
 }
 
 ArduinoBearSSLClass ArduinoBearSSL;
-
-extern "C" {
-  #include <sys/time.h>
-  
-  int _gettimeofday(struct timeval* tp, void* /*tzvp*/)
-  {
-    tp->tv_sec = ArduinoBearSSL.getTime();
-    tp->tv_usec = 0;
-
-    return 0;
-  }
-}

@@ -1,3 +1,4 @@
+#include "ArduinoBearSSL.h"
 #include "BearSSLTrustAnchors.h"
 
 #include "BearSSLClient.h"
@@ -160,6 +161,13 @@ int BearSSLClient::connectSSL(const char* host)
    * last parameter is 0: we are not trying to resume a session.
    */
   br_ssl_client_reset(&_sc, host, 0);
+
+  // get the current time and set it for X.509 validation
+  uint32_t now = ArduinoBearSSL.getTime();
+  uint32_t days = now / 86400 + 719528;
+  uint32_t sec = now % 86400;
+
+  br_x509_minimal_set_time(&_xc, days, sec);
 
   /*
    * Initialise the simplified I/O wrapper context, to use our
