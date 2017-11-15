@@ -155,6 +155,15 @@ int BearSSLClient::connectSSL(const char* host)
    */
   br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), 1);
 
+  // inject (pseudo) entropy in engine
+  #warning "connectSSL: pseudo entropy injected!"
+  unsigned char entropy[32];
+
+  for (size_t i = 0; i < sizeof(entropy); i++) {
+    entropy[i] = rand() % 256;
+  }  
+  br_ssl_engine_inject_entropy(&_sc.eng, entropy, sizeof(entropy));
+
   /*
    * Reset the client context, for a new handshake. We provide the
    * target host name: it will be used for the SNI extension. The
