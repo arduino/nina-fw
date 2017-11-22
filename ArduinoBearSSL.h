@@ -1,5 +1,5 @@
-#ifndef _ARDUINO_BEAR_SSL_
-#define _ARDUINO_BEAR_SSL_
+#ifndef _ARDUINO_BEAR_SSL_H_
+#define _ARDUINO_BEAR_SSL_H_
 
 #include "BearSSLClient.h"
 

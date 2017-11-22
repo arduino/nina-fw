@@ -1,5 +1,5 @@
-#ifndef _BEAR_SSL_CLIENT_
-#define _BEAR_SSL_CLIENT_
+#ifndef _BEAR_SSL_CLIENT_H_
+#define _BEAR_SSL_CLIENT_H_
 
 #include <Arduino.h>
 #include <Client.h>
