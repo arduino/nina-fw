@@ -21,7 +21,9 @@ private:
 
   int version();
 
+  int sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2);
   int receiveResponse(void* response, size_t length);
+  uint16_t crc16(byte data[], size_t length);
 
 private:
   TwoWire* _wire;
