@@ -1,5 +1,6 @@
 #include "ArduinoBearSSL.h"
 #include "BearSSLTrustAnchors.h"
+#include "utility/ECC508.h"
 
 #include "BearSSLClient.h"
 
@@ -155,13 +156,15 @@ int BearSSLClient::connectSSL(const char* host)
    */
   br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), 1);
 
-  // inject (pseudo) entropy in engine
-  #warning "connectSSL: pseudo entropy injected!"
+  // inject entropy in engine
   unsigned char entropy[32];
 
-  for (size_t i = 0; i < sizeof(entropy); i++) {
-    entropy[i] = rand() % 256;
-  }  
+  if (!ECC508.begin() || !ECC508.random(entropy, sizeof(entropy))) {
+    // no ECC508 or random failed, fallback to pseudo random
+    for (size_t i = 0; i < sizeof(entropy); i++) {
+      entropy[i] = random(0, 255);
+    }
+  }
   br_ssl_engine_inject_entropy(&_sc.eng, entropy, sizeof(entropy));
 
   /*
