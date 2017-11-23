@@ -1,6 +1,8 @@
 #include "ArduinoBearSSL.h"
 #include "BearSSLTrustAnchors.h"
 #include "utility/ECC508.h"
+#include "utility/ecc508_asn1.h"
+
 
 #include "BearSSLClient.h"
 
@@ -159,7 +161,11 @@ int BearSSLClient::connectSSL(const char* host)
   // inject entropy in engine
   unsigned char entropy[32];
 
-  if (!ECC508.begin() || !ECC508.random(entropy, sizeof(entropy))) {
+  if (ECC508.begin() && ECC508.random(entropy, sizeof(entropy))) {
+    // ECC508 random success, add custom ECDSA vfry
+    br_ssl_engine_set_ecdsa(&_sc.eng, ecc508_vrfy_asn1);
+    br_x509_minimal_set_ecdsa(&_xc, br_ssl_engine_get_ec(&_sc.eng), br_ssl_engine_get_ecdsa(&_sc.eng));    
+  } else {
     // no ECC508 or random failed, fallback to pseudo random
     for (size_t i = 0; i < sizeof(entropy); i++) {
       entropy[i] = random(0, 255);

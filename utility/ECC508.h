@@ -1,6 +1,7 @@
 #ifndef _ECC508_H_
 #define _ECC508_H_
 
+#include <Arduino.h>
 #include <Wire.h>
 
 class ECC508Class
@@ -14,16 +15,20 @@ public:
 
   int random(byte data[], size_t length);
 
+  int ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[]);
+
 private:
   int wakeup();
   int sleep();
   int idle();
 
   int version();
+  int challenge(const byte message[]);
+  int verify(const byte signature[], const byte pubkey[]);
 
-  int sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2);
+  int sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[] = NULL, size_t dataLength = 0);
   int receiveResponse(void* response, size_t length);
-  uint16_t crc16(byte data[], size_t length);
+  uint16_t crc16(const byte data[], size_t length);
 
 private:
   TwoWire* _wire;

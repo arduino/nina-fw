@@ -62,6 +62,15 @@ int ECC508Class::random(byte data[], size_t length)
   return 1;
 }
 
+int ECC508Class::ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[])
+{
+  if (!challenge(message)) {
+    return 0;
+  }
+
+  return verify(signature, pubkey);
+}
+
 int ECC508Class::wakeup()
 {
   _wire->beginTransmission(0x00);
@@ -126,20 +135,83 @@ int ECC508Class::version()
   return version;
 }
 
-int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2)
+int ECC508Class::challenge(const byte message[])
 {
-  byte command[8]; // 1 for type, 1 for length, 1 for opcode, 1 for param1, 2 for param2, 2 for crc
+  uint8_t status;
+
+  if (!wakeup()) {
+    return 0;
+  }
+
+  // Nounce, pass through
+  if (!sendCommand(0x16, 0x03, 0x0000, message, 32)) {
+    return 0;
+  }
+
+  delay(7);
+
+  if (!receiveResponse(&status, sizeof(status))) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  if (status != 0) {
+    return 0;
+  }
+
+  return 1;
+}
+
+int ECC508Class::verify(const byte signature[], const byte pubkey[])
+{
+  uint8_t status;
+
+  if (!wakeup()) {
+    return 0;
+  }
+
+  byte data[128];
+  memcpy(&data[0], signature, 64);
+  memcpy(&data[64], pubkey, 64);
+
+  // Verify, external, P256
+  if (!sendCommand(0x45, 0x02, 0x0004, data, sizeof(data))) {
+    return 0;
+  }
+
+  delay(58);
+
+  if (!receiveResponse(&status, sizeof(status))) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  if (status != 0) {
+    return 0;
+  }
+
+  return 1;
+}
+
+int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[], size_t dataLength)
+{
+  byte command[8 + dataLength]; // 1 for type, 1 for length, 1 for opcode, 1 for param1, 2 for param2, 2 for crc
 
   command[0] = 0x03;
   command[1] = sizeof(command) - 1;
   command[2] = opcode;
   command[3] = param1;
   memcpy(&command[4], &param2, sizeof(param2));
+  memcpy(&command[6], data, dataLength);
 
-  uint16_t crc = crc16(&command[1], sizeof(command) - 3);
-  memcpy(&command[6], &crc, sizeof(crc));
+  uint16_t crc = crc16(&command[1], 8 - 3 + dataLength);
+  memcpy(&command[6 + dataLength], &crc, sizeof(crc));
 
-  if (_wire->sendTo(_address, command, sizeof(command)) != 0) {
+  if (_wire->sendTo(_address, command, 8 + dataLength) != 0) {
     return 0;
   }
 
@@ -170,7 +242,7 @@ int ECC508Class::receiveResponse(void* response, size_t length)
   return 1;
 }
 
-uint16_t ECC508Class::crc16(byte data[], size_t length)
+uint16_t ECC508Class::crc16(const byte data[], size_t length)
 {
   if (data == NULL || length == 0) {
     return 0;
