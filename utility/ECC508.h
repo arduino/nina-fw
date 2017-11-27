@@ -16,6 +16,7 @@ public:
   int random(byte data[], size_t length);
 
   int ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[]);
+  int ecSign(int slot, const byte message[], byte signature[]);
 
 private:
   int wakeup();
@@ -25,6 +26,7 @@ private:
   int version();
   int challenge(const byte message[]);
   int verify(const byte signature[], const byte pubkey[]);
+  int sign(int slot, byte signature[]);
 
   int sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[] = NULL, size_t dataLength = 0);
   int receiveResponse(void* response, size_t length);

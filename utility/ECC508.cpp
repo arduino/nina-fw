@@ -68,7 +68,30 @@ int ECC508Class::ecdsaVerify(const byte message[], const byte signature[], const
     return 0;
   }
 
-  return verify(signature, pubkey);
+  if (!verify(signature, pubkey)) {
+    return 0;
+  }
+
+  return 1;
+}
+
+int ECC508Class::ecSign(int slot, const byte message[], byte signature[])
+{
+  byte rand[32];
+
+  if (!random(rand, sizeof(rand))) {
+    return 0;
+  }
+
+  if (!challenge(message)) {
+    return 0;
+  }
+
+  if (!sign(slot, signature)) {
+    return 0;
+  }
+
+  return 1;
 }
 
 int ECC508Class::wakeup()
@@ -193,6 +216,28 @@ int ECC508Class::verify(const byte signature[], const byte pubkey[])
   if (status != 0) {
     return 0;
   }
+
+  return 1;
+}
+
+int ECC508Class::sign(int slot, byte signature[])
+{
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (!sendCommand(0x41, 0x80, slot)) {
+    return 0;
+  }
+
+  delay(50);
+
+  if (!receiveResponse(signature, 64)) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
 
   return 1;
 }

@@ -162,9 +162,11 @@ int BearSSLClient::connectSSL(const char* host)
   unsigned char entropy[32];
 
   if (ECC508.begin() && ECC508.random(entropy, sizeof(entropy))) {
-    // ECC508 random success, add custom ECDSA vfry
+    // ECC508 random success, add custom ECDSA vfry and EC sign
     br_ssl_engine_set_ecdsa(&_sc.eng, ecc508_vrfy_asn1);
-    br_x509_minimal_set_ecdsa(&_xc, br_ssl_engine_get_ec(&_sc.eng), br_ssl_engine_get_ecdsa(&_sc.eng));    
+    br_x509_minimal_set_ecdsa(&_xc, br_ssl_engine_get_ec(&_sc.eng), br_ssl_engine_get_ecdsa(&_sc.eng));
+    
+    // br_ssl_client_set_single_ec(&_sc, CHAIN, CHAIN_LEN, &EC, BR_KEYTYPE_KEYX | BR_KEYTYPE_SIGN, BR_KEYTYPE_EC, br_ec_get_default(), ecc508_sign_asn1);
   } else {
     // no ECC508 or random failed, fallback to pseudo random
     for (size_t i = 0; i < sizeof(entropy); i++) {
