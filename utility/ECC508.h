@@ -15,6 +15,9 @@ public:
 
   int random(byte data[], size_t length);
 
+  int generatePrivateKey(int slot, byte publicKey[]);
+  int generatePublicKey(int slot, byte publicKey[]);
+
   int ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[]);
   int ecSign(int slot, const byte message[], byte signature[]);
 

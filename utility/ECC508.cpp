@@ -62,6 +62,52 @@ int ECC508Class::random(byte data[], size_t length)
   return 1;
 }
 
+int ECC508Class::generatePrivateKey(int slot, byte publicKey[])
+{
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (!sendCommand(0x40, 0x04, slot)) {
+    return 0;
+  }
+
+  delay(115);
+
+  if (!receiveResponse(publicKey, 64)) {
+    return 0;
+  }
+
+  delay(1);
+
+  idle();
+
+  return 1;
+}
+
+int ECC508Class::generatePublicKey(int slot, byte publicKey[])
+{
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (!sendCommand(0x40, 0x00, slot)) {
+    return 0;
+  }
+
+  delay(115);
+
+  if (!receiveResponse(publicKey, 64)) {
+    return 0;
+  }
+
+  delay(1);
+
+  idle();
+
+  return 1;
+}
+
 int ECC508Class::ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[])
 {
   if (!challenge(message)) {
