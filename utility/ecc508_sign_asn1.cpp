@@ -17,7 +17,7 @@ ecc508_sign_asn1(const br_ec_impl * /*impl*/,
     return 0;
   }
 
-  if (!ECC508.ecSign(0, (const uint8_t*)hash_value, (uint8_t*)rsig)) {
+  if (!ECC508.ecSign((int)(sk->x), (const uint8_t*)hash_value, (uint8_t*)rsig)) {
     return 0;
   }
   sig_len = 64;

@@ -9,6 +9,24 @@
 BearSSLClient::BearSSLClient(Client& client) :
   _client(&client)
 {
+  _ecKey.curve = 0;
+  _ecKey.x = NULL;
+  _ecKey.xlen = 0;
+
+  _ecCert.data = NULL;
+  _ecCert.data_len = 0;
+}
+
+BearSSLClient::BearSSLClient(Client& client, int ecc508KeySlot, const byte cert[], int certLength) :
+  BearSSLClient(client)
+{
+  // HACK: put the key slot info. in the br_ec_private_key structure
+  _ecKey.curve = 23;
+  _ecKey.x = (unsigned char*)ecc508KeySlot;
+  _ecKey.xlen = 32;
+
+  _ecCert.data = (unsigned char*)cert;
+  _ecCert.data_len = certLength;
 }
 
 BearSSLClient::~BearSSLClient()
@@ -166,7 +184,10 @@ int BearSSLClient::connectSSL(const char* host)
     br_ssl_engine_set_ecdsa(&_sc.eng, ecc508_vrfy_asn1);
     br_x509_minimal_set_ecdsa(&_xc, br_ssl_engine_get_ec(&_sc.eng), br_ssl_engine_get_ecdsa(&_sc.eng));
     
-    // br_ssl_client_set_single_ec(&_sc, CHAIN, CHAIN_LEN, &EC, BR_KEYTYPE_KEYX | BR_KEYTYPE_SIGN, BR_KEYTYPE_EC, br_ec_get_default(), ecc508_sign_asn1);
+    // enable client auth using the ECC508
+    if (_ecCert.data_len && _ecKey.xlen) {
+      br_ssl_client_set_single_ec(&_sc, &_ecCert, 1, &_ecKey, BR_KEYTYPE_KEYX | BR_KEYTYPE_SIGN, BR_KEYTYPE_EC, br_ec_get_default(), ecc508_sign_asn1);
+    }
   } else {
     // no ECC508 or random failed, fallback to pseudo random
     for (size_t i = 0; i < sizeof(entropy); i++) {

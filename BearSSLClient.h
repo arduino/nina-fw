@@ -10,6 +10,7 @@ class BearSSLClient : public Client {
 
 public:
   BearSSLClient(Client& client);
+  BearSSLClient(Client& client, int ecc508KeySlot, const byte cert[], int certLength);
   virtual ~BearSSLClient();
 
   virtual int connect(IPAddress ip, uint16_t port);
@@ -34,6 +35,8 @@ private:
 
 private:
   Client* _client;
+  br_ec_private_key _ecKey;
+  br_x509_certificate _ecCert;
 
   br_ssl_client_context _sc;
   br_x509_minimal_context _xc;
