@@ -29,6 +29,37 @@ void ECC508Class::end()
   _wire->end();
 }
 
+String ECC508Class::serialNumber()
+{
+  String result = (char*)NULL;
+  byte sn[12];
+
+  if (!read(0, 0, &sn[0], 4)) {
+    return result;
+  }
+
+  if (!read(0, 2, &sn[4], 4)) {
+    return result;
+  }
+
+  if (!read(0, 3, &sn[8], 4)) {
+    return result;
+  }
+
+  result.reserve(18);
+
+  for (int i = 0; i < 8; i++) {
+    byte b = sn[i];
+
+    if (b < 16) {
+      result += "0";
+    }
+    result += String(b, HEX);
+  }
+
+  return result;
+}
+
 int ECC508Class::random(byte data[], size_t length)
 {
   if (!wakeup()) {
@@ -134,6 +165,64 @@ int ECC508Class::ecSign(int slot, const byte message[], byte signature[])
   }
 
   if (!sign(slot, signature)) {
+    return 0;
+  }
+
+  return 1;
+}
+
+int ECC508Class::locked()
+{
+  byte config[4];
+
+  if (!read(0, 0x15, config, sizeof(config))) {
+    return 0;
+  }
+
+  if (config[2] == 0x00 && config[3] == 0x00) {
+    return 1; // locked
+  }
+
+  return 0;
+}
+
+int ECC508Class::writeConfiguration(const byte data[])
+{
+  // skip first 16 bytes, they are not writable
+  for (int i = 16; i < 128; i += 4) {
+    if (i == 84) {
+      // not writable
+      continue;
+    }
+
+    if (!write(0, i / 4, &data[i], 4)) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+int ECC508Class::readConfiguration(byte data[])
+{
+  for (int i = 0; i < 128; i += 32) {
+    if (!read(0, i / 4, &data[i], 32)) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+int ECC508Class::lock()
+{
+  // lock config
+  if (!lock(0)) {
+    return 0;
+  }
+
+  // lock data and OTP
+  if (!lock(1)) {
     return 0;
   }
 
@@ -284,6 +373,100 @@ int ECC508Class::sign(int slot, byte signature[])
 
   delay(1);
   idle();
+
+  return 1;
+}
+
+int ECC508Class::read(int zone, int address, byte buffer[], int length)
+{
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (length != 4 && length != 32) {
+    return 0;
+  }
+
+  if (length == 32) {
+    zone |= 0x80;
+  }
+
+  if (!sendCommand(0x02, zone, address)) {
+    return 0;
+  }
+
+  delay(1);
+
+  if (!receiveResponse(buffer, length)) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  return length;
+}
+
+int ECC508Class::write(int zone, int address, const byte buffer[], int length)
+{
+  uint8_t status;
+
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (length != 4 && length != 32) {
+    return 0;
+  }
+
+  if (length == 32) {
+    zone |= 0x80;
+  }
+
+  if (!sendCommand(0x12, zone, address, buffer, length)) {
+    return 0;
+  }
+
+  delay(26);
+
+  if (!receiveResponse(&status, sizeof(status))) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  if (status != 0) {
+    return 0;
+  }
+
+  return 1;
+}
+
+int ECC508Class::lock(int zone)
+{
+  uint8_t status;
+
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (!sendCommand(0x17, 0x80 | zone, 0x0000)) {
+    return 0;
+  }
+
+  delay(32);
+
+  if (!receiveResponse(&status, sizeof(status))) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  if (status != 0) {
+    return 0;
+  }
 
   return 1;
 }

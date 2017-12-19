@@ -13,6 +13,8 @@ public:
   int begin();
   void end();
 
+  String serialNumber();
+
   int random(byte data[], size_t length);
 
   int generatePrivateKey(int slot, byte publicKey[]);
@@ -20,6 +22,11 @@ public:
 
   int ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[]);
   int ecSign(int slot, const byte message[], byte signature[]);
+
+  int locked();
+  int writeConfiguration(const byte data[]);
+  int readConfiguration(byte data[]);
+  int lock();
 
 private:
   int wakeup();
@@ -30,6 +37,10 @@ private:
   int challenge(const byte message[]);
   int verify(const byte signature[], const byte pubkey[]);
   int sign(int slot, byte signature[]);
+
+  int read(int zone, int address, byte buffer[], int length);
+  int write(int zone, int address, const byte buffer[], int length);
+  int lock(int zone);
 
   int sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[] = NULL, size_t dataLength = 0);
   int receiveResponse(void* response, size_t length);
