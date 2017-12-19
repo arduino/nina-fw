@@ -103,7 +103,7 @@ String ECC508CSRClass::end()
   br_sha256_out(&sha256Context, csrInfoSha256);
 
   if (!ECC508.ecSign(_slot, csrInfoSha256, signedCsrInfoSha256)) {
-    return String(NULL);
+    return "";
   }
 
   int signatureLength = encodeEcdsaSignature(signedCsrInfoSha256, &csr[4 + csrInfoLength]); 
