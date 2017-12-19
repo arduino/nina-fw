@@ -179,7 +179,7 @@ int BearSSLClient::connectSSL(const char* host)
   // inject entropy in engine
   unsigned char entropy[32];
 
-  if (ECC508.begin() && ECC508.random(entropy, sizeof(entropy))) {
+  if (ECC508.begin() && ECC508.locked() && ECC508.random(entropy, sizeof(entropy))) {
     // ECC508 random success, add custom ECDSA vfry and EC sign
     br_ssl_engine_set_ecdsa(&_sc.eng, ecc508_vrfy_asn1);
     br_x509_minimal_set_ecdsa(&_xc, br_ssl_engine_get_ec(&_sc.eng), br_ssl_engine_get_ecdsa(&_sc.eng));
