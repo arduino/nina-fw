@@ -49,6 +49,9 @@ private:
 private:
   TwoWire* _wire;
   uint8_t _address;
+
+  static const uint32_t _wakeupFrequency;
+  static const uint32_t _normalFrequency;
 };
 
 extern ECC508Class ECC508;

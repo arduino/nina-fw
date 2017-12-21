@@ -2,6 +2,9 @@
 
 #include "ECC508.h"
 
+const uint32_t ECC508Class::_wakeupFrequency   = 100000u;  // 100 kHz
+const uint32_t ECC508Class::_normalFrequency = 1000000u; // 1 MHz
+
 ECC508Class::ECC508Class(TwoWire& wire, uint8_t address) :
   _wire(&wire),
   _address(address)
@@ -15,7 +18,6 @@ ECC508Class::~ECC508Class()
 int ECC508Class::begin()
 {
   _wire->begin();
-  _wire->setClock(100000);
 
   if (version() != 0x500000) {
     return 0;
@@ -231,6 +233,7 @@ int ECC508Class::lock()
 
 int ECC508Class::wakeup()
 {
+  _wire->setClock(_wakeupFrequency);
   _wire->beginTransmission(0x00);
   _wire->endTransmission();
 
@@ -241,6 +244,8 @@ int ECC508Class::wakeup()
   if (!receiveResponse(&response, sizeof(response)) || response != 0x11) {
     return 0;
   }
+
+  _wire->setClock(_normalFrequency);
 
   return 1;
 }
