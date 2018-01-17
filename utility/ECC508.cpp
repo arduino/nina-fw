@@ -478,8 +478,9 @@ int ECC508Class::lock(int zone)
 
 int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[], size_t dataLength)
 {
-  byte command[8 + dataLength]; // 1 for type, 1 for length, 1 for opcode, 1 for param1, 2 for param2, 2 for crc
-
+  int commandLength = 8 + dataLength; // 1 for type, 1 for length, 1 for opcode, 1 for param1, 2 for param2, 2 for crc
+  byte command[commandLength]; 
+  
   command[0] = 0x03;
   command[1] = sizeof(command) - 1;
   command[2] = opcode;
@@ -490,7 +491,10 @@ int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
   uint16_t crc = crc16(&command[1], 8 - 3 + dataLength);
   memcpy(&command[6 + dataLength], &crc, sizeof(crc));
 
-  if (_wire->sendTo(_address, command, 8 + dataLength) != 0) {
+  // begin transmission with external buffer which is pre-populated with data
+  _wire->beginTransmission(_address, command, commandLength, commandLength);
+
+  if (_wire->endTransmission() != 0) {
     return 0;
   }
 
