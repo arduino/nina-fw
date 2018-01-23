@@ -491,9 +491,8 @@ int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
   uint16_t crc = crc16(&command[1], 8 - 3 + dataLength);
   memcpy(&command[6 + dataLength], &crc, sizeof(crc));
 
-  // begin transmission with external buffer which is pre-populated with data
-  _wire->beginTransmission(_address, command, commandLength, commandLength);
-
+  _wire->beginTransmission(_address);
+  _wire->write(command, commandLength);
   if (_wire->endTransmission() != 0) {
     return 0;
   }
@@ -507,11 +506,17 @@ int ECC508Class::receiveResponse(void* response, size_t length)
   int responseSize = length + 3; // 1 for length header, 2 for CRC
   byte responseBuffer[responseSize];
 
-  while (_wire->requestFrom(_address, responseBuffer, responseSize) != responseSize && retries--);
+  while (_wire->requestFrom(_address, responseSize) != responseSize && retries--);
+
+  responseBuffer[0] = _wire->read();
 
   // make sure length matches
   if (responseBuffer[0] != responseSize) {
     return 0;
+  }
+
+  for (size_t i = 1; _wire->available(); i++) {
+    responseBuffer[i] = _wire->read();
   }
 
   // verify CRC
