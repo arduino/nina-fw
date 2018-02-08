@@ -173,6 +173,44 @@ int ECC508Class::ecSign(int slot, const byte message[], byte signature[])
   return 1;
 }
 
+int ECC508Class::readSlot(int slot, byte data[], int length)
+{
+  if (slot < 0 || slot > 15) {
+    return -1;
+  }
+
+  if (length % 4 != 0) {
+    return 0;
+  }
+
+  for (int i = 0; i < length; i += 4) {
+    if (!read(2, addressForSlotOffset(slot, i), &data[i], 4)) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+int ECC508Class::writeSlot(int slot, const byte data[], int length)
+{
+  if (slot < 0 || slot > 15) {
+    return -1;
+  }
+
+  if (length % 4 != 0) {
+    return 0;
+  }
+
+  for (int i = 0; i < length; i += 4) {
+    if (!write(2, addressForSlotOffset(slot, i), &data[i], 4)) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 int ECC508Class::locked()
 {
   byte config[4];
@@ -476,6 +514,14 @@ int ECC508Class::lock(int zone)
   return 1;
 }
 
+int ECC508Class::addressForSlotOffset(int slot, int offset)
+{
+  int block = offset / 32;
+  offset = (offset % 32) / 4;  
+
+  return (slot << 3) | (block << 8) | (offset);
+}
+
 int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[], size_t dataLength)
 {
   int commandLength = 8 + dataLength; // 1 for type, 1 for length, 1 for opcode, 1 for param1, 2 for param2, 2 for crc
@@ -502,7 +548,7 @@ int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
 
 int ECC508Class::receiveResponse(void* response, size_t length)
 {
-  int retries = 20;
+  int retries = 25;
   int responseSize = length + 3; // 1 for length header, 2 for CRC
   byte responseBuffer[responseSize];
 

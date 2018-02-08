@@ -23,6 +23,9 @@ public:
   int ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[]);
   int ecSign(int slot, const byte message[], byte signature[]);
 
+  int readSlot(int slot, byte data[], int length);
+  int writeSlot(int slot, const byte data[], int length);
+
   int locked();
   int writeConfiguration(const byte data[]);
   int readConfiguration(byte data[]);
@@ -41,6 +44,8 @@ private:
   int read(int zone, int address, byte buffer[], int length);
   int write(int zone, int address, const byte buffer[], int length);
   int lock(int zone);
+
+  int addressForSlotOffset(int slot, int offset);
 
   int sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[] = NULL, size_t dataLength = 0);
   int receiveResponse(void* response, size_t length);
