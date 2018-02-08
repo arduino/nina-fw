@@ -2,7 +2,7 @@
 
 #include "ECC508.h"
 
-const uint32_t ECC508Class::_wakeupFrequency   = 100000u;  // 100 kHz
+const uint32_t ECC508Class::_wakeupFrequency = 100000u;  // 100 kHz
 const uint32_t ECC508Class::_normalFrequency = 1000000u; // 1 MHz
 
 ECC508Class::ECC508Class(TwoWire& wire, uint8_t address) :
@@ -58,6 +58,8 @@ String ECC508Class::serialNumber()
     }
     result += String(b, HEX);
   }
+
+  result.toUpperCase();
 
   return result;
 }
