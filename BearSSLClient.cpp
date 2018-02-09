@@ -17,18 +17,6 @@ BearSSLClient::BearSSLClient(Client& client) :
   _ecCert.data_len = 0;
 }
 
-BearSSLClient::BearSSLClient(Client& client, int ecc508KeySlot, const byte cert[], int certLength) :
-  BearSSLClient(client)
-{
-  // HACK: put the key slot info. in the br_ec_private_key structure
-  _ecKey.curve = 23;
-  _ecKey.x = (unsigned char*)ecc508KeySlot;
-  _ecKey.xlen = 32;
-
-  _ecCert.data = (unsigned char*)cert;
-  _ecCert.data_len = certLength;
-}
-
 BearSSLClient::~BearSSLClient()
 {
 }
@@ -155,6 +143,17 @@ uint8_t BearSSLClient::connected()
 BearSSLClient::operator bool()
 {
   return (*_client);  
+}
+
+void BearSSLClient::setEccSlot(int ecc508KeySlot, const byte cert[], int certLength)
+{
+  // HACK: put the key slot info. in the br_ec_private_key structure
+  _ecKey.curve = 23;
+  _ecKey.x = (unsigned char*)ecc508KeySlot;
+  _ecKey.xlen = 32;
+
+  _ecCert.data = (unsigned char*)cert;
+  _ecCert.data_len = certLength;
 }
 
 int BearSSLClient::connectSSL(const char* host)

@@ -10,7 +10,6 @@ class BearSSLClient : public Client {
 
 public:
   BearSSLClient(Client& client);
-  BearSSLClient(Client& client, int ecc508KeySlot, const byte cert[], int certLength);
   virtual ~BearSSLClient();
 
   virtual int connect(IPAddress ip, uint16_t port);
@@ -27,6 +26,8 @@ public:
   virtual operator bool();
 
   using Print::write;
+
+  void setEccSlot(int ecc508KeySlot, const byte cert[], int certLength);
 
 private:
   int connectSSL(const char* host);
