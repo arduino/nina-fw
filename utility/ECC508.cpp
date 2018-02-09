@@ -50,7 +50,7 @@ String ECC508Class::serialNumber()
 
   result.reserve(18);
 
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 9; i++) {
     byte b = sn[i];
 
     if (b < 16) {
