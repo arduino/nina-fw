@@ -185,8 +185,14 @@ int ECC508Class::readSlot(int slot, byte data[], int length)
     return 0;
   }
 
-  for (int i = 0; i < length; i += 4) {
-    if (!read(2, addressForSlotOffset(slot, i), &data[i], 4)) {
+  int chunkSize = 32;
+
+  for (int i = 0; i < length; i += chunkSize) {
+    if ((length - i) < 32) {
+      chunkSize = 4;
+    }
+
+    if (!read(2, addressForSlotOffset(slot, i), &data[i], chunkSize)) {
       return 0;
     }
   }
@@ -204,8 +210,14 @@ int ECC508Class::writeSlot(int slot, const byte data[], int length)
     return 0;
   }
 
-  for (int i = 0; i < length; i += 4) {
-    if (!write(2, addressForSlotOffset(slot, i), &data[i], 4)) {
+  int chunkSize = 32;
+
+  for (int i = 0; i < length; i += chunkSize) {
+    if ((length - i) < 32) {
+      chunkSize = 4;
+    }
+
+    if (!write(2, addressForSlotOffset(slot, i), &data[i], chunkSize)) {
       return 0;
     }
   }
@@ -440,7 +452,7 @@ int ECC508Class::read(int zone, int address, byte buffer[], int length)
     return 0;
   }
 
-  delay(1);
+  delay(2);
 
   if (!receiveResponse(buffer, length)) {
     return 0;
@@ -550,7 +562,7 @@ int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
 
 int ECC508Class::receiveResponse(void* response, size_t length)
 {
-  int retries = 25;
+  int retries = 20;
   int responseSize = length + 3; // 1 for length header, 2 for CRC
   byte responseBuffer[responseSize];
 
