@@ -1,12 +1,12 @@
-#include "ecc508_asn1.h"
+#include "eccX08_asn1.h"
 
-#include "ECC508.h"
+#include "ECCX08.h"
 
 #define BR_MAX_EC_SIZE   528
 #define ORDER_LEN   ((BR_MAX_EC_SIZE + 7) >> 3)
 
 size_t
-ecc508_sign_asn1(const br_ec_impl * /*impl*/,
+eccX08_sign_asn1(const br_ec_impl * /*impl*/,
   const br_hash_class * /*hf*/, const void *hash_value,
   const br_ec_private_key *sk, void *sig)
 {
@@ -17,7 +17,7 @@ ecc508_sign_asn1(const br_ec_impl * /*impl*/,
     return 0;
   }
 
-  if (!ECC508.ecSign((int)(sk->x), (const uint8_t*)hash_value, (uint8_t*)rsig)) {
+  if (!ECCX08.ecSign((int)(sk->x), (const uint8_t*)hash_value, (uint8_t*)rsig)) {
     return 0;
   }
   sig_len = 64;

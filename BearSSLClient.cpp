@@ -1,7 +1,7 @@
 #include "ArduinoBearSSL.h"
 #include "BearSSLTrustAnchors.h"
-#include "utility/ECC508.h"
-#include "utility/ecc508_asn1.h"
+#include "utility/ECCX08.h"
+#include "utility/eccX08_asn1.h"
 
 
 #include "BearSSLClient.h"
@@ -178,17 +178,17 @@ int BearSSLClient::connectSSL(const char* host)
   // inject entropy in engine
   unsigned char entropy[32];
 
-  if (ECC508.begin() && ECC508.locked() && ECC508.random(entropy, sizeof(entropy))) {
+  if (ECCX08.begin() && ECCX08.locked() && ECCX08.random(entropy, sizeof(entropy))) {
     // ECC508 random success, add custom ECDSA vfry and EC sign
-    br_ssl_engine_set_ecdsa(&_sc.eng, ecc508_vrfy_asn1);
+    br_ssl_engine_set_ecdsa(&_sc.eng, eccX08_vrfy_asn1);
     br_x509_minimal_set_ecdsa(&_xc, br_ssl_engine_get_ec(&_sc.eng), br_ssl_engine_get_ecdsa(&_sc.eng));
     
-    // enable client auth using the ECC508
+    // enable client auth using the ECCX08
     if (_ecCert.data_len && _ecKey.xlen) {
-      br_ssl_client_set_single_ec(&_sc, &_ecCert, 1, &_ecKey, BR_KEYTYPE_KEYX | BR_KEYTYPE_SIGN, BR_KEYTYPE_EC, br_ec_get_default(), ecc508_sign_asn1);
+      br_ssl_client_set_single_ec(&_sc, &_ecCert, 1, &_ecKey, BR_KEYTYPE_KEYX | BR_KEYTYPE_SIGN, BR_KEYTYPE_EC, br_ec_get_default(), eccX08_sign_asn1);
     }
   } else {
-    // no ECC508 or random failed, fallback to pseudo random
+    // no ECCX08 or random failed, fallback to pseudo random
     for (size_t i = 0; i < sizeof(entropy); i++) {
       entropy[i] = random(0, 255);
     }

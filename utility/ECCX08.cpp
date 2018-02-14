@@ -1,21 +1,21 @@
 #include <Arduino.h>
 
-#include "ECC508.h"
+#include "ECCX08.h"
 
-const uint32_t ECC508Class::_wakeupFrequency = 100000u;  // 100 kHz
-const uint32_t ECC508Class::_normalFrequency = 1000000u; // 1 MHz
+const uint32_t ECCX08Class::_wakeupFrequency = 100000u;  // 100 kHz
+const uint32_t ECCX08Class::_normalFrequency = 1000000u; // 1 MHz
 
-ECC508Class::ECC508Class(TwoWire& wire, uint8_t address) :
+ECCX08Class::ECCX08Class(TwoWire& wire, uint8_t address) :
   _wire(&wire),
   _address(address)
 {
 }
 
-ECC508Class::~ECC508Class()
+ECCX08Class::~ECCX08Class()
 {
 }
 
-int ECC508Class::begin()
+int ECCX08Class::begin()
 {
   _wire->begin();
 
@@ -26,12 +26,12 @@ int ECC508Class::begin()
   return 1;
 }
 
-void ECC508Class::end()
+void ECCX08Class::end()
 {
   _wire->end();
 }
 
-String ECC508Class::serialNumber()
+String ECCX08Class::serialNumber()
 {
   String result = (char*)NULL;
   byte sn[12];
@@ -64,7 +64,7 @@ String ECC508Class::serialNumber()
   return result;
 }
 
-int ECC508Class::random(byte data[], size_t length)
+int ECCX08Class::random(byte data[], size_t length)
 {
   if (!wakeup()) {
     return 0;
@@ -97,7 +97,7 @@ int ECC508Class::random(byte data[], size_t length)
   return 1;
 }
 
-int ECC508Class::generatePrivateKey(int slot, byte publicKey[])
+int ECCX08Class::generatePrivateKey(int slot, byte publicKey[])
 {
   if (!wakeup()) {
     return 0;
@@ -120,7 +120,7 @@ int ECC508Class::generatePrivateKey(int slot, byte publicKey[])
   return 1;
 }
 
-int ECC508Class::generatePublicKey(int slot, byte publicKey[])
+int ECCX08Class::generatePublicKey(int slot, byte publicKey[])
 {
   if (!wakeup()) {
     return 0;
@@ -143,7 +143,7 @@ int ECC508Class::generatePublicKey(int slot, byte publicKey[])
   return 1;
 }
 
-int ECC508Class::ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[])
+int ECCX08Class::ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[])
 {
   if (!challenge(message)) {
     return 0;
@@ -156,7 +156,7 @@ int ECC508Class::ecdsaVerify(const byte message[], const byte signature[], const
   return 1;
 }
 
-int ECC508Class::ecSign(int slot, const byte message[], byte signature[])
+int ECCX08Class::ecSign(int slot, const byte message[], byte signature[])
 {
   byte rand[32];
 
@@ -175,7 +175,7 @@ int ECC508Class::ecSign(int slot, const byte message[], byte signature[])
   return 1;
 }
 
-int ECC508Class::readSlot(int slot, byte data[], int length)
+int ECCX08Class::readSlot(int slot, byte data[], int length)
 {
   if (slot < 0 || slot > 15) {
     return -1;
@@ -200,7 +200,7 @@ int ECC508Class::readSlot(int slot, byte data[], int length)
   return 1;
 }
 
-int ECC508Class::writeSlot(int slot, const byte data[], int length)
+int ECCX08Class::writeSlot(int slot, const byte data[], int length)
 {
   if (slot < 0 || slot > 15) {
     return -1;
@@ -225,7 +225,7 @@ int ECC508Class::writeSlot(int slot, const byte data[], int length)
   return 1;
 }
 
-int ECC508Class::locked()
+int ECCX08Class::locked()
 {
   byte config[4];
 
@@ -240,7 +240,7 @@ int ECC508Class::locked()
   return 0;
 }
 
-int ECC508Class::writeConfiguration(const byte data[])
+int ECCX08Class::writeConfiguration(const byte data[])
 {
   // skip first 16 bytes, they are not writable
   for (int i = 16; i < 128; i += 4) {
@@ -257,7 +257,7 @@ int ECC508Class::writeConfiguration(const byte data[])
   return 1;
 }
 
-int ECC508Class::readConfiguration(byte data[])
+int ECCX08Class::readConfiguration(byte data[])
 {
   for (int i = 0; i < 128; i += 32) {
     if (!read(0, i / 4, &data[i], 32)) {
@@ -268,7 +268,7 @@ int ECC508Class::readConfiguration(byte data[])
   return 1;
 }
 
-int ECC508Class::lock()
+int ECCX08Class::lock()
 {
   // lock config
   if (!lock(0)) {
@@ -283,7 +283,7 @@ int ECC508Class::lock()
   return 1;
 }
 
-int ECC508Class::wakeup()
+int ECCX08Class::wakeup()
 {
   _wire->setClock(_wakeupFrequency);
   _wire->beginTransmission(0x00);
@@ -302,7 +302,7 @@ int ECC508Class::wakeup()
   return 1;
 }
 
-int ECC508Class::sleep()
+int ECCX08Class::sleep()
 {
   _wire->beginTransmission(_address);
   _wire->write(0x01);
@@ -314,7 +314,7 @@ int ECC508Class::sleep()
   return 1;
 }
 
-int ECC508Class::idle()
+int ECCX08Class::idle()
 {
   _wire->beginTransmission(_address);
   _wire->write(0x02);
@@ -326,7 +326,7 @@ int ECC508Class::idle()
   return 1;
 }
 
-int ECC508Class::version()
+int ECCX08Class::version()
 {
   uint32_t version = 0;
 
@@ -350,7 +350,7 @@ int ECC508Class::version()
   return version;
 }
 
-int ECC508Class::challenge(const byte message[])
+int ECCX08Class::challenge(const byte message[])
 {
   uint8_t status;
 
@@ -379,7 +379,7 @@ int ECC508Class::challenge(const byte message[])
   return 1;
 }
 
-int ECC508Class::verify(const byte signature[], const byte pubkey[])
+int ECCX08Class::verify(const byte signature[], const byte pubkey[])
 {
   uint8_t status;
 
@@ -412,7 +412,7 @@ int ECC508Class::verify(const byte signature[], const byte pubkey[])
   return 1;
 }
 
-int ECC508Class::sign(int slot, byte signature[])
+int ECCX08Class::sign(int slot, byte signature[])
 {
   if (!wakeup()) {
     return 0;
@@ -434,7 +434,7 @@ int ECC508Class::sign(int slot, byte signature[])
   return 1;
 }
 
-int ECC508Class::read(int zone, int address, byte buffer[], int length)
+int ECCX08Class::read(int zone, int address, byte buffer[], int length)
 {
   if (!wakeup()) {
     return 0;
@@ -464,7 +464,7 @@ int ECC508Class::read(int zone, int address, byte buffer[], int length)
   return length;
 }
 
-int ECC508Class::write(int zone, int address, const byte buffer[], int length)
+int ECCX08Class::write(int zone, int address, const byte buffer[], int length)
 {
   uint8_t status;
 
@@ -500,7 +500,7 @@ int ECC508Class::write(int zone, int address, const byte buffer[], int length)
   return 1;
 }
 
-int ECC508Class::lock(int zone)
+int ECCX08Class::lock(int zone)
 {
   uint8_t status;
 
@@ -528,7 +528,7 @@ int ECC508Class::lock(int zone)
   return 1;
 }
 
-int ECC508Class::addressForSlotOffset(int slot, int offset)
+int ECCX08Class::addressForSlotOffset(int slot, int offset)
 {
   int block = offset / 32;
   offset = (offset % 32) / 4;  
@@ -536,7 +536,7 @@ int ECC508Class::addressForSlotOffset(int slot, int offset)
   return (slot << 3) | (block << 8) | (offset);
 }
 
-int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[], size_t dataLength)
+int ECCX08Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, const byte data[], size_t dataLength)
 {
   int commandLength = 8 + dataLength; // 1 for type, 1 for length, 1 for opcode, 1 for param1, 2 for param2, 2 for crc
   byte command[commandLength]; 
@@ -560,7 +560,7 @@ int ECC508Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
   return 1;
 }
 
-int ECC508Class::receiveResponse(void* response, size_t length)
+int ECCX08Class::receiveResponse(void* response, size_t length)
 {
   int retries = 20;
   int responseSize = length + 3; // 1 for length header, 2 for CRC
@@ -590,7 +590,7 @@ int ECC508Class::receiveResponse(void* response, size_t length)
   return 1;
 }
 
-uint16_t ECC508Class::crc16(const byte data[], size_t length)
+uint16_t ECCX08Class::crc16(const byte data[], size_t length)
 {
   if (data == NULL || length == 0) {
     return 0;
@@ -619,4 +619,4 @@ uint16_t ECC508Class::crc16(const byte data[], size_t length)
   return crc;
 }
 
-ECC508Class ECC508(Wire, 0x60);
+ECCX08Class ECCX08(Wire, 0x60);

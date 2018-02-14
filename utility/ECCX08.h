@@ -1,14 +1,14 @@
-#ifndef _ECC508_H_
-#define _ECC508_H_
+#ifndef _ECCX08_H_
+#define _ECCX08_H_
 
 #include <Arduino.h>
 #include <Wire.h>
 
-class ECC508Class
+class ECCX08Class
 {
 public:
-  ECC508Class(TwoWire& wire, uint8_t address);
-  virtual ~ECC508Class();
+  ECCX08Class(TwoWire& wire, uint8_t address);
+  virtual ~ECCX08Class();
 
   int begin();
   void end();
@@ -59,6 +59,6 @@ private:
   static const uint32_t _normalFrequency;
 };
 
-extern ECC508Class ECC508;
+extern ECCX08Class ECCX08;
 
 #endif

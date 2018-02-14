@@ -1,12 +1,12 @@
-#include "ecc508_asn1.h"
+#include "eccX08_asn1.h"
 
-#include "ECC508.h"
+#include "ECCX08.h"
 
 #define BR_MAX_EC_SIZE   528
 #define FIELD_LEN   ((BR_MAX_EC_SIZE + 7) >> 3)
 
 uint32_t
-ecc508_vrfy_asn1(const br_ec_impl * /*impl*/,
+eccX08_vrfy_asn1(const br_ec_impl * /*impl*/,
   const void *hash, size_t hash_len,
   const br_ec_public_key *pk,
   const void *sig, size_t sig_len)
@@ -29,7 +29,7 @@ ecc508_vrfy_asn1(const br_ec_impl * /*impl*/,
   }
 
   // TODO: understand why the public key is &pk->q[1] instead of &pk->q[0] ...
-  if (!ECC508.ecdsaVerify((const uint8_t*)hash, (const uint8_t*)rsig, (const uint8_t*)&pk->q[1])) {
+  if (!ECCX08.ecdsaVerify((const uint8_t*)hash, (const uint8_t*)rsig, (const uint8_t*)&pk->q[1])) {
     return 0;
   }
 
