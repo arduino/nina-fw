@@ -154,7 +154,7 @@
  *
 #define BR_ARMEL_CORTEXM_GCC   1
  */
-#ifdef ARDUINO
+#if defined(ARDUINO) && defined(__arm__)
 #define BR_ARMEL_CORTEXM_GCC   1
 #endif
 
