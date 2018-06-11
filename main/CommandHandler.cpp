@@ -989,6 +989,119 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int writeFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  FILE* f = fopen(filename, "ab+");
+  if (f == NULL) {
+    return -1;
+  }
+
+  fseek(f, offset, SEEK_SET);
+  const uint8_t* data = &command[7 + command[3] + command[4 + command[3]] + command[5 + command[3] + command[4 + command[3]]]];
+
+  int ret = fwrite(data, 1, len, f);
+  fclose(f);
+
+  return ret;
+}
+
+int readFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  FILE* f = fopen(filename, "rb");
+  if (f == NULL) {
+    return -1;
+  }
+  fseek(f, offset, SEEK_SET);
+  int ret = fread(&response[4], len, 1, f);
+  fclose(f);
+
+  response[2] = 1; // number of parameters
+  response[3] = len; // parameter 1 length
+
+  return len + 5;
+}
+
+int deleteFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  int ret = -1;
+  struct stat st;
+  if (stat(filename, &st) == 0) {
+    // Delete it if it exists
+    ret = unlink(filename);
+  }
+  return 0;
+}
+
+int existsFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  int ret = -1;
+
+  struct stat st;
+  ret = stat(filename, &st);
+  if (ret != 0) {
+    st.st_size = -1;
+  }
+  memcpy(&response[4], &(st.st_size), sizeof(st.st_size));
+
+  response[2] = 1; // number of parameters
+  response[3] = sizeof(st.st_size); // parameter 1 length
+
+  return 10;
+}
+
+int downloadFile(const uint8_t command[], uint8_t response[]) {
+  char url[64 + 1];
+  char filename[64 + 1];
+
+  memset(url, 0x00, sizeof(url));
+  memset(filename, 0x00, sizeof(filename));
+
+  memcpy(url, &command[4], command[3]);
+  memcpy(filename, "/fs/", strlen("/fs/"));
+  memcpy(&filename[strlen("/fs/")], &command[5 + command[3]], command[4 + command[3]]);
+
+  FILE* f = fopen(filename, "w");
+  downloadAndSaveFile(url, filename, f);
+  fclose(f);
+
+  return 0;
+}
 
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
@@ -1009,7 +1122,10 @@ const CommandHandlerType commandHandlers[] = {
   NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x50 -> 0x5f
-  setPinMode, setDigitalWrite, setAnalogWrite,
+  setPinMode, setDigitalWrite, setAnalogWrite,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+  // 0x60 -> 0x6f
+  writeFile, readFile, deleteFile, existsFile, downloadFile,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 #define NUM_COMMAND_HANDLERS (sizeof(commandHandlers) / sizeof(commandHandlers[0]))
@@ -1033,6 +1149,9 @@ void CommandHandlerClass::begin()
 
   xTaskCreatePinnedToCore(CommandHandlerClass::gpio0Updater, "gpio0Updater", 8192, NULL, 1, NULL, 1);
 }
+
+#define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
+#define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 
 int CommandHandlerClass::handle(const uint8_t command[], uint8_t response[])
 {
@@ -1060,7 +1179,7 @@ int CommandHandlerClass::handle(const uint8_t command[], uint8_t response[])
 
   xSemaphoreGive(_updateGpio0PinSemaphore);
 
-  return responseLength;
+  return ALIGN_UP(responseLength, 4);
 }
 
 void CommandHandlerClass::gpio0Updater(void*)
