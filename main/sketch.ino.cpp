@@ -21,6 +21,12 @@
 
 extern "C" {
   #include <driver/periph_ctrl.h>
+  #include "esp_spiffs.h"
+  #include "esp_log.h"
+  #include <stdio.h>
+  #include <sys/types.h>
+  #include <dirent.h>
+  #include "esp_partition.h"
 }
 
 #include <Arduino.h>
@@ -85,6 +91,15 @@ void setup() {
   pinMode(21, INPUT);
 
   SPIS.begin();
+
+  esp_vfs_spiffs_conf_t conf = {
+    .base_path = "/fs",
+    .partition_label = "storage",
+    .max_files = 20,
+    .format_if_mount_failed = true
+  };
+
+  esp_err_t ret = esp_vfs_spiffs_register(&conf);
 
   if (WiFi.status() == WL_NO_SHIELD) {
     while (1); // no shield
