@@ -600,7 +600,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       break;
 
     case SYSTEM_EVENT_STA_GOT_IP:
-      tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &_ipInfo);
+      memcpy(&_ipInfo, &event->event_info.got_ip.ip_info, sizeof(_ipInfo));
       _status = WL_CONNECTED;
       break;
 
