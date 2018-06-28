@@ -223,6 +223,8 @@ void WiFiSSLClient::stop()
     _connected = false;
     _netContext.fd = -1;
   }
+
+  vTaskDelay(1);
 }
 
 uint8_t WiFiSSLClient::connected()
