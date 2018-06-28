@@ -175,6 +175,7 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
 
   _interface = ESP_IF_WIFI_STA;
 
+  esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_STA);
   esp_wifi_start();
   xEventGroupWaitBits(_eventGroup, BIT0, false, true, portMAX_DELAY);
