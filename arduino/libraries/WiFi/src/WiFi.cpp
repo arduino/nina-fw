@@ -579,6 +579,12 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
     case SYSTEM_EVENT_STA_START: {
       struct netif* staNetif;
+      uint8_t mac[6];
+      char defaultHostname[13];
+
+      esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
+      sprintf(defaultHostname, "arduino-%.2x%.2x", mac[4], mac[5]);
+      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, defaultHostname);
 
       if (tcpip_adapter_get_netif(TCPIP_ADAPTER_IF_STA, (void**)&staNetif) == ESP_OK) {
         if (staNetif->input != WiFiClass::staNetifInputHandler) {
