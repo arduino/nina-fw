@@ -2,7 +2,7 @@
 
 booloaderData = open("build/bootloader/bootloader.bin", "rb").read()
 partitionData = open("build/partitions_singleapp.bin", "rb").read()
-appData = open("build/mkrwifi1010-fw.bin", "rb").read()
+appData = open("build/nina-fw.bin", "rb").read()
 
 # calculate the output binary size, app offset 
 outputSize = 0x10000 + len(appData)

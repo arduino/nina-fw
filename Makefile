@@ -8,3 +8,8 @@ CPPFLAGS += -DNDEBUG -Os
 endif
 
 include $(IDF_PATH)/make/project.mk
+
+firmware: all
+	python combine.py
+
+.PHONY: firmware
