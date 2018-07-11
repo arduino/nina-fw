@@ -1,4 +1,4 @@
-# MKR WiFi 1010: NINA-W102 firmware
+# Arduino NINA-W102 firmware
 
 This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
@@ -14,7 +14,7 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
 ## License
 
-Copyright (c) 2018 Arduino AG. All right reserved.
+Copyright (c) 2018 Arduino SA. All rights reserved.
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public

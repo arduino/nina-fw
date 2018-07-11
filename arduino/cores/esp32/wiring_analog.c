@@ -1,6 +1,6 @@
 /*
-  This file is part of the MKR WiFi 1010 firmware.
-  Copyright (C) 2018  Arduino AG (http://www.arduino.cc/)
+  This file is part of the Arduino NINA firmware.
+  Copyright (c) 2018 Arduino SA. All rights reserved.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public

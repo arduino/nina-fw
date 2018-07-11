@@ -1,4 +1,4 @@
-PROJECT_NAME := mkrwifi1010-fw
+PROJECT_NAME := nina-fw
 
 EXTRA_COMPONENT_DIRS := $(PWD)/arduino
 
