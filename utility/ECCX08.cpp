@@ -3,7 +3,11 @@
 #include "ECCX08.h"
 
 const uint32_t ECCX08Class::_wakeupFrequency = 100000u;  // 100 kHz
+#ifdef __AVR__
+const uint32_t ECCX08Class::_normalFrequency = 400000u;  // 400 kHz
+#else
 const uint32_t ECCX08Class::_normalFrequency = 1000000u; // 1 MHz
+#endif
 
 ECCX08Class::ECCX08Class(TwoWire& wire, uint8_t address) :
   _wire(&wire),
@@ -19,7 +23,9 @@ int ECCX08Class::begin()
 {
   _wire->begin();
 
-  if (version() != 0x500000) {
+  long ver = version();
+
+  if (ver != 0x500000 && ver != 0x1600000) {
     return 0;
   }
 
@@ -328,7 +334,7 @@ int ECCX08Class::idle()
   return 1;
 }
 
-int ECCX08Class::version()
+long ECCX08Class::version()
 {
   uint32_t version = 0;
 

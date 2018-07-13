@@ -36,7 +36,7 @@ private:
   int sleep();
   int idle();
 
-  int version();
+  long version();
   int challenge(const byte message[]);
   int verify(const byte signature[], const byte pubkey[]);
   int sign(int slot, byte signature[]);
