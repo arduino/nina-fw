@@ -129,10 +129,6 @@ int BearSSLClient::peek()
 
 void BearSSLClient::flush()
 {
-  /*
-   * SSL is a buffered protocol: we make sure that all our request
-   * bytes are sent onto the wire.
-   */
   br_sslio_flush(&_ioc);
 
   _client->flush();
@@ -155,22 +151,9 @@ uint8_t BearSSLClient::connected()
     return 0;
   }
 
-  /*
-   * Check whether we closed properly or not. If the engine is
-   * closed, then its error status allows to distinguish between
-   * a normal closure and a SSL error.
-   *
-   * If the engine is NOT closed, then this means that the
-   * underlying network socket was closed or failed in some way.
-   * Note that many Web servers out there do not properly close
-   * their SSL connections (they don't send a close_notify alert),
-   * which will be reported here as "socket closed without proper
-   * SSL termination".
-   */
   unsigned state = br_ssl_engine_current_state(&_sc.eng);
 
   if (state == BR_SSL_CLOSED) {
-    // int err = br_ssl_engine_last_error(&_sc.eng);
     return 0;
   }
 
@@ -195,21 +178,10 @@ void BearSSLClient::setEccSlot(int ecc508KeySlot, const byte cert[], int certLen
 
 int BearSSLClient::connectSSL(const char* host)
 {
-  /*
-   * Initialise the client context:
-   * -- Use the "full" profile (all supported algorithms).
-   * -- The provided X.509 validation engine is initialised, with
-   *    the hardcoded trust anchor.
-   */
+  // initialize client context with all algorithms and hardcoded trust anchors
   br_ssl_client_init_full(&_sc, &_xc, TAs, TAs_NUM);
 
-  /*
-   * Set the I/O buffer to the provided array. We allocated a
-   * buffer large enough for full-duplex behaviour with all
-   * allowed sizes of SSL records, hence we set the last argument
-   * to 1 (which means "split the buffer into separate input and
-   * output areas").
-   */
+  // set the buffer in split mode
   br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), 1);
 
   // inject entropy in engine
@@ -232,11 +204,7 @@ int BearSSLClient::connectSSL(const char* host)
   }
   br_ssl_engine_inject_entropy(&_sc.eng, entropy, sizeof(entropy));
 
-  /*
-   * Reset the client context, for a new handshake. We provide the
-   * target host name: it will be used for the SNI extension. The
-   * last parameter is 0: we are not trying to resume a session.
-   */
+  // set the hostname used for SNI
   br_ssl_client_reset(&_sc, host, 0);
 
   // get the current time and set it for X.509 validation
@@ -246,10 +214,7 @@ int BearSSLClient::connectSSL(const char* host)
 
   br_x509_minimal_set_time(&_xc, days, sec);
 
-  /*
-   * Initialise the simplified I/O wrapper context, to use our
-   * SSL client context, and the two callbacks for socket I/O.
-   */
+  // use our own socket I/O operations
   br_sslio_init(&_ioc, &_sc.eng, BearSSLClient::clientRead, _client, BearSSLClient::clientWrite, _client);
 
   br_sslio_flush(&_ioc);

@@ -65,7 +65,7 @@ private:
 
   br_ssl_client_context _sc;
   br_x509_minimal_context _xc;
-  unsigned char _iobuf[8192 + 85 + 325 /*BR_SSL_BUFSIZE_MONO*//*BR_SSL_BUFSIZE_BIDI*/];
+  unsigned char _iobuf[8192 + 85 + 325];
   br_sslio_context _ioc;
 };
 
