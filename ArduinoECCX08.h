@@ -20,4 +20,6 @@
 #ifndef _ARDUINO_ECCX08_H_
 #define _ARDUINO_ECCX08_H_
 
+#include "ECCX08.h"
+
 #endif
