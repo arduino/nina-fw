@@ -25,7 +25,7 @@
 
 #include "eccX08_asn1.h"
 
-#include "ECCX08.h"
+#include <ArduinoECCX08.h>
 
 #define BR_MAX_EC_SIZE   528
 #define FIELD_LEN   ((BR_MAX_EC_SIZE + 7) >> 3)

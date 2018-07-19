@@ -22,9 +22,10 @@
  * SOFTWARE.
  */
 
+#include <ArduinoECCX08.h>
+
 #include "ArduinoBearSSL.h"
 #include "BearSSLTrustAnchors.h"
-#include "utility/ECCX08.h"
 #include "utility/eccX08_asn1.h"
 
 #include "BearSSLClient.h"
