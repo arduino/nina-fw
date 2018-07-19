@@ -91,6 +91,32 @@ String ECCX08Class::serialNumber()
   return result;
 }
 
+long ECCX08Class::random(long max)
+{
+  return random(0, max);
+}
+
+long ECCX08Class::random(long min, long max)
+{
+  if (min >= max)
+  {
+    return min;
+  }
+
+  long diff = max - min;
+
+  long r;
+  random((byte*)&r, sizeof(r));
+
+  if (r < 0) {
+    r = -r;
+  }
+
+  r = (r % diff);
+
+  return (r + min);
+}
+
 int ECCX08Class::random(byte data[], size_t length)
 {
   if (!wakeup()) {

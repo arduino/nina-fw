@@ -34,6 +34,8 @@ public:
 
   String serialNumber();
 
+  long random(long max);
+  long random(long min, long max);
   int random(byte data[], size_t length);
 
   int generatePrivateKey(int slot, byte publicKey[]);
