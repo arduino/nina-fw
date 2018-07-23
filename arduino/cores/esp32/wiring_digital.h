@@ -36,6 +36,8 @@ extern void pinMode(uint32_t pin, uint32_t mode);
 
 extern void digitalWrite(uint32_t pin, uint32_t val);
 
+extern int digitalRead(uint32_t pin);
+
 #ifdef __cplusplus
 }
 #endif
