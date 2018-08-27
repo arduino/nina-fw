@@ -22,22 +22,43 @@
  * SOFTWARE.
  */
 
+#define BR_ENABLE_INTRINSICS   1
 #include "inner.h"
+
+#if BR_SSE2
 
 /*
  * This file contains a ChaCha20 implementation that leverages SSE2
  * opcodes for better performance.
  */
 
-#if BR_SSE2
+/* see bearssl_block.h */
+br_chacha20_run
+br_chacha20_sse2_get(void)
+{
+	/*
+	 * If using 64-bit mode, then SSE2 opcodes should be automatically
+	 * available, since they are part of the ABI.
+	 *
+	 * In 32-bit mode, we use CPUID to detect the SSE2 feature.
+	 */
 
-#if BR_SSE2_GCC
-#include <emmintrin.h>
-#include <cpuid.h>
+#if BR_amd64
+	return &br_chacha20_sse2_run;
+#else
+
+	/*
+	 * SSE2 support is indicated by bit 26 in EDX.
+	 */
+	if (br_cpuid(0, 0, 0, 0x04000000)) {
+		return &br_chacha20_sse2_run;
+	} else {
+		return 0;
+	}
 #endif
-#if BR_SSE2_MSC
-#include <intrin.h>
-#endif
+}
+
+BR_TARGETS_X86_UP
 
 /* see bearssl_block.h */
 BR_TARGET("sse2")
@@ -202,48 +223,7 @@ br_chacha20_sse2_run(const void *key,
 		| ((uint32_t)_mm_extract_epi16(iw, 1) << 16);
 }
 
-/* see bearssl_block.h */
-br_chacha20_run
-br_chacha20_sse2_get(void)
-{
-	/*
-	 * If using 64-bit mode, then SSE2 opcodes should be automatically
-	 * available, since they are part of the ABI.
-	 *
-	 * In 32-bit mode, we use CPUID to detect the SSE2 feature.
-	 */
-
-#if __x86_64__ || _M_X64
-
-	return &br_chacha20_sse2_run;
-
-#else
-
-	/*
-	 * SSE2 support is indicated by bit 26 in EDX.
-	 */
-#define MASK   0x04000000
-
-#if BR_SSE2_GCC
-	unsigned eax, ebx, ecx, edx;
-
-	if (__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
-		if ((edx & MASK) == MASK) {
-			return &br_chacha20_sse2_run;
-		}
-	}
-#elif BR_SSE2_MSC
-	int info[4];
-
-	__cpuid(info, 1);
-	if (((uint32_t)info[3] & MASK) == MASK) {
-		return &br_chacha20_sse2_run;
-	}
-#endif
-	return 0;
-
-#endif
-}
+BR_TARGETS_X86_DOWN
 
 #else
 

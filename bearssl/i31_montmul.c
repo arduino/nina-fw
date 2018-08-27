@@ -34,7 +34,7 @@ br_i31_montymul(uint32_t *d, const uint32_t *x, const uint32_t *y,
 
 	len = (m[0] + 31) >> 5;
 	len4 = len & ~(size_t)3;
-	br_i32_zero(d, m[0]);
+	br_i31_zero(d, m[0]);
 	dh = 0;
 	for (u = 0; u < len; u ++) {
 		uint32_t f, xu;

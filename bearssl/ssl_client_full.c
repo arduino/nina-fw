@@ -43,7 +43,9 @@ br_ssl_client_init_full(br_ssl_client_context *cc,
 	 *    client, but much cheaper on the server, and it implies smaller
 	 *    messages).
 	 * -- ChaCha20+Poly1305 is better than AES/GCM (faster, smaller code).
-	 * -- GCM is better than CBC.
+	 * -- GCM is better than CCM and CBC. CCM is better than CBC.
+	 * -- CCM is preferable over CCM_8 (with CCM_8, forgeries may succeed
+	 *    with probability 2^(-64)).
 	 * -- AES-128 is preferred over AES-256 (AES-128 is already
 	 *    strong enough, and AES-256 is 40% more expensive).
 	 */
@@ -54,6 +56,10 @@ br_ssl_client_init_full(br_ssl_client_context *cc,
 		BR_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		BR_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_128_CCM,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_256_CCM,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
 		BR_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
@@ -76,6 +82,10 @@ br_ssl_client_init_full(br_ssl_client_context *cc,
 		BR_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
 		BR_TLS_RSA_WITH_AES_128_GCM_SHA256,
 		BR_TLS_RSA_WITH_AES_256_GCM_SHA384,
+		BR_TLS_RSA_WITH_AES_128_CCM,
+		BR_TLS_RSA_WITH_AES_256_CCM,
+		BR_TLS_RSA_WITH_AES_128_CCM_8,
+		BR_TLS_RSA_WITH_AES_256_CCM_8,
 		BR_TLS_RSA_WITH_AES_128_CBC_SHA256,
 		BR_TLS_RSA_WITH_AES_256_CBC_SHA256,
 		BR_TLS_RSA_WITH_AES_128_CBC_SHA,
@@ -162,6 +172,7 @@ br_ssl_client_init_full(br_ssl_client_context *cc,
 	 * (fastest among constant-time implementations).
 	 */
 	br_ssl_engine_set_default_aes_cbc(&cc->eng);
+	br_ssl_engine_set_default_aes_ccm(&cc->eng);
 	br_ssl_engine_set_default_aes_gcm(&cc->eng);
 	br_ssl_engine_set_default_des_cbc(&cc->eng);
 	br_ssl_engine_set_default_chapol(&cc->eng);

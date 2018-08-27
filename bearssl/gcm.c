@@ -56,6 +56,7 @@ br_gcm_init(br_gcm_context *ctx, const br_block_ctr_class **bctx, br_ghash gh)
 {
 	unsigned char iv[12];
 
+	ctx->vtable = &br_gcm_vtable;
 	ctx->bctx = bctx;
 	ctx->gh = gh;
 
@@ -263,8 +264,18 @@ br_gcm_get_tag(br_gcm_context *ctx, void *tag)
 }
 
 /* see bearssl_aead.h */
+void
+br_gcm_get_tag_trunc(br_gcm_context *ctx, void *tag, size_t len)
+{
+	unsigned char tmp[16];
+
+	br_gcm_get_tag(ctx, tmp);
+	memcpy(tag, tmp, len);
+}
+
+/* see bearssl_aead.h */
 uint32_t
-br_gcm_check_tag(br_gcm_context *ctx, const void *tag)
+br_gcm_check_tag_trunc(br_gcm_context *ctx, const void *tag, size_t len)
 {
 	unsigned char tmp[16];
 	size_t u;
@@ -272,10 +283,17 @@ br_gcm_check_tag(br_gcm_context *ctx, const void *tag)
 
 	br_gcm_get_tag(ctx, tmp);
 	x = 0;
-	for (u = 0; u < sizeof tmp; u ++) {
+	for (u = 0; u < len; u ++) {
 		x |= tmp[u] ^ ((const unsigned char *)tag)[u];
 	}
 	return EQ0(x);
+}
+
+/* see bearssl_aead.h */
+uint32_t
+br_gcm_check_tag(br_gcm_context *ctx, const void *tag)
+{
+	return br_gcm_check_tag_trunc(ctx, tag, 16);
 }
 
 /* see bearssl_aead.h */
@@ -292,5 +310,9 @@ const br_aead_class br_gcm_vtable = {
 	(void (*)(const br_aead_class **, void *))
 		&br_gcm_get_tag,
 	(uint32_t (*)(const br_aead_class **, const void *))
-		&br_gcm_check_tag
+		&br_gcm_check_tag,
+	(void (*)(const br_aead_class **, void *, size_t))
+		&br_gcm_get_tag_trunc,
+	(uint32_t (*)(const br_aead_class **, const void *, size_t))
+		&br_gcm_check_tag_trunc
 };

@@ -200,20 +200,6 @@ void br_x509_minimal_run(void *t0ctx);
  *  then validation is reported as failed.
  */
 
-#ifndef BR_USE_UNIX_TIME
-#if defined __unix__ || defined __linux__ \
-	|| defined _POSIX_SOURCE || defined _POSIX_C_SOURCE \
-	|| (defined __APPLE__ && defined __MACH__)
-#define BR_USE_UNIX_TIME   1
-#endif
-#endif
-
-#ifndef BR_USE_WIN32_TIME
-#if defined _WIN32 || defined _WIN64
-#define BR_USE_WIN32_TIME   1
-#endif
-#endif
-
 #if BR_USE_UNIX_TIME
 #include <time.h>
 #endif
@@ -222,8 +208,13 @@ void br_x509_minimal_run(void *t0ctx);
 #include <windows.h>
 #endif
 
+/*
+ * The T0 compiler will produce these prototypes declarations in the
+ * header.
+ *
 void br_x509_minimal_init_main(void *ctx);
 void br_x509_minimal_run(void *ctx);
+ */
 
 /* see bearssl_x509.h */
 void
@@ -244,7 +235,7 @@ xm_start_chain(const br_x509_class **ctx, const char *server_name)
 	br_x509_minimal_context *cc;
 	size_t u;
 
-	cc = (br_x509_minimal_context *)ctx;
+	cc = (br_x509_minimal_context *)(void *)ctx;
 	for (u = 0; u < cc->num_name_elts; u ++) {
 		cc->name_elts[u].status = 0;
 		cc->name_elts[u].buf[0] = 0;
@@ -267,7 +258,7 @@ xm_start_cert(const br_x509_class **ctx, uint32_t length)
 {
 	br_x509_minimal_context *cc;
 
-	cc = (br_x509_minimal_context *)ctx;
+	cc = (br_x509_minimal_context *)(void *)ctx;
 	if (cc->err != 0) {
 		return;
 	}
@@ -283,7 +274,7 @@ xm_append(const br_x509_class **ctx, const unsigned char *buf, size_t len)
 {
 	br_x509_minimal_context *cc;
 
-	cc = (br_x509_minimal_context *)ctx;
+	cc = (br_x509_minimal_context *)(void *)ctx;
 	if (cc->err != 0) {
 		return;
 	}
@@ -297,7 +288,7 @@ xm_end_cert(const br_x509_class **ctx)
 {
 	br_x509_minimal_context *cc;
 
-	cc = (br_x509_minimal_context *)ctx;
+	cc = (br_x509_minimal_context *)(void *)ctx;
 	if (cc->err == 0 && cc->cert_length != 0) {
 		cc->err = BR_ERR_X509_TRUNCATED;
 	}
@@ -309,7 +300,7 @@ xm_end_chain(const br_x509_class **ctx)
 {
 	br_x509_minimal_context *cc;
 
-	cc = (br_x509_minimal_context *)ctx;
+	cc = (br_x509_minimal_context *)(void *)ctx;
 	if (cc->err == 0) {
 		if (cc->num_certs == 0) {
 			cc->err = BR_ERR_X509_EMPTY_CHAIN;
@@ -327,14 +318,14 @@ xm_get_pkey(const br_x509_class *const *ctx, unsigned *usages)
 {
 	br_x509_minimal_context *cc;
 
-	cc = (br_x509_minimal_context *)ctx;
+	cc = (br_x509_minimal_context *)(void *)ctx;
 	if (cc->err == BR_ERR_X509_OK
 		|| cc->err == BR_ERR_X509_NOT_TRUSTED)
 	{
 		if (usages != NULL) {
 			*usages = cc->key_usages;
 		}
-		return &((br_x509_minimal_context *)ctx)->pkey;
+		return &((br_x509_minimal_context *)(void *)ctx)->pkey;
 	} else {
 		return NULL;
 	}
@@ -351,7 +342,7 @@ const br_x509_class br_x509_minimal_vtable = {
 	xm_get_pkey
 };
 
-#define CTX   ((br_x509_minimal_context *)((unsigned char *)t0ctx - offsetof(br_x509_minimal_context, cpu)))
+#define CTX   ((br_x509_minimal_context *)(void *)((unsigned char *)t0ctx - offsetof(br_x509_minimal_context, cpu)))
 #define CONTEXT_NAME   br_x509_minimal_context
 
 #define DNHASH_LEN   ((CTX->dn_hash_impl->desc >> BR_HASHDESC_OUT_OFF) & BR_HASHDESC_OUT_MASK)
@@ -1439,7 +1430,7 @@ br_x509_minimal_run(void *t0ctx)
 				/* get16 */
 
 	uint32_t addr = T0_POP();
-	T0_PUSH(*(uint16_t *)((unsigned char *)CTX + addr));
+	T0_PUSH(*(uint16_t *)(void *)((unsigned char *)CTX + addr));
 
 				}
 				break;
@@ -1447,7 +1438,7 @@ br_x509_minimal_run(void *t0ctx)
 				/* get32 */
 
 	uint32_t addr = T0_POP();
-	T0_PUSH(*(uint32_t *)((unsigned char *)CTX + addr));
+	T0_PUSH(*(uint32_t *)(void *)((unsigned char *)CTX + addr));
 
 				}
 				break;
@@ -1601,7 +1592,7 @@ br_x509_minimal_run(void *t0ctx)
 				/* set16 */
 
 	uint32_t addr = T0_POP();
-	*(uint16_t *)((unsigned char *)CTX + addr) = T0_POP();
+	*(uint16_t *)(void *)((unsigned char *)CTX + addr) = T0_POP();
 
 				}
 				break;
@@ -1609,7 +1600,7 @@ br_x509_minimal_run(void *t0ctx)
 				/* set32 */
 
 	uint32_t addr = T0_POP();
-	*(uint32_t *)((unsigned char *)CTX + addr) = T0_POP();
+	*(uint32_t *)(void *)((unsigned char *)CTX + addr) = T0_POP();
 
 				}
 				break;

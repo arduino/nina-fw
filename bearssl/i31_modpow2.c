@@ -134,11 +134,11 @@ br_i31_modpow_opt(uint32_t *x,
 			br_i31_zero(t2, m[0]);
 			base = t2 + mwlen;
 			for (u = 1; u < ((uint32_t)1 << k); u ++) {
-				uint32_t m;
+				uint32_t mask;
 
-				m = -EQ(u, bits);
+				mask = -EQ(u, bits);
 				for (v = 1; v < mwlen; v ++) {
-					t2[v] |= m & base[v];
+					t2[v] |= mask & base[v];
 				}
 				base += mwlen;
 			}

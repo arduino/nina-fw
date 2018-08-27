@@ -35,7 +35,8 @@ br_rsa_i32_private(unsigned char *x, const br_rsa_private_key *sk)
 	uint32_t tmp[6 * U];
 	uint32_t *mp, *mq, *s1, *s2, *t1, *t2, *t3;
 	uint32_t p0i, q0i;
-	size_t xlen;
+	size_t xlen, u;
+	uint32_t r;
 
 	/*
 	 * All our temporary buffers are from the tmp[] array.
@@ -82,16 +83,22 @@ br_rsa_i32_private(unsigned char *x, const br_rsa_private_key *sk)
 	br_i32_decode(mq, q, qlen);
 
 	/*
-	 * obsolete -- we do not compute the length of n, it is now
-	 * an input parameter.
-	br_i32_zero(t3, mp[0]);
-	br_i32_mulacc(t3, mp, mq);
-	n_bitlen = br_i32_bit_length(t3 + 1, (t3[0] + 31) >> 5);
-	if (xlen != ((n_bitlen + 7) >> 3)) {
-		return 0;
-	}
+	 * Recompute modulus, to compare with the source value.
 	 */
+	br_i32_zero(t2, mp[0]);
+	br_i32_mulacc(t2, mp, mq);
 	xlen = (sk->n_bitlen + 7) >> 3;
+	br_i32_encode(t2 + 2 * U, xlen, t2);
+	u = xlen;
+	r = 0;
+	while (u > 0) {
+		uint32_t wn, wx;
+
+		u --;
+		wn = ((unsigned char *)(t2 + 2 * U))[u];
+		wx = x[u];
+		r = ((wx - (wn + r)) >> 8) & 1;
+	}
 
 	/*
 	 * Compute s1 = x^dp mod p.
@@ -149,5 +156,5 @@ br_rsa_i32_private(unsigned char *x, const br_rsa_private_key *sk)
 	 * The only error conditions remaining at that point are invalid
 	 * values for p and q (even integers).
 	 */
-	return p0i & q0i & 1;
+	return p0i & q0i & r;
 }

@@ -75,7 +75,7 @@ void br_x509_decoder_run(void *t0ctx);
 
 #include "inner.h"
 
-#define CTX   ((br_x509_decoder_context *)((unsigned char *)t0ctx - offsetof(br_x509_decoder_context, cpu)))
+#define CTX   ((br_x509_decoder_context *)(void *)((unsigned char *)t0ctx - offsetof(br_x509_decoder_context, cpu)))
 #define CONTEXT_NAME   br_x509_decoder_context
 
 /* see bearssl_x509.h */
@@ -743,7 +743,7 @@ br_x509_decoder_run(void *t0ctx)
 				/* set32 */
 
 	uint32_t addr = T0_POP();
-	*(uint32_t *)((unsigned char *)CTX + addr) = T0_POP();
+	*(uint32_t *)(void *)((unsigned char *)CTX + addr) = T0_POP();
 
 				}
 				break;

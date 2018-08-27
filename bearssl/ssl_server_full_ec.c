@@ -39,7 +39,8 @@ br_ssl_server_init_full_ec(br_ssl_server_context *cc,
 	 * -- Don't use 3DES if AES is available.
 	 * -- Try to have Forward Secrecy (ECDHE suite) if possible.
 	 * -- ChaCha20+Poly1305 is better than AES/GCM (faster, smaller).
-	 * -- GCM is better than CBC.
+	 * -- GCM is better than CCM and CBC. CCM is better than CBC.
+	 * -- CCM is better than CCM_8.
 	 * -- AES-128 is preferred over AES-256 (AES-128 is already
 	 *    strong enough, and AES-256 is 40% more expensive).
 	 *
@@ -50,6 +51,10 @@ br_ssl_server_init_full_ec(br_ssl_server_context *cc,
 		BR_TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_128_CCM,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_256_CCM,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8,
+		BR_TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
 		BR_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
@@ -137,6 +142,7 @@ br_ssl_server_init_full_ec(br_ssl_server_context *cc,
 	 * Symmetric encryption.
 	 */
 	br_ssl_engine_set_default_aes_cbc(&cc->eng);
+	br_ssl_engine_set_default_aes_ccm(&cc->eng);
 	br_ssl_engine_set_default_aes_gcm(&cc->eng);
 	br_ssl_engine_set_default_des_cbc(&cc->eng);
 	br_ssl_engine_set_default_chapol(&cc->eng);

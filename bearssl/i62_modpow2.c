@@ -244,7 +244,7 @@ br_i62_modpow_opt(uint32_t *x31, const unsigned char *e, size_t elen,
 	mw62num = (mw31num + 1) >> 1;
 
 	/*
-	 * In order to apply this function, we must have enough room tp
+	 * In order to apply this function, we must have enough room to
 	 * copy the operand and modulus into the temporary array, along
 	 * with at least two temporaries. If there is not enough room,
 	 * switch to br_i31_modpow(). We also use br_i31_modpow() if the
@@ -477,3 +477,17 @@ br_i62_modpow_opt(uint32_t *x31, const unsigned char *e, size_t elen,
 }
 
 #endif
+
+/* see inner.h */
+uint32_t
+br_i62_modpow_opt_as_i31(uint32_t *x31, const unsigned char *e, size_t elen,
+	const uint32_t *m31, uint32_t m0i31, uint32_t *tmp, size_t twlen)
+{
+	/*
+	 * As documented, this function expects the 'tmp' argument to be
+	 * 64-bit aligned. This is OK since this function is internal (it
+	 * is not part of BearSSL's public API).
+	 */
+	return br_i62_modpow_opt(x31, e, elen, m31, m0i31,
+		(uint64_t *)tmp, twlen >> 1);
+}

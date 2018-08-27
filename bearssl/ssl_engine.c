@@ -24,6 +24,9 @@
 
 #include "inner.h"
 
+#if 0
+/* obsolete */
+
 /*
  * If BR_USE_URANDOM is not defined, then try to autodetect its presence
  * through compiler macros.
@@ -73,6 +76,8 @@
 #include <windows.h>
 #include <wincrypt.h>
 #pragma comment(lib, "advapi32")
+#endif
+
 #endif
 
 /* ==================================================================== */
@@ -456,65 +461,71 @@ engine_clearbuf(br_ssl_engine_context *rc)
 	make_ready_out(rc);
 }
 
+/*
+ * Make sure the internal PRNG is initialised (but not necessarily
+ * seeded properly yet).
+ */
+static int
+rng_init(br_ssl_engine_context *cc)
+{
+	const br_hash_class *h;
+
+	if (cc->rng_init_done != 0) {
+		return 1;
+	}
+
+	/*
+	 * If using TLS-1.2, then SHA-256 or SHA-384 must be present (or
+	 * both); we prefer SHA-256 which is faster for 32-bit systems.
+	 *
+	 * If using TLS-1.0 or 1.1 then SHA-1 must be present.
+	 *
+	 * Though HMAC_DRBG/SHA-1 is, as far as we know, as safe as
+	 * these things can be, we still prefer the SHA-2 functions over
+	 * SHA-1, if only for public relations (known theoretical
+	 * weaknesses of SHA-1 with regards to collisions are mostly
+	 * irrelevant here, but they still make people nervous).
+	 */
+	h = br_multihash_getimpl(&cc->mhash, br_sha256_ID);
+	if (!h) {
+		h = br_multihash_getimpl(&cc->mhash, br_sha384_ID);
+		if (!h) {
+			h = br_multihash_getimpl(&cc->mhash,
+				br_sha1_ID);
+			if (!h) {
+				br_ssl_engine_fail(cc, BR_ERR_BAD_STATE);
+				return 0;
+			}
+		}
+	}
+	br_hmac_drbg_init(&cc->rng, h, NULL, 0);
+	cc->rng_init_done = 1;
+	return 1;
+}
+
 /* see inner.h */
 int
 br_ssl_engine_init_rand(br_ssl_engine_context *cc)
 {
+	if (!rng_init(cc)) {
+		return 0;
+	}
+
 	/*
-	 * TODO: use getrandom() on Linux systems, with a fallback to
-	 * opening /dev/urandom if that system call fails.
-	 *
-	 * Use similar OS facilities on other OS (getentropy() on OpenBSD,
-	 * specialized sysctl on NetBSD and FreeBSD...).
+	 * We always try OS/hardware seeding once. If it works, then
+	 * we assume proper seeding. If not, then external entropy must
+	 * have been injected; otherwise, we report an error.
 	 */
-#if BR_USE_URANDOM
 	if (!cc->rng_os_rand_done) {
-		int f;
+		br_prng_seeder sd;
 
-		f = open("/dev/urandom", O_RDONLY);
-		if (f >= 0) {
-			unsigned char tmp[32];
-			size_t u;
-
-			for (u = 0; u < sizeof tmp;) {
-				ssize_t len;
-
-				len = read(f, tmp + u, (sizeof tmp) - u);
-				if (len < 0) {
-					if (errno == EINTR) {
-						continue;
-					}
-					break;
-				}
-				u += (size_t)len;
-			}
-			close(f);
-			if (u == sizeof tmp) {
-				br_ssl_engine_inject_entropy(cc, tmp, u);
-				cc->rng_os_rand_done = 1;
-			}
+		sd = br_prng_seeder_system(NULL);
+		if (sd != 0 && sd(&cc->rng.vtable)) {
+			cc->rng_init_done = 2;
 		}
+		cc->rng_os_rand_done = 1;
 	}
-#elif BR_USE_WIN32_RAND
-	if (!cc->rng_os_rand_done) {
-		HCRYPTPROV hp;
-
-		if (CryptAcquireContextW(&hp, 0, 0, PROV_RSA_FULL,
-			CRYPT_VERIFYCONTEXT | CRYPT_SILENT))
-		{
-			BYTE buf[32];
-
-			if (CryptGenRandom(hp, sizeof buf, buf)) {
-				br_ssl_engine_inject_entropy(cc,
-					buf, sizeof buf);
-				cc->rng_os_rand_done = 1;
-			}
-			CryptReleaseContext(hp, 0);
-		}
-	}
-#endif
-
-	if (!cc->rng_init_done) {
+	if (cc->rng_init_done < 2) {
 		br_ssl_engine_fail(cc, BR_ERR_NO_RANDOM);
 		return 0;
 	}
@@ -526,41 +537,17 @@ void
 br_ssl_engine_inject_entropy(br_ssl_engine_context *cc,
 	const void *data, size_t len)
 {
-	if (cc->rng_init_done) {
-		br_hmac_drbg_update(&cc->rng, data, len);
-	} else {
-		/*
-		 * If using TLS-1.2, then SHA-256 or SHA-384 must be
-		 * present (or both); we prefer SHA-256 which is faster
-		 * for 32-bit systems.
-		 *
-		 * If using TLS-1.0 or 1.1 then SHA-1 must be present.
-		 *
-		 * Though HMAC_DRBG/SHA-1 is, as far as we know, as safe
-		 * as these things can be, we still prefer the SHA-2
-		 * functions over SHA-1, if only for public relations
-		 * (known theoretical weaknesses of SHA-1 with regards to
-		 * collisions are mostly irrelevant here, but they still
-		 * make people nervous).
-		 */
-		const br_hash_class *h;
-
-		h = br_multihash_getimpl(&cc->mhash, br_sha256_ID);
-		if (!h) {
-			h = br_multihash_getimpl(&cc->mhash, br_sha384_ID);
-			if (!h) {
-				h = br_multihash_getimpl(&cc->mhash,
-					br_sha1_ID);
-				if (!h) {
-					br_ssl_engine_fail(cc,
-						BR_ERR_BAD_STATE);
-					return;
-				}
-			}
-		}
-		br_hmac_drbg_init(&cc->rng, h, data, len);
-		cc->rng_init_done = 1;
+	/*
+	 * Externally provided entropy is assumed to be "good enough"
+	 * (we cannot really test its quality) so if the RNG structure
+	 * could be initialised at all, then we marked the RNG as
+	 * "properly seeded".
+	 */
+	if (!rng_init(cc)) {
+		return;
 	}
+	br_hmac_drbg_update(&cc->rng, data, len);
+	cc->rng_init_done = 2;
 }
 
 /*
@@ -1534,4 +1521,49 @@ br_ssl_engine_switch_chapol_out(br_ssl_engine_context *cc,
 	}
 	cc->ichapol_out->init(&cc->out.chapol.vtable.out,
 		cc->ichacha, cc->ipoly, cipher_key, iv);
+}
+
+/* see inner.h */
+void
+br_ssl_engine_switch_ccm_in(br_ssl_engine_context *cc,
+	int is_client, int prf_id,
+	const br_block_ctrcbc_class *bc_impl,
+	size_t cipher_key_len, size_t tag_len)
+{
+	unsigned char kb[72];
+	unsigned char *cipher_key, *iv;
+
+	compute_key_block(cc, prf_id, cipher_key_len + 4, kb);
+	if (is_client) {
+		cipher_key = &kb[cipher_key_len];
+		iv = &kb[(cipher_key_len << 1) + 4];
+	} else {
+		cipher_key = &kb[0];
+		iv = &kb[cipher_key_len << 1];
+	}
+	cc->iccm_in->init(&cc->in.ccm.vtable.in,
+		bc_impl, cipher_key, cipher_key_len, iv, tag_len);
+	cc->incrypt = 1;
+}
+
+/* see inner.h */
+void
+br_ssl_engine_switch_ccm_out(br_ssl_engine_context *cc,
+	int is_client, int prf_id,
+	const br_block_ctrcbc_class *bc_impl,
+	size_t cipher_key_len, size_t tag_len)
+{
+	unsigned char kb[72];
+	unsigned char *cipher_key, *iv;
+
+	compute_key_block(cc, prf_id, cipher_key_len + 4, kb);
+	if (is_client) {
+		cipher_key = &kb[0];
+		iv = &kb[cipher_key_len << 1];
+	} else {
+		cipher_key = &kb[cipher_key_len];
+		iv = &kb[(cipher_key_len << 1) + 4];
+	}
+	cc->iccm_out->init(&cc->out.ccm.vtable.out,
+		bc_impl, cipher_key, cipher_key_len, iv, tag_len);
 }

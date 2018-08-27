@@ -29,10 +29,19 @@ void
 br_i31_mulacc(uint32_t *d, const uint32_t *a, const uint32_t *b)
 {
 	size_t alen, blen, u;
+	uint32_t dl, dh;
 
 	alen = (a[0] + 31) >> 5;
 	blen = (b[0] + 31) >> 5;
-	d[0] = a[0] + b[0];
+
+	/*
+	 * We want to add the two bit lengths, but these are encoded,
+	 * which requires some extra care.
+	 */
+	dl = (a[0] & 31) + (b[0] & 31);
+	dh = (a[0] >> 5) + (b[0] >> 5);
+	d[0] = (dh << 5) + dl + (~(uint32_t)(dl - 31) >> 31);
+
 	for (u = 0; u < blen; u ++) {
 		uint32_t f;
 		size_t v;

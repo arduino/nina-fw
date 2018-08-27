@@ -764,7 +764,7 @@ api_muladd(unsigned char *A, const unsigned char *B, size_t len,
 
 	/*
 	 * TODO: see about merging the two ladders. Right now, we do
-	 * two independant point multiplications, which is a bit
+	 * two independent point multiplications, which is a bit
 	 * wasteful of CPU resources (but yields short code).
 	 */
 

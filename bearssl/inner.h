@@ -48,9 +48,21 @@
  * already set their root keys to RSA-4096, so we should be able to
  * process such keys.
  *
- * This value MUST be a multiple of 64.
+ * This value MUST be a multiple of 64. This value MUST NOT exceed 47666
+ * (some computations in RSA key generation rely on the factor size being
+ * no more than 23833 bits). RSA key sizes beyond 3072 bits don't make a
+ * lot of sense anyway.
  */
 #define BR_MAX_RSA_SIZE   4096
+
+/*
+ * Minimum size for a RSA modulus (in bits); this value is used only to
+ * filter out invalid parameters for key pair generation. Normally,
+ * applications should not use RSA keys smaller than 2048 bits; but some
+ * specific cases might need shorter keys, for legacy or research
+ * purposes.
+ */
+#define BR_MIN_RSA_SIZE   512
 
 /*
  * Maximum size for a RSA factor (in bits). This is for RSA private-key
@@ -85,7 +97,7 @@
  *
  * The test on 'unsigned long' should already catch most cases, the one
  * notable exception being Windows code where 'unsigned long' is kept to
- * 32-bit for compatbility with all the legacy code that liberally uses
+ * 32-bit for compatibility with all the legacy code that liberally uses
  * the 'DWORD' type for 32-bit values.
  *
  * Macro names are taken from: http://nadeausoftware.com/articles/2012/02/c_c_tip_how_detect_processor_type_using_compiler_predefined_macros
@@ -109,97 +121,212 @@
  * Set BR_LOMUL on platforms where it makes sense.
  */
 #ifndef BR_LOMUL
-#if BR_ARMEL_CORTEX_GCC
+#if BR_ARMEL_CORTEXM_GCC
 #define BR_LOMUL   1
 #endif
 #endif
 
 /*
- * Determine whether x86 AES instructions are understood by the compiler.
+ * Architecture detection.
  */
-#ifndef BR_AES_X86NI
-#if (__i386__ || __x86_64__) \
-	&& ((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)) \
-	    || (__clang_major__ > 3 \
-	        || (__clang_major__ == 3 && __clang_minor__ >= 7)))
-#define BR_AES_X86NI   1
-#elif (_M_IX86 || _M_X64) && (_MSC_VER >= 1700)
-#define BR_AES_X86NI   1
+#ifndef BR_i386
+#if __i386__ || _M_IX86
+#define BR_i386   1
+#endif
+#endif
+
+#ifndef BR_amd64
+#if __x86_64__ || _M_X64
+#define BR_amd64   1
 #endif
 #endif
 
 /*
- * If we use x86 AES instruction, determine the compiler brand.
+ * Compiler brand and version.
+ *
+ * Implementations that use intrinsics need to detect the compiler type
+ * and version because some specific actions may be needed to activate
+ * the corresponding opcodes, both for header inclusion, and when using
+ * them in a function.
+ *
+ * BR_GCC, BR_CLANG and BR_MSC will be set to 1 for, respectively, GCC,
+ * Clang and MS Visual C. For each of them, sub-macros will be defined
+ * for versions; each sub-macro is set whenever the compiler version is
+ * at least as recent as the one corresponding to the macro.
  */
-#if BR_AES_X86NI
-#ifndef BR_AES_X86NI_GCC
-#if __GNUC__
-#define BR_AES_X86NI_GCC   1
+
+/*
+ * GCC thresholds are on versions 4.4 to 4.9 and 5.0.
+ */
+#ifndef BR_GCC
+#if __GNUC__ && !__clang__
+#define BR_GCC   1
+
+#if __GNUC__ > 4
+#define BR_GCC_5_0   1
+#elif __GNUC__ == 4 && __GNUC_MINOR__ >= 9
+#define BR_GCC_4_9   1
+#elif __GNUC__ == 4 && __GNUC_MINOR__ >= 8
+#define BR_GCC_4_8   1
+#elif __GNUC__ == 4 && __GNUC_MINOR__ >= 7
+#define BR_GCC_4_7   1
+#elif __GNUC__ == 4 && __GNUC_MINOR__ >= 6
+#define BR_GCC_4_6   1
+#elif __GNUC__ == 4 && __GNUC_MINOR__ >= 5
+#define BR_GCC_4_5   1
+#elif __GNUC__ == 4 && __GNUC_MINOR__ >= 4
+#define BR_GCC_4_4   1
 #endif
+
+#if BR_GCC_5_0
+#define BR_GCC_4_9   1
 #endif
-#ifndef BR_AES_X86NI_MSC
-#if _MSC_VER >= 1700
-#define BR_AES_X86NI_MSC   1
+#if BR_GCC_4_9
+#define BR_GCC_4_8   1
 #endif
+#if BR_GCC_4_8
+#define BR_GCC_4_7   1
+#endif
+#if BR_GCC_4_7
+#define BR_GCC_4_6   1
+#endif
+#if BR_GCC_4_6
+#define BR_GCC_4_5   1
+#endif
+#if BR_GCC_4_5
+#define BR_GCC_4_4   1
+#endif
+
 #endif
 #endif
 
 /*
- * Determine whether SSE2 intrinsics are understood by the compiler.
- * Right now, we restrict ourselves to compiler versions where things
- * are documented to work well:
- *  -- GCC 4.4+ and Clang 3.7+ understand the function attribute "target"
- *  -- MS Visual Studio 2005 documents the existence of <emmintrin.h>
- * SSE2-powered code _might_ work with older versions, but there is no
- * pressing need to do so right now.
+ * Clang thresholds are on versions 3.7.0 and 3.8.0.
  */
-#ifndef BR_SSE2
-#if (__i386__ || __x86_64__) \
-	&& ((__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4)) \
-	    || (__clang_major__ > 3 \
-	        || (__clang_major__ == 3 && __clang_minor__ >= 7)))
-#define BR_SSE2   1
-#elif (_M_IX86 || _M_X64) && (_MSC_VER >= 1400)
-#define BR_SSE2   1
+#ifndef BR_CLANG
+#if __clang__
+#define BR_CLANG   1
+
+#if __clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 8)
+#define BR_CLANG_3_8   1
+#elif __clang_major__ == 3 && __clang_minor__ >= 7
+#define BR_CLANG_3_7   1
+#endif
+
+#if BR_CLANG_3_8
+#define BR_CLANG_3_7   1
+#endif
+
 #endif
 #endif
 
 /*
- * If we use SSE2 intrinsics, determine the compiler brand.
+ * MS Visual C thresholds are on Visual Studio 2005 to 2015.
  */
-#if BR_SSE2
-#ifndef BR_SSE2_GCC
-#if __GNUC__
-#define BR_SSE2_GCC   1
+#ifndef BR_MSC
+#if _MSC_VER
+#define BR_MSC   1
+
+#if _MSC_VER >= 1900
+#define BR_MSC_2015   1
+#elif _MSC_VER >= 1800
+#define BR_MSC_2013   1
+#elif _MSC_VER >= 1700
+#define BR_MSC_2012   1
+#elif _MSC_VER >= 1600
+#define BR_MSC_2010   1
+#elif _MSC_VER >= 1500
+#define BR_MSC_2008   1
+#elif _MSC_VER >= 1400
+#define BR_MSC_2005   1
 #endif
+
+#if BR_MSC_2015
+#define BR_MSC_2013   1
 #endif
-#ifndef BR_SSE2_MSC
-#if _MSC_VER >= 1400
-#define BR_SSE2_MSC   1
+#if BR_MSC_2013
+#define BR_MSC_2012   1
 #endif
+#if BR_MSC_2012
+#define BR_MSC_2010   1
+#endif
+#if BR_MSC_2010
+#define BR_MSC_2008   1
+#endif
+#if BR_MSC_2008
+#define BR_MSC_2005   1
+#endif
+
 #endif
 #endif
 
 /*
- * A macro to tag a function with a "target" attribute (for GCC and Clang).
+ * GCC 4.4+ and Clang 3.7+ allow tagging specific functions with a
+ * 'target' attribute that activates support for specific opcodes.
  */
-#if BR_AES_X86NI_GCC || BR_SSE2_GCC
+#if BR_GCC_4_4 || BR_CLANG_3_7
 #define BR_TARGET(x)   __attribute__((target(x)))
 #else
 #define BR_TARGET(x)
 #endif
 
 /*
- * GCC versions from 4.4 to 4.8 (inclusive) must use a special #pragma
- * to activate extra opcodes before including the relevant intrinsic
- * AES-NI headers. But these don't work with Clang (which does not need
- * them either). We also need that #pragma for GCC 4.9 in order to work
- * around a compiler bug (it tends to blow up on ghash_pclmul code
- * otherwise).
+ * AES-NI intrinsics are available on x86 (32-bit and 64-bit) with
+ * GCC 4.8+, Clang 3.7+ and MSC 2012+.
  */
-#if BR_AES_X86NI_GCC && !defined BR_AES_X86NI_GCC_OLD
-#if __GNUC__ == 4 && __GNUC_MINOR__ >= 4 && __GNUC_MINOR__ <= 9 && !__clang__
-#define BR_AES_X86NI_GCC_OLD   1
+#ifndef BR_AES_X86NI
+#if (BR_i386 || BR_amd64) && (BR_GCC_4_8 || BR_CLANG_3_7 || BR_MSC_2012)
+#define BR_AES_X86NI   1
+#endif
+#endif
+
+/*
+ * SSE2 intrinsics are available on x86 (32-bit and 64-bit) with
+ * GCC 4.4+, Clang 3.7+ and MSC 2005+.
+ */
+#ifndef BR_SSE2
+#if (BR_i386 || BR_amd64) && (BR_GCC_4_4 || BR_CLANG_3_7 || BR_MSC_2005)
+#define BR_SSE2   1
+#endif
+#endif
+
+/*
+ * RDRAND intrinsics are available on x86 (32-bit and 64-bit) with
+ * GCC 4.6+, Clang 3.7+ and MSC 2012+.
+ */
+#ifndef BR_RDRAND
+#if (BR_i386 || BR_amd64) && (BR_GCC_4_6 || BR_CLANG_3_7 || BR_MSC_2012)
+#define BR_RDRAND   1
+#endif
+#endif
+
+/*
+ * Determine type of OS for random number generation. Macro names and
+ * values are documented on:
+ *    https://sourceforge.net/p/predef/wiki/OperatingSystems/
+ *
+ * TODO: enrich the list of detected system. Also add detection for
+ * alternate system calls like getentropy(), which are usually
+ * preferable when available.
+ */
+
+#ifndef BR_USE_URANDOM
+#if defined _AIX \
+	|| defined __ANDROID__ \
+	|| defined __FreeBSD__ \
+	|| defined __NetBSD__ \
+	|| defined __OpenBSD__ \
+	|| defined __DragonFly__ \
+	|| defined __linux__ \
+	|| (defined __sun && (defined __SVR4 || defined __svr4__)) \
+	|| (defined __APPLE__ && defined __MACH__)
+#define BR_USE_URANDOM   1
+#endif
+#endif
+
+#ifndef BR_USE_WIN32_RAND
+#if defined _WIN32 || defined _WIN64
+#define BR_USE_WIN32_RAND   1
 #endif
 #endif
 
@@ -279,6 +406,24 @@
 #define BR_BE_UNALIGNED   1
 #endif
 
+#endif
+
+/*
+ * Detect support for an OS-provided time source.
+ */
+
+#ifndef BR_USE_UNIX_TIME
+#if defined __unix__ || defined __linux__ \
+	|| defined _POSIX_SOURCE || defined _POSIX_C_SOURCE \
+	|| (defined __APPLE__ && defined __MACH__)
+#define BR_USE_UNIX_TIME   1
+#endif
+#endif
+
+#ifndef BR_USE_WIN32_TIME
+#if defined _WIN32 || defined _WIN64
+#define BR_USE_WIN32_TIME   1
+#endif
 #endif
 
 /* ==================================================================== */
@@ -1341,6 +1486,23 @@ uint32_t br_i31_modpow_opt(uint32_t *x, const unsigned char *e, size_t elen,
  */
 void br_i31_mulacc(uint32_t *d, const uint32_t *a, const uint32_t *b);
 
+/*
+ * Compute x/y mod m, result in x. Values x and y must be between 0 and
+ * m-1, and have the same announced bit length as m. Modulus m must be
+ * odd. The "m0i" parameter is equal to -1/m mod 2^31. The array 't'
+ * must point to a temporary area that can hold at least three integers
+ * of the size of m.
+ *
+ * m may not overlap x and y. x and y may overlap each other (this can
+ * be useful to test whether a value is invertible modulo m). t must be
+ * disjoint from all other arrays.
+ *
+ * Returned value is 1 on success, 0 otherwise. Success is attained if
+ * y is invertible modulo m.
+ */
+uint32_t br_i31_moddiv(uint32_t *x, const uint32_t *y,
+	const uint32_t *m, uint32_t m0i, uint32_t *t);
+
 /* ==================================================================== */
 
 /*
@@ -1395,8 +1557,35 @@ void br_i15_reduce(uint16_t *x, const uint16_t *a, const uint16_t *m);
 
 void br_i15_mulacc(uint16_t *d, const uint16_t *a, const uint16_t *b);
 
+uint32_t br_i15_moddiv(uint16_t *x, const uint16_t *y,
+	const uint16_t *m, uint16_t m0i, uint16_t *t);
+
+/*
+ * Variant of br_i31_modpow_opt() that internally uses 64x64->128
+ * multiplications. It expects the same parameters as br_i31_modpow_opt(),
+ * except that the temporaries should be 64-bit integers, not 32-bit
+ * integers.
+ */
 uint32_t br_i62_modpow_opt(uint32_t *x31, const unsigned char *e, size_t elen,
 	const uint32_t *m31, uint32_t m0i31, uint64_t *tmp, size_t twlen);
+
+/*
+ * Type for a function with the same API as br_i31_modpow_opt() (some
+ * implementations of this type may have stricter alignment requirements
+ * on the temporaries).
+ */
+typedef uint32_t (*br_i31_modpow_opt_type)(uint32_t *x,
+	const unsigned char *e, size_t elen,
+	const uint32_t *m, uint32_t m0i, uint32_t *tmp, size_t twlen);
+
+/*
+ * Wrapper for br_i62_modpow_opt() that uses the same type as
+ * br_i31_modpow_opt(); however, it requires its 'tmp' argument to the
+ * 64-bit aligned.
+ */
+uint32_t br_i62_modpow_opt_as_i31(uint32_t *x,
+	const unsigned char *e, size_t elen,
+	const uint32_t *m, uint32_t m0i, uint32_t *tmp, size_t twlen);
 
 /* ==================================================================== */
 
@@ -1754,6 +1943,40 @@ uint32_t br_rsa_pkcs1_sig_unpad(const unsigned char *sig, size_t sig_len,
 	const unsigned char *hash_oid, size_t hash_len,
 	unsigned char *hash_out);
 
+/*
+ * Apply OAEP padding. Returned value is the actual padded string length,
+ * or zero on error.
+ */
+size_t br_rsa_oaep_pad(const br_prng_class **rnd, const br_hash_class *dig,
+	const void *label, size_t label_len, const br_rsa_public_key *pk,
+	void *dst, size_t dst_nax_len, const void *src, size_t src_len);
+
+/*
+ * Unravel and check OAEP padding. If the padding is correct, then 1 is
+ * returned, '*len' is adjusted to the length of the message, and the
+ * data is moved to the start of the 'data' buffer. If the padding is
+ * incorrect, then 0 is returned and '*len' is untouched. Either way,
+ * the complete buffer contents are altered.
+ */
+uint32_t br_rsa_oaep_unpad(const br_hash_class *dig,
+	const void *label, size_t label_len, void *data, size_t *len);
+
+/*
+ * Compute MGF1 for a given seed, and XOR the output into the provided
+ * buffer.
+ */
+void br_mgf1_xor(void *data, size_t len,
+	const br_hash_class *dig, const void *seed, size_t seed_len);
+
+/*
+ * Inner function for RSA key generation; used by the "i31" and "i62"
+ * implementations.
+ */
+uint32_t br_rsa_i31_keygen_inner(const br_prng_class **rng,
+	br_rsa_private_key *sk, void *kbuf_priv,
+	br_rsa_public_key *pk, void *kbuf_pub,
+	unsigned size, uint32_t pubexp, br_i31_modpow_opt_type mp31);
+
 /* ==================================================================== */
 /*
  * Elliptic curves.
@@ -1803,6 +2026,72 @@ void br_ecdsa_i31_bits2int(uint32_t *x,
  */
 void br_ecdsa_i15_bits2int(uint16_t *x,
 	const void *src, size_t len, uint32_t ebitlen);
+
+/* ==================================================================== */
+/*
+ * ASN.1 support functions.
+ */
+
+/*
+ * A br_asn1_uint structure contains encoding information about an
+ * INTEGER nonnegative value: pointer to the integer contents (unsigned
+ * big-endian representation), length of the integer contents,
+ * and length of the encoded value. The data shall have minimal length:
+ *  - If the integer value is zero, then 'len' must be zero.
+ *  - If the integer value is not zero, then data[0] must be non-zero.
+ *
+ * Under these conditions, 'asn1len' is necessarily equal to either len
+ * or len+1.
+ */
+typedef struct {
+	const unsigned char *data;
+	size_t len;
+	size_t asn1len;
+} br_asn1_uint;
+
+/*
+ * Given an encoded integer (unsigned big-endian, with possible leading
+ * bytes of value 0), returned the "prepared INTEGER" structure.
+ */
+br_asn1_uint br_asn1_uint_prepare(const void *xdata, size_t xlen);
+
+/*
+ * Encode an ASN.1 length. The length of the encoded length is returned.
+ * If 'dest' is NULL, then no encoding is performed, but the length of
+ * the encoded length is still computed and returned.
+ */
+size_t br_asn1_encode_length(void *dest, size_t len);
+
+/*
+ * Convenient macro for computing lengths of lengths.
+ */
+#define len_of_len(len)   br_asn1_encode_length(NULL, len)
+
+/*
+ * Encode a (prepared) ASN.1 INTEGER. The encoded length is returned.
+ * If 'dest' is NULL, then no encoding is performed, but the length of
+ * the encoded integer is still computed and returned.
+ */
+size_t br_asn1_encode_uint(void *dest, br_asn1_uint pp);
+
+/*
+ * Get the OID that identifies an elliptic curve. Returned value is
+ * the DER-encoded OID, with the length (always one byte) but without
+ * the tag. Thus, the first byte of the returned buffer contains the
+ * number of subsequent bytes in the value. If the curve is not
+ * recognised, NULL is returned.
+ */
+const unsigned char *br_get_curve_OID(int curve);
+
+/*
+ * Inner function for EC private key encoding. This is equivalent to
+ * the API function br_encode_ec_raw_der(), except for an extra
+ * parameter: if 'include_curve_oid' is zero, then the curve OID is
+ * _not_ included in the output blob (this is for PKCS#8 support).
+ */
+size_t br_encode_ec_raw_der_inner(void *dest,
+	const br_ec_private_key *sk, const br_ec_public_key *pk,
+	int include_curve_oid);
 
 /* ==================================================================== */
 /*
@@ -1990,6 +2279,34 @@ void br_ssl_engine_switch_chapol_out(br_ssl_engine_context *cc,
 	int is_client, int prf_id);
 
 /*
+ * Switch to CCM decryption for incoming records.
+ *    cc               the engine context
+ *    is_client        non-zero for a client, zero for a server
+ *    prf_id           id of hash function for PRF
+ *    bc_impl          block cipher implementation (CTR+CBC)
+ *    cipher_key_len   block cipher key length (in bytes)
+ *    tag_len          tag length (in bytes)
+ */
+void br_ssl_engine_switch_ccm_in(br_ssl_engine_context *cc,
+	int is_client, int prf_id,
+	const br_block_ctrcbc_class *bc_impl,
+	size_t cipher_key_len, size_t tag_len);
+
+/*
+ * Switch to GCM encryption for outgoing records.
+ *    cc               the engine context
+ *    is_client        non-zero for a client, zero for a server
+ *    prf_id           id of hash function for PRF
+ *    bc_impl          block cipher implementation (CTR+CBC)
+ *    cipher_key_len   block cipher key length (in bytes)
+ *    tag_len          tag length (in bytes)
+ */
+void br_ssl_engine_switch_ccm_out(br_ssl_engine_context *cc,
+	int is_client, int prf_id,
+	const br_block_ctrcbc_class *bc_impl,
+	size_t cipher_key_len, size_t tag_len);
+
+/*
  * Calls to T0-generated code.
  */
 void br_ssl_hs_client_init_main(void *ctx);
@@ -2020,6 +2337,7 @@ int br_ssl_choose_hash(unsigned bf);
 #define stxvw4x(xt, ra, rb)       stxvw4x_(xt, ra, rb)
 
 #define bdnz(foo)                 bdnz_(foo)
+#define bdz(foo)                  bdz_(foo)
 #define beq(foo)                  beq_(foo)
 
 #define li(rx, value)             li_(rx, value)
@@ -2038,6 +2356,7 @@ int br_ssl_choose_hash(unsigned bf);
 #define vsl(vrt, vra, vrb)        vsl_(vrt, vra, vrb)
 #define vsldoi(vt, va, vb, sh)    vsldoi_(vt, va, vb, sh)
 #define vsr(vrt, vra, vrb)        vsr_(vrt, vra, vrb)
+#define vaddcuw(vrt, vra, vrb)    vaddcuw_(vrt, vra, vrb)
 #define vadduwm(vrt, vra, vrb)    vadduwm_(vrt, vra, vrb)
 #define vsububm(vrt, vra, vrb)    vsububm_(vrt, vra, vrb)
 #define vsubuwm(vrt, vra, vrb)    vsubuwm_(vrt, vra, vrb)
@@ -2055,6 +2374,7 @@ int br_ssl_choose_hash(unsigned bf);
 
 #define label(foo)                #foo "%=:\n"
 #define bdnz_(foo)                "\tbdnz\t" #foo "%=\n"
+#define bdz_(foo)                 "\tbdz\t" #foo "%=\n"
 #define beq_(foo)                 "\tbeq\t" #foo "%=\n"
 
 #define li_(rx, value)            "\tli\t" #rx "," #value "\n"
@@ -2073,6 +2393,7 @@ int br_ssl_choose_hash(unsigned bf);
 #define vsl_(vrt, vra, vrb)       "\tvsl\t" #vrt "," #vra "," #vrb "\n"
 #define vsldoi_(vt, va, vb, sh)   "\tvsldoi\t" #vt "," #va "," #vb "," #sh "\n"
 #define vsr_(vrt, vra, vrb)       "\tvsr\t" #vrt "," #vra "," #vrb "\n"
+#define vaddcuw_(vrt, vra, vrb)   "\tvaddcuw\t" #vrt "," #vra "," #vrb "\n"
 #define vadduwm_(vrt, vra, vrb)   "\tvadduwm\t" #vrt "," #vra "," #vrb "\n"
 #define vsububm_(vrt, vra, vrb)   "\tvsububm\t" #vrt "," #vra "," #vrb "\n"
 #define vsubuwm_(vrt, vra, vrb)   "\tvsubuwm\t" #vrt "," #vra "," #vrb "\n"
@@ -2084,6 +2405,125 @@ int br_ssl_choose_hash(unsigned bf);
 #define vperm_(vt, va, vb, vc)    "\tvperm\t" #vt "," #va "," #vb "," #vc "\n"
 #define vpmsumd_(vt, va, vb)      "\tvpmsumd\t" #vt "," #va "," #vb "\n"
 #define xxpermdi_(vt, va, vb, d)  "\txxpermdi\t" #vt "," #va "," #vb "," #d "\n"
+
+#endif
+
+/* ==================================================================== */
+/*
+ * Special "activate intrinsics" code, needed for some compiler versions.
+ * This is defined at the end of this file, so that it won't impact any
+ * of the inline functions defined previously; and it is controlled by
+ * a specific macro defined in the caller code.
+ *
+ * Calling code conventions:
+ *
+ *  - Caller must define BR_ENABLE_INTRINSICS before including "inner.h".
+ *  - Functions that use intrinsics must be enclosed in an "enabled"
+ *    region (between BR_TARGETS_X86_UP and BR_TARGETS_X86_DOWN).
+ *  - Functions that use intrinsics must be tagged with the appropriate
+ *    BR_TARGET().
+ */
+
+#if BR_ENABLE_INTRINSICS && (BR_GCC_4_4 || BR_CLANG_3_7 || BR_MSC_2005)
+
+/*
+ * x86 intrinsics (both 32-bit and 64-bit).
+ */
+#if BR_i386 || BR_amd64
+
+/*
+ * On GCC before version 5.0, we need to use the pragma to enable the
+ * target options globally, because the 'target' function attribute
+ * appears to be unreliable. Before 4.6 we must also avoid the
+ * push_options / pop_options mechanism, because it tends to trigger
+ * some internal compiler errors.
+ */
+#if BR_GCC && !BR_GCC_5_0
+#if BR_GCC_4_6
+#define BR_TARGETS_X86_UP \
+	_Pragma("GCC push_options") \
+	_Pragma("GCC target(\"sse2,ssse3,sse4.1,aes,pclmul,rdrnd\")")
+#define BR_TARGETS_X86_DOWN \
+	_Pragma("GCC pop_options")
+#else
+#define BR_TARGETS_X86_UP \
+	_Pragma("GCC target(\"sse2,ssse3,sse4.1,aes,pclmul\")")
+#endif
+#define BR_TARGETS_X86_DOWN
+#pragma GCC diagnostic ignored "-Wpsabi"
+#endif
+
+#if BR_CLANG && !BR_CLANG_3_8
+#undef __SSE2__
+#undef __SSE3__
+#undef __SSSE3__
+#undef __SSE4_1__
+#undef __AES__
+#undef __PCLMUL__
+#undef __RDRND__
+#define __SSE2__     1
+#define __SSE3__     1
+#define __SSSE3__    1
+#define __SSE4_1__   1
+#define __AES__      1
+#define __PCLMUL__   1
+#define __RDRND__    1
+#endif
+
+#ifndef BR_TARGETS_X86_UP
+#define BR_TARGETS_X86_UP
+#endif
+#ifndef BR_TARGETS_X86_DOWN
+#define BR_TARGETS_X86_DOWN
+#endif
+
+#if BR_GCC || BR_CLANG
+BR_TARGETS_X86_UP
+#include <x86intrin.h>
+#include <cpuid.h>
+#define br_bswap32   __builtin_bswap32
+BR_TARGETS_X86_DOWN
+#endif
+
+#if BR_MSC
+#include <stdlib.h>
+#include <intrin.h>
+#include <immintrin.h>
+#define br_bswap32   _byteswap_ulong
+#endif
+
+static inline int
+br_cpuid(uint32_t mask_eax, uint32_t mask_ebx,
+	uint32_t mask_ecx, uint32_t mask_edx)
+{
+#if BR_GCC || BR_CLANG
+	unsigned eax, ebx, ecx, edx;
+
+	if (__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
+		if ((eax & mask_eax) == mask_eax
+			&& (ebx & mask_ebx) == mask_ebx
+			&& (ecx & mask_ecx) == mask_ecx
+			&& (edx & mask_edx) == mask_edx)
+		{
+			return 1;
+		}
+	}
+#elif BR_MSC
+	int info[4];
+
+	__cpuid(info, 1);
+	if (((uint32_t)info[0] & mask_eax) == mask_eax
+		&& ((uint32_t)info[1] & mask_ebx) == mask_ebx
+		&& ((uint32_t)info[2] & mask_ecx) == mask_ecx
+		&& ((uint32_t)info[3] & mask_edx) == mask_edx)
+	{
+		return 1;
+	}
+#endif
+	return 0;
+}
+
+#endif
 
 #endif
 

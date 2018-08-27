@@ -46,7 +46,7 @@ br_i31_decode_mod(uint32_t *x, const void *src, size_t len, const uint32_t *m)
 	 * or 0x00000000 (value does not fit).
 	 *
 	 * We must iterate over all bytes of the source, _and_ possibly
-	 * some extra virutal bytes (with value 0) so as to cover the
+	 * some extra virtual bytes (with value 0) so as to cover the
 	 * complete modulus as well. We also add 4 such extra bytes beyond
 	 * the modulus length because it then guarantees that no accumulated
 	 * partial word remains to be processed.

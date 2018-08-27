@@ -423,17 +423,17 @@ mul_f256(uint32_t *d, const uint32_t *a, const uint32_t *b)
 	}
 
 	for (i = 17; i >= 9; i --) {
-		uint64_t x;
+		uint64_t y;
 
-		x = s[i];
-		s[i - 1] += ARSHW(x, 2);
-		s[i - 2] += (x << 28) & 0x3FFFFFFF;
-		s[i - 2] -= ARSHW(x, 4);
-		s[i - 3] -= (x << 26) & 0x3FFFFFFF;
-		s[i - 5] -= ARSHW(x, 10);
-		s[i - 6] -= (x << 20) & 0x3FFFFFFF;
-		s[i - 8] += ARSHW(x, 16);
-		s[i - 9] += (x << 14) & 0x3FFFFFFF;
+		y = s[i];
+		s[i - 1] += ARSHW(y, 2);
+		s[i - 2] += (y << 28) & 0x3FFFFFFF;
+		s[i - 2] -= ARSHW(y, 4);
+		s[i - 3] -= (y << 26) & 0x3FFFFFFF;
+		s[i - 5] -= ARSHW(y, 10);
+		s[i - 6] -= (y << 20) & 0x3FFFFFFF;
+		s[i - 8] += ARSHW(y, 16);
+		s[i - 9] += (y << 14) & 0x3FFFFFFF;
 	}
 
 	/*
@@ -535,17 +535,17 @@ square_f256(uint32_t *d, const uint32_t *a)
 	}
 
 	for (i = 17; i >= 9; i --) {
-		uint64_t x;
+		uint64_t y;
 
-		x = s[i];
-		s[i - 1] += ARSHW(x, 2);
-		s[i - 2] += (x << 28) & 0x3FFFFFFF;
-		s[i - 2] -= ARSHW(x, 4);
-		s[i - 3] -= (x << 26) & 0x3FFFFFFF;
-		s[i - 5] -= ARSHW(x, 10);
-		s[i - 6] -= (x << 20) & 0x3FFFFFFF;
-		s[i - 8] += ARSHW(x, 16);
-		s[i - 9] += (x << 14) & 0x3FFFFFFF;
+		y = s[i];
+		s[i - 1] += ARSHW(y, 2);
+		s[i - 2] += (y << 28) & 0x3FFFFFFF;
+		s[i - 2] -= ARSHW(y, 4);
+		s[i - 3] -= (y << 26) & 0x3FFFFFFF;
+		s[i - 5] -= ARSHW(y, 10);
+		s[i - 6] -= (y << 20) & 0x3FFFFFFF;
+		s[i - 8] += ARSHW(y, 16);
+		s[i - 9] += (y << 14) & 0x3FFFFFFF;
 	}
 
 	/*

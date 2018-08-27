@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#define BR_ENABLE_INTRINSICS   1
 #include "inner.h"
 
 /*
@@ -31,20 +32,27 @@
 
 #if BR_AES_X86NI
 
-#if BR_AES_X86NI_GCC
-#if BR_AES_X86NI_GCC_OLD
-#pragma GCC push_options
-#pragma GCC target("sse2,ssse3,pclmul")
-#pragma GCC diagnostic ignored "-Wpsabi"
-#endif
-#include <tmmintrin.h>
-#include <wmmintrin.h>
-#include <cpuid.h>
-#endif
+/*
+ * Test CPU support for PCLMULQDQ.
+ */
+static inline int
+pclmul_supported(void)
+{
+	/*
+	 * Bit mask for features in ECX:
+	 *    1   PCLMULQDQ support
+	 */
+	return br_cpuid(0, 0, 0x00000002, 0);
+}
 
-#if BR_AES_X86NI_MSC
-#include <intrin.h>
-#endif
+/* see bearssl_hash.h */
+br_ghash
+br_ghash_pclmul_get(void)
+{
+	return pclmul_supported() ? &br_ghash_pclmul : 0;
+}
+
+BR_TARGETS_X86_UP
 
 /*
  * GHASH is defined over elements of GF(2^128) with "full little-endian"
@@ -72,6 +80,66 @@
  * values with bit precision, we have to break down values into 64-bit
  * chunks. We number chunks from 0 to 3 in left to right order.
  */
+
+/*
+ * Byte-swap a complete 128-bit value. This normally uses
+ * _mm_shuffle_epi8(), which gets translated to pshufb (an SSSE3 opcode).
+ * However, this crashes old Clang versions, so, for Clang before 3.8,
+ * we use an alternate (and less efficient) version.
+ */
+#if BR_CLANG && !BR_CLANG_3_8
+#define BYTESWAP_DECL
+#define BYTESWAP_PREP   (void)0
+#define BYTESWAP(x)   do { \
+		__m128i byteswap1, byteswap2; \
+		byteswap1 = (x); \
+		byteswap2 = _mm_srli_epi16(byteswap1, 8); \
+		byteswap1 = _mm_slli_epi16(byteswap1, 8); \
+		byteswap1 = _mm_or_si128(byteswap1, byteswap2); \
+		byteswap1 = _mm_shufflelo_epi16(byteswap1, 0x1B); \
+		byteswap1 = _mm_shufflehi_epi16(byteswap1, 0x1B); \
+		(x) = _mm_shuffle_epi32(byteswap1, 0x4E); \
+	} while (0)
+#else
+#define BYTESWAP_DECL   __m128i byteswap_index;
+#define BYTESWAP_PREP   do { \
+		byteswap_index = _mm_set_epi8( \
+			0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15); \
+	} while (0)
+#define BYTESWAP(x)   do { \
+		(x) = _mm_shuffle_epi8((x), byteswap_index); \
+	} while (0)
+#endif
+
+/*
+ * Call pclmulqdq. Clang appears to have trouble with the intrinsic, so,
+ * for that compiler, we use inline assembly. Inline assembly is
+ * potentially a bit slower because the compiler does not understand
+ * what the opcode does, and thus cannot optimize instruction
+ * scheduling.
+ *
+ * We use a target of "sse2" only, so that Clang may still handle the
+ * '__m128i' type and allocate SSE2 registers.
+ */
+#if BR_CLANG
+BR_TARGET("sse2")
+static inline __m128i
+pclmulqdq00(__m128i x, __m128i y)
+{
+	__asm__ ("pclmulqdq $0x00, %1, %0" : "+x" (x) : "x" (y));
+	return x;
+}
+BR_TARGET("sse2")
+static inline __m128i
+pclmulqdq11(__m128i x, __m128i y)
+{
+	__asm__ ("pclmulqdq $0x11, %1, %0" : "+x" (x) : "x" (y));
+	return x;
+}
+#else
+#define pclmulqdq00(x, y)   _mm_clmulepi64_si128(x, y, 0x00)
+#define pclmulqdq11(x, y)   _mm_clmulepi64_si128(x, y, 0x11)
+#endif
 
 /*
  * From a 128-bit value kw, compute kx as the XOR of the two 64-bit
@@ -150,8 +218,8 @@
  */
 #define SQUARE_F128(kw, dw, dx)   do { \
 		__m128i z0, z1, z2, z3; \
-		z1 = _mm_clmulepi64_si128(kw, kw, 0x11); \
-		z3 = _mm_clmulepi64_si128(kw, kw, 0x00); \
+		z1 = pclmulqdq11(kw, kw); \
+		z3 = pclmulqdq00(kw, kw); \
 		z0 = _mm_shuffle_epi32(z1, 0x0E); \
 		z2 = _mm_shuffle_epi32(z3, 0x0E); \
 		SL_256(z0, z1, z2, z3); \
@@ -168,7 +236,7 @@ br_ghash_pclmul(void *y, const void *h, const void *data, size_t len)
 	unsigned char tmp[64];
 	size_t num4, num1;
 	__m128i yw, h1w, h1x;
-	__m128i byteswap_index;
+	BYTESWAP_DECL
 
 	/*
 	 * We split data into two chunks. First chunk starts at buf1
@@ -188,18 +256,17 @@ br_ghash_pclmul(void *y, const void *h, const void *data, size_t len)
 	}
 
 	/*
-	 * Constant value to perform endian conversion.
+	 * Preparatory step for endian conversions.
 	 */
-	byteswap_index = _mm_set_epi8(
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+	BYTESWAP_PREP;
 
 	/*
 	 * Load y and h.
 	 */
 	yw = _mm_loadu_si128(y);
 	h1w = _mm_loadu_si128(h);
-	yw = _mm_shuffle_epi8(yw, byteswap_index);
-	h1w = _mm_shuffle_epi8(h1w, byteswap_index);
+	BYTESWAP(yw);
+	BYTESWAP(h1w);
 	BK(h1w, h1x);
 
 	if (num4 > 0) {
@@ -214,9 +281,9 @@ br_ghash_pclmul(void *y, const void *h, const void *data, size_t len)
 		/*
 		 * Compute h3 = h^3 = h*(h^2).
 		 */
-		t1 = _mm_clmulepi64_si128(h1w, h2w, 0x11);
-		t3 = _mm_clmulepi64_si128(h1w, h2w, 0x00);
-		t2 = _mm_xor_si128(_mm_clmulepi64_si128(h1x, h2x, 0x00),
+		t1 = pclmulqdq11(h1w, h2w);
+		t3 = pclmulqdq00(h1w, h2w);
+		t2 = _mm_xor_si128(pclmulqdq00(h1x, h2x),
 			_mm_xor_si128(t1, t3));
 		t0 = _mm_shuffle_epi32(t1, 0x0E);
 		t1 = _mm_xor_si128(t1, _mm_shuffle_epi32(t2, 0x0E));
@@ -238,10 +305,10 @@ br_ghash_pclmul(void *y, const void *h, const void *data, size_t len)
 			aw1 = _mm_loadu_si128((void *)(buf1 + 16));
 			aw2 = _mm_loadu_si128((void *)(buf1 + 32));
 			aw3 = _mm_loadu_si128((void *)(buf1 + 48));
-			aw0 = _mm_shuffle_epi8(aw0, byteswap_index);
-			aw1 = _mm_shuffle_epi8(aw1, byteswap_index);
-			aw2 = _mm_shuffle_epi8(aw2, byteswap_index);
-			aw3 = _mm_shuffle_epi8(aw3, byteswap_index);
+			BYTESWAP(aw0);
+			BYTESWAP(aw1);
+			BYTESWAP(aw2);
+			BYTESWAP(aw3);
 			buf1 += 64;
 
 			aw0 = _mm_xor_si128(aw0, yw);
@@ -252,25 +319,25 @@ br_ghash_pclmul(void *y, const void *h, const void *data, size_t len)
 
 			t1 = _mm_xor_si128(
 				_mm_xor_si128(
-					_mm_clmulepi64_si128(aw0, h4w, 0x11),
-					_mm_clmulepi64_si128(aw1, h3w, 0x11)),
+					pclmulqdq11(aw0, h4w),
+					pclmulqdq11(aw1, h3w)),
 				_mm_xor_si128(
-					_mm_clmulepi64_si128(aw2, h2w, 0x11),
-					_mm_clmulepi64_si128(aw3, h1w, 0x11)));
+					pclmulqdq11(aw2, h2w),
+					pclmulqdq11(aw3, h1w)));
 			t3 = _mm_xor_si128(
 				_mm_xor_si128(
-					_mm_clmulepi64_si128(aw0, h4w, 0x00),
-					_mm_clmulepi64_si128(aw1, h3w, 0x00)),
+					pclmulqdq00(aw0, h4w),
+					pclmulqdq00(aw1, h3w)),
 				_mm_xor_si128(
-					_mm_clmulepi64_si128(aw2, h2w, 0x00),
-					_mm_clmulepi64_si128(aw3, h1w, 0x00)));
+					pclmulqdq00(aw2, h2w),
+					pclmulqdq00(aw3, h1w)));
 			t2 = _mm_xor_si128(
 				_mm_xor_si128(
-					_mm_clmulepi64_si128(ax0, h4x, 0x00),
-					_mm_clmulepi64_si128(ax1, h3x, 0x00)),
+					pclmulqdq00(ax0, h4x),
+					pclmulqdq00(ax1, h3x)),
 				_mm_xor_si128(
-					_mm_clmulepi64_si128(ax2, h2x, 0x00),
-					_mm_clmulepi64_si128(ax3, h1x, 0x00)));
+					pclmulqdq00(ax2, h2x),
+					pclmulqdq00(ax3, h1x)));
 			t2 = _mm_xor_si128(t2, _mm_xor_si128(t1, t3));
 			t0 = _mm_shuffle_epi32(t1, 0x0E);
 			t1 = _mm_xor_si128(t1, _mm_shuffle_epi32(t2, 0x0E));
@@ -286,15 +353,15 @@ br_ghash_pclmul(void *y, const void *h, const void *data, size_t len)
 		__m128i t0, t1, t2, t3;
 
 		aw = _mm_loadu_si128((void *)buf2);
-		aw = _mm_shuffle_epi8(aw, byteswap_index);
+		BYTESWAP(aw);
 		buf2 += 16;
 
 		aw = _mm_xor_si128(aw, yw);
 		BK(aw, ax);
 
-		t1 = _mm_clmulepi64_si128(aw, h1w, 0x11);
-		t3 = _mm_clmulepi64_si128(aw, h1w, 0x00);
-		t2 = _mm_clmulepi64_si128(ax, h1x, 0x00);
+		t1 = pclmulqdq11(aw, h1w);
+		t3 = pclmulqdq00(aw, h1w);
+		t2 = pclmulqdq00(ax, h1x);
 		t2 = _mm_xor_si128(t2, _mm_xor_si128(t1, t3));
 		t0 = _mm_shuffle_epi32(t1, 0x0E);
 		t1 = _mm_xor_si128(t1, _mm_shuffle_epi32(t2, 0x0E));
@@ -304,52 +371,11 @@ br_ghash_pclmul(void *y, const void *h, const void *data, size_t len)
 		yw = _mm_unpacklo_epi64(t1, t0);
 	}
 
-	yw = _mm_shuffle_epi8(yw, byteswap_index);
+	BYTESWAP(yw);
 	_mm_storeu_si128(y, yw);
 }
 
-/*
- * Test CPU support for PCLMULQDQ.
- */
-static int
-pclmul_supported(void)
-{
-	/*
-	 * Bit mask for features in ECX:
-	 *    1   PCLMULQDQ support
-	 */
-#define MASK   0x00000002
-
-#if BR_AES_X86NI_GCC
-	unsigned eax, ebx, ecx, edx;
-
-	if (__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
-		return (ecx & MASK) == MASK;
-	} else {
-		return 0;
-	}
-#elif BR_AES_X86NI_MSC
-	int info[4];
-
-	__cpuid(info, 1);
-	return ((uint32_t)info[2] & MASK) == MASK;
-#else
-	return 0;
-#endif
-
-#undef MASK
-}
-
-/* see bearssl_hash.h */
-br_ghash
-br_ghash_pclmul_get(void)
-{
-	return pclmul_supported() ? &br_ghash_pclmul : 0;
-}
-
-#if BR_AES_X86NI_GCC && BR_AES_X86NI_GCC_OLD
-#pragma GCC pop_options
-#endif
+BR_TARGETS_X86_DOWN
 
 #else
 

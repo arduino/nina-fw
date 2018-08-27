@@ -27,24 +27,6 @@
 #define U      (2 + ((BR_MAX_RSA_FACTOR + 14) / 15))
 #define TLEN   (8 * U)
 
-/* obsolete
-static void
-print_int(const char *name, const uint16_t *x)
-{
-	extern int printf(const char *fmt, ...);
-	unsigned char tmp[1000];
-	size_t u, len;
-
-	len = (x[0] - (x[0] >> 4) + 7) >> 3;
-	br_i15_encode(tmp, len, x);
-	printf("%s = ", name);
-	for (u = 0; u < len; u ++) {
-		printf("%02X", tmp[u]);
-	}
-	printf("\n");
-}
-*/
-
 /* see bearssl_rsa.h */
 uint32_t
 br_rsa_i15_private(unsigned char *x, const br_rsa_private_key *sk)
@@ -53,7 +35,7 @@ br_rsa_i15_private(unsigned char *x, const br_rsa_private_key *sk)
 	size_t plen, qlen;
 	size_t fwlen;
 	uint16_t p0i, q0i;
-	size_t xlen;
+	size_t xlen, u;
 	uint16_t tmp[1 + TLEN];
 	long z;
 	uint16_t *mp, *mq, *s1, *s2, *t1, *t2, *t3;
@@ -117,19 +99,56 @@ br_rsa_i15_private(unsigned char *x, const br_rsa_private_key *sk)
 	br_i15_decode(mq, q, qlen);
 
 	/*
+	 * Decode p.
+	 */
+	t1 = mq + fwlen;
+	br_i15_decode(t1, p, plen);
+
+	/*
+	 * Compute the modulus (product of the two factors), to compare
+	 * it with the source value. We use br_i15_mulacc(), since it's
+	 * already used later on.
+	 */
+	t2 = mq + 2 * fwlen;
+	br_i15_zero(t2, mq[0]);
+	br_i15_mulacc(t2, mq, t1);
+
+	/*
+	 * We encode the modulus into bytes, to perform the comparison
+	 * with bytes. We know that the product length, in bytes, is
+	 * exactly xlen.
+	 * The comparison actually computes the carry when subtracting
+	 * the modulus from the source value; that carry must be 1 for
+	 * a value in the correct range. We keep it in r, which is our
+	 * accumulator for the error code.
+	 */
+	t3 = mq + 4 * fwlen;
+	br_i15_encode(t3, xlen, t2);
+	u = xlen;
+	r = 0;
+	while (u > 0) {
+		uint32_t wn, wx;
+
+		u --;
+		wn = ((unsigned char *)t3)[u];
+		wx = x[u];
+		r = ((wx - (wn + r)) >> 8) & 1;
+	}
+
+	/*
+	 * Move the decoded p to another temporary buffer.
+	 */
+	mp = mq + 2 * fwlen;
+	memmove(mp, t1, fwlen * sizeof *t1);
+
+	/*
 	 * Compute s2 = x^dq mod q.
 	 */
 	q0i = br_i15_ninv15(mq[1]);
 	s2 = mq + fwlen;
 	br_i15_decode_reduce(s2, x, xlen, mq);
-	r = br_i15_modpow_opt(s2, sk->dq, sk->dqlen, mq, q0i,
-		mq + 2 * fwlen, TLEN - 2 * fwlen);
-
-	/*
-	 * Decode p.
-	 */
-	mp = mq + 2 * fwlen;
-	br_i15_decode(mp, p, plen);
+	r &= br_i15_modpow_opt(s2, sk->dq, sk->dqlen, mq, q0i,
+		mq + 3 * fwlen, TLEN - 3 * fwlen);
 
 	/*
 	 * Compute s1 = x^dq mod q.

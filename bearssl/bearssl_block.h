@@ -136,6 +136,73 @@ extern "C" {
  *     chunked processing, provided that each chunk length (except possibly
  *     the last one) is a multiple of the block size.
  *
+ *   - `br_xxx_ctrcbc_keys`
+ *
+ *     Context structure that contains the subkeys resulting from the
+ *     key expansion. These subkeys are appropriate for doing combined
+ *     CTR encryption/decryption and CBC-MAC, as used in the CCM and EAX
+ *     authenticated encryption modes. The structure first field is
+ *     called `vtable` and points to the appropriate OOP structure.
+ *
+ *   - `br_xxx_ctrcbc_init(br_xxx_ctr_keys *ctx, const void *key, size_t len)`
+ *
+ *     Perform key expansion: subkeys for combined CTR
+ *     encryption/decryption and CBC-MAC are computed and written in the
+ *     provided context structure. The key length MUST be adequate for
+ *     the implemented block cipher. This function also sets the
+ *     `vtable` field.
+ *
+ *   - `br_xxx_ctrcbc_encrypt(const br_xxx_ctrcbc_keys *ctx, void *ctr, void *cbcmac, void *data, size_t len)`
+ *
+ *     Perform CTR encryption of some data, and CBC-MAC. Processing is
+ *     done "in place" (the output data replaces the input data). This
+ *     function applies CTR encryption on the data, using a full
+ *     block-size counter (i.e. for 128-bit blocks, the counter is
+ *     incremented as a 128-bit value). The 'ctr' array contains the
+ *     initial value for the counter (used in the first block) and it is
+ *     updated with the new value after data processing. The 'cbcmac'
+ *     value shall point to a block-sized value which is used as IV for
+ *     CBC-MAC, computed over the encrypted data (output of CTR
+ *     encryption); the resulting CBC-MAC is written over 'cbcmac' on
+ *     output.
+ *
+ *     The data length MUST be a multiple of the block size.
+ *
+ *   - `br_xxx_ctrcbc_decrypt(const br_xxx_ctrcbc_keys *ctx, void *ctr, void *cbcmac, void *data, size_t len)`
+ *
+ *     Perform CTR decryption of some data, and CBC-MAC. Processing is
+ *     done "in place" (the output data replaces the input data). This
+ *     function applies CTR decryption on the data, using a full
+ *     block-size counter (i.e. for 128-bit blocks, the counter is
+ *     incremented as a 128-bit value). The 'ctr' array contains the
+ *     initial value for the counter (used in the first block) and it is
+ *     updated with the new value after data processing. The 'cbcmac'
+ *     value shall point to a block-sized value which is used as IV for
+ *     CBC-MAC, computed over the encrypted data (input of CTR
+ *     encryption); the resulting CBC-MAC is written over 'cbcmac' on
+ *     output.
+ *
+ *     The data length MUST be a multiple of the block size.
+ *
+ *   - `br_xxx_ctrcbc_ctr(const br_xxx_ctrcbc_keys *ctx, void *ctr, void *data, size_t len)`
+ *
+ *     Perform CTR encryption or decryption of the provided data. The
+ *     data is processed "in place" (the output data replaces the input
+ *     data). A full block-sized counter is applied (i.e. for 128-bit
+ *     blocks, the counter is incremented as a 128-bit value). The 'ctr'
+ *     array contains the initial value for the counter (used in the
+ *     first block), and it is updated with the new value after data
+ *     processing.
+ *
+ *     The data length MUST be a multiple of the block size.
+ *
+ *   - `br_xxx_ctrcbc_mac(const br_xxx_ctrcbc_keys *ctx, void *cbcmac, const void *data, size_t len)`
+ *
+ *     Compute CBC-MAC over the provided data. The IV for CBC-MAC is
+ *     provided as 'cbcmac'; the output is written over the same array.
+ *     The data itself is untouched. The data length MUST be a multiple
+ *     of the block size.
+ *
  *
  * It shall be noted that the key expansion functions return `void`. If
  * the provided key length is not allowed, then there will be no error
@@ -176,6 +243,41 @@ extern "C" {
  *
  *     Pointer to the encryption/decryption function.
  *
+ * For combined CTR/CBC-MAC encryption, the `vtable` has a slightly
+ * different structure:
+ *
+ *   - `context_size`
+ *
+ *     The size (in bytes) of the context structure for subkeys.
+ *
+ *   - `block_size`
+ *
+ *     The cipher block size (in bytes).
+ *
+ *   - `log_block_size`
+ *
+ *     The base-2 logarithm of cipher block size (e.g. 4 for blocks
+ *     of 16 bytes).
+ *
+ *   - `init`
+ *
+ *     Pointer to the key expansion function.
+ *
+ *   - `encrypt`
+ *
+ *     Pointer to the CTR encryption + CBC-MAC function.
+ *
+ *   - `decrypt`
+ *
+ *     Pointer to the CTR decryption + CBC-MAC function.
+ *
+ *   - `ctr`
+ *
+ *     Pointer to the CTR encryption/decryption function.
+ *
+ *   - `mac`
+ *
+ *     Pointer to the CBC-MAC function.
  *
  * For block cipher "`xxx`", static, constant instances of these
  * structures are defined, under the names:
@@ -183,6 +285,7 @@ extern "C" {
  *   - `br_xxx_cbcenc_vtable`
  *   - `br_xxx_cbcdec_vtable`
  *   - `br_xxx_ctr_vtable`
+ *   - `br_xxx_ctrcbc_vtable`
  *
  *
  * ## Implemented Block Ciphers
@@ -460,6 +563,132 @@ struct br_block_ctr_class_ {
 		const void *iv, uint32_t cc, void *data, size_t len);
 };
 
+/**
+ * \brief Class type for combined CTR and CBC-MAC implementations.
+ *
+ * A `br_block_ctrcbc_class` instance points to the functions implementing
+ * a specific block cipher, when used in CTR mode for encrypting or
+ * decrypting data, along with CBC-MAC.
+ */
+typedef struct br_block_ctrcbc_class_ br_block_ctrcbc_class;
+struct br_block_ctrcbc_class_ {
+	/**
+	 * \brief Size (in bytes) of the context structure appropriate
+	 * for containing subkeys.
+	 */
+	size_t context_size;
+
+	/**
+	 * \brief Size of individual blocks (in bytes).
+	 */
+	unsigned block_size;
+
+	/**
+	 * \brief Base-2 logarithm of the size of individual blocks,
+	 * expressed in bytes.
+	 */
+	unsigned log_block_size;
+
+	/**
+	 * \brief Initialisation function.
+	 *
+	 * This function sets the `vtable` field in the context structure.
+	 * The key length MUST be one of the key lengths supported by
+	 * the implementation.
+	 *
+	 * \param ctx       context structure to initialise.
+	 * \param key       secret key.
+	 * \param key_len   key length (in bytes).
+	 */
+	void (*init)(const br_block_ctrcbc_class **ctx,
+		const void *key, size_t key_len);
+
+	/**
+	 * \brief Run the CTR encryption + CBC-MAC.
+	 *
+	 * The `ctr` parameter points to the counter; its length shall
+	 * be equal to the block size. It is updated by this function
+	 * as encryption proceeds.
+	 *
+	 * The `cbcmac` parameter points to the IV for CBC-MAC. The MAC
+	 * is computed over the encrypted data (output of CTR
+	 * encryption). Its length shall be equal to the block size. The
+	 * computed CBC-MAC value is written over the `cbcmac` array.
+	 *
+	 * The data to encrypt is updated "in place". Its length (`len`
+	 * bytes) MUST be a multiple of the block size.
+	 *
+	 * \param ctx      context structure (already initialised).
+	 * \param ctr      counter for CTR encryption (initial and final).
+	 * \param cbcmac   IV and output buffer for CBC-MAC.
+	 * \param data     data to encrypt.
+	 * \param len      data length (in bytes).
+	 */
+	void (*encrypt)(const br_block_ctrcbc_class *const *ctx,
+		void *ctr, void *cbcmac, void *data, size_t len);
+
+	/**
+	 * \brief Run the CTR decryption + CBC-MAC.
+	 *
+	 * The `ctr` parameter points to the counter; its length shall
+	 * be equal to the block size. It is updated by this function
+	 * as decryption proceeds.
+	 *
+	 * The `cbcmac` parameter points to the IV for CBC-MAC. The MAC
+	 * is computed over the encrypted data (i.e. before CTR
+	 * decryption). Its length shall be equal to the block size. The
+	 * computed CBC-MAC value is written over the `cbcmac` array.
+	 *
+	 * The data to decrypt is updated "in place". Its length (`len`
+	 * bytes) MUST be a multiple of the block size.
+	 *
+	 * \param ctx      context structure (already initialised).
+	 * \param ctr      counter for CTR encryption (initial and final).
+	 * \param cbcmac   IV and output buffer for CBC-MAC.
+	 * \param data     data to decrypt.
+	 * \param len      data length (in bytes).
+	 */
+	void (*decrypt)(const br_block_ctrcbc_class *const *ctx,
+		void *ctr, void *cbcmac, void *data, size_t len);
+
+	/**
+	 * \brief Run the CTR encryption/decryption only.
+	 *
+	 * The `ctr` parameter points to the counter; its length shall
+	 * be equal to the block size. It is updated by this function
+	 * as decryption proceeds.
+	 *
+	 * The data to decrypt is updated "in place". Its length (`len`
+	 * bytes) MUST be a multiple of the block size.
+	 *
+	 * \param ctx      context structure (already initialised).
+	 * \param ctr      counter for CTR encryption (initial and final).
+	 * \param data     data to decrypt.
+	 * \param len      data length (in bytes).
+	 */
+	void (*ctr)(const br_block_ctrcbc_class *const *ctx,
+		void *ctr, void *data, size_t len);
+
+	/**
+	 * \brief Run the CBC-MAC only.
+	 *
+	 * The `cbcmac` parameter points to the IV for CBC-MAC. The MAC
+	 * is computed over the encrypted data (i.e. before CTR
+	 * decryption). Its length shall be equal to the block size. The
+	 * computed CBC-MAC value is written over the `cbcmac` array.
+	 *
+	 * The data is unmodified. Its length (`len` bytes) MUST be a
+	 * multiple of the block size.
+	 *
+	 * \param ctx      context structure (already initialised).
+	 * \param cbcmac   IV and output buffer for CBC-MAC.
+	 * \param data     data to decrypt.
+	 * \param len      data length (in bytes).
+	 */
+	void (*mac)(const br_block_ctrcbc_class *const *ctx,
+		void *cbcmac, const void *data, size_t len);
+};
+
 /*
  * Traditional, table-based AES implementation. It is fast, but uses
  * internal tables (in particular a 1 kB table for encryption, another
@@ -518,6 +747,22 @@ typedef struct {
 } br_aes_big_ctr_keys;
 
 /**
+ * \brief Context for AES subkeys (`aes_big` implementation, CTR encryption
+ * and decryption + CBC-MAC).
+ *
+ * First field is a pointer to the vtable; it is set by the initialisation
+ * function. Other fields are not supposed to be accessed by user code.
+ */
+typedef struct {
+	/** \brief Pointer to vtable for this context. */
+	const br_block_ctrcbc_class *vtable;
+#ifndef BR_DOXYGEN_IGNORE
+	uint32_t skey[60];
+	unsigned num_rounds;
+#endif
+} br_aes_big_ctrcbc_keys;
+
+/**
  * \brief Class instance for AES CBC encryption (`aes_big` implementation).
  */
 extern const br_block_cbcenc_class br_aes_big_cbcenc_vtable;
@@ -532,6 +777,12 @@ extern const br_block_cbcdec_class br_aes_big_cbcdec_vtable;
  * (`aes_big` implementation).
  */
 extern const br_block_ctr_class br_aes_big_ctr_vtable;
+
+/**
+ * \brief Class instance for AES CTR encryption/decryption + CBC-MAC
+ * (`aes_big` implementation).
+ */
+extern const br_block_ctrcbc_class br_aes_big_ctrcbc_vtable;
 
 /**
  * \brief Context initialisation (key schedule) for AES CBC encryption
@@ -567,6 +818,17 @@ void br_aes_big_ctr_init(br_aes_big_ctr_keys *ctx,
 	const void *key, size_t len);
 
 /**
+ * \brief Context initialisation (key schedule) for AES CTR + CBC-MAC
+ * (`aes_big` implementation).
+ *
+ * \param ctx   context to initialise.
+ * \param key   secret key.
+ * \param len   secret key length (in bytes).
+ */
+void br_aes_big_ctrcbc_init(br_aes_big_ctrcbc_keys *ctx,
+	const void *key, size_t len);
+
+/**
  * \brief CBC encryption with AES (`aes_big` implementation).
  *
  * \param ctx    context (already initialised).
@@ -594,12 +856,58 @@ void br_aes_big_cbcdec_run(const br_aes_big_cbcdec_keys *ctx, void *iv,
  * \param ctx    context (already initialised).
  * \param iv     IV (constant, 12 bytes).
  * \param cc     initial block counter value.
- * \param data   data to decrypt (updated).
+ * \param data   data to encrypt or decrypt (updated).
  * \param len    data length (in bytes).
  * \return  new block counter value.
  */
 uint32_t br_aes_big_ctr_run(const br_aes_big_ctr_keys *ctx,
 	const void *iv, uint32_t cc, void *data, size_t len);
+
+/**
+ * \brief CTR encryption + CBC-MAC with AES (`aes_big` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to encrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_big_ctrcbc_encrypt(const br_aes_big_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR decryption + CBC-MAC with AES (`aes_big` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to decrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_big_ctrcbc_decrypt(const br_aes_big_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR encryption/decryption with AES (`aes_big` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param data     data to MAC (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_big_ctrcbc_ctr(const br_aes_big_ctrcbc_keys *ctx,
+	void *ctr, void *data, size_t len);
+
+/**
+ * \brief CBC-MAC with AES (`aes_big` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to MAC (unmodified).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_big_ctrcbc_mac(const br_aes_big_ctrcbc_keys *ctx,
+	void *cbcmac, const void *data, size_t len);
 
 /*
  * AES implementation optimized for size. It is slower than the
@@ -659,6 +967,22 @@ typedef struct {
 } br_aes_small_ctr_keys;
 
 /**
+ * \brief Context for AES subkeys (`aes_small` implementation, CTR encryption
+ * and decryption + CBC-MAC).
+ *
+ * First field is a pointer to the vtable; it is set by the initialisation
+ * function. Other fields are not supposed to be accessed by user code.
+ */
+typedef struct {
+	/** \brief Pointer to vtable for this context. */
+	const br_block_ctrcbc_class *vtable;
+#ifndef BR_DOXYGEN_IGNORE
+	uint32_t skey[60];
+	unsigned num_rounds;
+#endif
+} br_aes_small_ctrcbc_keys;
+
+/**
  * \brief Class instance for AES CBC encryption (`aes_small` implementation).
  */
 extern const br_block_cbcenc_class br_aes_small_cbcenc_vtable;
@@ -673,6 +997,12 @@ extern const br_block_cbcdec_class br_aes_small_cbcdec_vtable;
  * (`aes_small` implementation).
  */
 extern const br_block_ctr_class br_aes_small_ctr_vtable;
+
+/**
+ * \brief Class instance for AES CTR encryption/decryption + CBC-MAC
+ * (`aes_small` implementation).
+ */
+extern const br_block_ctrcbc_class br_aes_small_ctrcbc_vtable;
 
 /**
  * \brief Context initialisation (key schedule) for AES CBC encryption
@@ -705,6 +1035,17 @@ void br_aes_small_cbcdec_init(br_aes_small_cbcdec_keys *ctx,
  * \param len   secret key length (in bytes).
  */
 void br_aes_small_ctr_init(br_aes_small_ctr_keys *ctx,
+	const void *key, size_t len);
+
+/**
+ * \brief Context initialisation (key schedule) for AES CTR + CBC-MAC
+ * (`aes_small` implementation).
+ *
+ * \param ctx   context to initialise.
+ * \param key   secret key.
+ * \param len   secret key length (in bytes).
+ */
+void br_aes_small_ctrcbc_init(br_aes_small_ctrcbc_keys *ctx,
 	const void *key, size_t len);
 
 /**
@@ -741,6 +1082,52 @@ void br_aes_small_cbcdec_run(const br_aes_small_cbcdec_keys *ctx, void *iv,
  */
 uint32_t br_aes_small_ctr_run(const br_aes_small_ctr_keys *ctx,
 	const void *iv, uint32_t cc, void *data, size_t len);
+
+/**
+ * \brief CTR encryption + CBC-MAC with AES (`aes_small` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to encrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_small_ctrcbc_encrypt(const br_aes_small_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR decryption + CBC-MAC with AES (`aes_small` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to decrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_small_ctrcbc_decrypt(const br_aes_small_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR encryption/decryption with AES (`aes_small` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param data     data to MAC (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_small_ctrcbc_ctr(const br_aes_small_ctrcbc_keys *ctx,
+	void *ctr, void *data, size_t len);
+
+/**
+ * \brief CBC-MAC with AES (`aes_small` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to MAC (unmodified).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_small_ctrcbc_mac(const br_aes_small_ctrcbc_keys *ctx,
+	void *cbcmac, const void *data, size_t len);
 
 /*
  * Constant-time AES implementation. Its size is similar to that of
@@ -799,6 +1186,22 @@ typedef struct {
 } br_aes_ct_ctr_keys;
 
 /**
+ * \brief Context for AES subkeys (`aes_ct` implementation, CTR encryption
+ * and decryption + CBC-MAC).
+ *
+ * First field is a pointer to the vtable; it is set by the initialisation
+ * function. Other fields are not supposed to be accessed by user code.
+ */
+typedef struct {
+	/** \brief Pointer to vtable for this context. */
+	const br_block_ctrcbc_class *vtable;
+#ifndef BR_DOXYGEN_IGNORE
+	uint32_t skey[60];
+	unsigned num_rounds;
+#endif
+} br_aes_ct_ctrcbc_keys;
+
+/**
  * \brief Class instance for AES CBC encryption (`aes_ct` implementation).
  */
 extern const br_block_cbcenc_class br_aes_ct_cbcenc_vtable;
@@ -813,6 +1216,12 @@ extern const br_block_cbcdec_class br_aes_ct_cbcdec_vtable;
  * (`aes_ct` implementation).
  */
 extern const br_block_ctr_class br_aes_ct_ctr_vtable;
+
+/**
+ * \brief Class instance for AES CTR encryption/decryption + CBC-MAC
+ * (`aes_ct` implementation).
+ */
+extern const br_block_ctrcbc_class br_aes_ct_ctrcbc_vtable;
 
 /**
  * \brief Context initialisation (key schedule) for AES CBC encryption
@@ -845,6 +1254,17 @@ void br_aes_ct_cbcdec_init(br_aes_ct_cbcdec_keys *ctx,
  * \param len   secret key length (in bytes).
  */
 void br_aes_ct_ctr_init(br_aes_ct_ctr_keys *ctx,
+	const void *key, size_t len);
+
+/**
+ * \brief Context initialisation (key schedule) for AES CTR + CBC-MAC
+ * (`aes_ct` implementation).
+ *
+ * \param ctx   context to initialise.
+ * \param key   secret key.
+ * \param len   secret key length (in bytes).
+ */
+void br_aes_ct_ctrcbc_init(br_aes_ct_ctrcbc_keys *ctx,
 	const void *key, size_t len);
 
 /**
@@ -881,6 +1301,52 @@ void br_aes_ct_cbcdec_run(const br_aes_ct_cbcdec_keys *ctx, void *iv,
  */
 uint32_t br_aes_ct_ctr_run(const br_aes_ct_ctr_keys *ctx,
 	const void *iv, uint32_t cc, void *data, size_t len);
+
+/**
+ * \brief CTR encryption + CBC-MAC with AES (`aes_ct` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to encrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct_ctrcbc_encrypt(const br_aes_ct_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR decryption + CBC-MAC with AES (`aes_ct` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to decrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct_ctrcbc_decrypt(const br_aes_ct_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR encryption/decryption with AES (`aes_ct` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param data     data to MAC (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct_ctrcbc_ctr(const br_aes_ct_ctrcbc_keys *ctx,
+	void *ctr, void *data, size_t len);
+
+/**
+ * \brief CBC-MAC with AES (`aes_ct` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to MAC (unmodified).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct_ctrcbc_mac(const br_aes_ct_ctrcbc_keys *ctx,
+	void *cbcmac, const void *data, size_t len);
 
 /*
  * 64-bit constant-time AES implementation. It is similar to 'aes_ct'
@@ -941,6 +1407,22 @@ typedef struct {
 } br_aes_ct64_ctr_keys;
 
 /**
+ * \brief Context for AES subkeys (`aes_ct64` implementation, CTR encryption
+ * and decryption + CBC-MAC).
+ *
+ * First field is a pointer to the vtable; it is set by the initialisation
+ * function. Other fields are not supposed to be accessed by user code.
+ */
+typedef struct {
+	/** \brief Pointer to vtable for this context. */
+	const br_block_ctrcbc_class *vtable;
+#ifndef BR_DOXYGEN_IGNORE
+	uint64_t skey[30];
+	unsigned num_rounds;
+#endif
+} br_aes_ct64_ctrcbc_keys;
+
+/**
  * \brief Class instance for AES CBC encryption (`aes_ct64` implementation).
  */
 extern const br_block_cbcenc_class br_aes_ct64_cbcenc_vtable;
@@ -955,6 +1437,12 @@ extern const br_block_cbcdec_class br_aes_ct64_cbcdec_vtable;
  * (`aes_ct64` implementation).
  */
 extern const br_block_ctr_class br_aes_ct64_ctr_vtable;
+
+/**
+ * \brief Class instance for AES CTR encryption/decryption + CBC-MAC
+ * (`aes_ct64` implementation).
+ */
+extern const br_block_ctrcbc_class br_aes_ct64_ctrcbc_vtable;
 
 /**
  * \brief Context initialisation (key schedule) for AES CBC encryption
@@ -987,6 +1475,17 @@ void br_aes_ct64_cbcdec_init(br_aes_ct64_cbcdec_keys *ctx,
  * \param len   secret key length (in bytes).
  */
 void br_aes_ct64_ctr_init(br_aes_ct64_ctr_keys *ctx,
+	const void *key, size_t len);
+
+/**
+ * \brief Context initialisation (key schedule) for AES CTR + CBC-MAC
+ * (`aes_ct64` implementation).
+ *
+ * \param ctx   context to initialise.
+ * \param key   secret key.
+ * \param len   secret key length (in bytes).
+ */
+void br_aes_ct64_ctrcbc_init(br_aes_ct64_ctrcbc_keys *ctx,
 	const void *key, size_t len);
 
 /**
@@ -1023,6 +1522,52 @@ void br_aes_ct64_cbcdec_run(const br_aes_ct64_cbcdec_keys *ctx, void *iv,
  */
 uint32_t br_aes_ct64_ctr_run(const br_aes_ct64_ctr_keys *ctx,
 	const void *iv, uint32_t cc, void *data, size_t len);
+
+/**
+ * \brief CTR encryption + CBC-MAC with AES (`aes_ct64` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to encrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct64_ctrcbc_encrypt(const br_aes_ct64_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR decryption + CBC-MAC with AES (`aes_ct64` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to decrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct64_ctrcbc_decrypt(const br_aes_ct64_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR encryption/decryption with AES (`aes_ct64` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param data     data to MAC (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct64_ctrcbc_ctr(const br_aes_ct64_ctrcbc_keys *ctx,
+	void *ctr, void *data, size_t len);
+
+/**
+ * \brief CBC-MAC with AES (`aes_ct64` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to MAC (unmodified).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_ct64_ctrcbc_mac(const br_aes_ct64_ctrcbc_keys *ctx,
+	void *cbcmac, const void *data, size_t len);
 
 /*
  * AES implementation using AES-NI opcodes (x86 platform).
@@ -1084,6 +1629,24 @@ typedef struct {
 } br_aes_x86ni_ctr_keys;
 
 /**
+ * \brief Context for AES subkeys (`aes_x86ni` implementation, CTR encryption
+ * and decryption + CBC-MAC).
+ *
+ * First field is a pointer to the vtable; it is set by the initialisation
+ * function. Other fields are not supposed to be accessed by user code.
+ */
+typedef struct {
+	/** \brief Pointer to vtable for this context. */
+	const br_block_ctrcbc_class *vtable;
+#ifndef BR_DOXYGEN_IGNORE
+	union {
+		unsigned char skni[16 * 15];
+	} skey;
+	unsigned num_rounds;
+#endif
+} br_aes_x86ni_ctrcbc_keys;
+
+/**
  * \brief Class instance for AES CBC encryption (`aes_x86ni` implementation).
  *
  * Since this implementation might be omitted from the library, or the
@@ -1110,6 +1673,16 @@ extern const br_block_cbcdec_class br_aes_x86ni_cbcdec_vtable;
  * instance should be obtained through `br_aes_x86ni_ctr_get_vtable()`.
  */
 extern const br_block_ctr_class br_aes_x86ni_ctr_vtable;
+
+/**
+ * \brief Class instance for AES CTR encryption/decryption + CBC-MAC
+ * (`aes_x86ni` implementation).
+ *
+ * Since this implementation might be omitted from the library, or the
+ * AES opcode unavailable on the current CPU, a pointer to this class
+ * instance should be obtained through `br_aes_x86ni_ctrcbc_get_vtable()`.
+ */
+extern const br_block_ctrcbc_class br_aes_x86ni_ctrcbc_vtable;
 
 /**
  * \brief Context initialisation (key schedule) for AES CBC encryption
@@ -1142,6 +1715,17 @@ void br_aes_x86ni_cbcdec_init(br_aes_x86ni_cbcdec_keys *ctx,
  * \param len   secret key length (in bytes).
  */
 void br_aes_x86ni_ctr_init(br_aes_x86ni_ctr_keys *ctx,
+	const void *key, size_t len);
+
+/**
+ * \brief Context initialisation (key schedule) for AES CTR + CBC-MAC
+ * (`aes_x86ni` implementation).
+ *
+ * \param ctx   context to initialise.
+ * \param key   secret key.
+ * \param len   secret key length (in bytes).
+ */
+void br_aes_x86ni_ctrcbc_init(br_aes_x86ni_ctrcbc_keys *ctx,
 	const void *key, size_t len);
 
 /**
@@ -1180,6 +1764,52 @@ uint32_t br_aes_x86ni_ctr_run(const br_aes_x86ni_ctr_keys *ctx,
 	const void *iv, uint32_t cc, void *data, size_t len);
 
 /**
+ * \brief CTR encryption + CBC-MAC with AES (`aes_x86ni` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to encrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_x86ni_ctrcbc_encrypt(const br_aes_x86ni_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR decryption + CBC-MAC with AES (`aes_x86ni` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to decrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_x86ni_ctrcbc_decrypt(const br_aes_x86ni_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR encryption/decryption with AES (`aes_x86ni` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param data     data to MAC (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_x86ni_ctrcbc_ctr(const br_aes_x86ni_ctrcbc_keys *ctx,
+	void *ctr, void *data, size_t len);
+
+/**
+ * \brief CBC-MAC with AES (`aes_x86ni` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to MAC (unmodified).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_x86ni_ctrcbc_mac(const br_aes_x86ni_ctrcbc_keys *ctx,
+	void *cbcmac, const void *data, size_t len);
+
+/**
  * \brief Obtain the `aes_x86ni` AES-CBC (encryption) implementation, if
  * available.
  *
@@ -1188,7 +1818,7 @@ uint32_t br_aes_x86ni_ctr_run(const br_aes_x86ni_ctr_keys *ctx,
  * opcodes are available on the currently running CPU. If either of
  * these conditions is not met, then this function returns `NULL`.
  *
- * \return  the `aes_x868ni` AES-CBC (encryption) implementation, or `NULL`.
+ * \return  the `aes_x86ni` AES-CBC (encryption) implementation, or `NULL`.
  */
 const br_block_cbcenc_class *br_aes_x86ni_cbcenc_get_vtable(void);
 
@@ -1201,7 +1831,7 @@ const br_block_cbcenc_class *br_aes_x86ni_cbcenc_get_vtable(void);
  * opcodes are available on the currently running CPU. If either of
  * these conditions is not met, then this function returns `NULL`.
  *
- * \return  the `aes_x868ni` AES-CBC (decryption) implementation, or `NULL`.
+ * \return  the `aes_x86ni` AES-CBC (decryption) implementation, or `NULL`.
  */
 const br_block_cbcdec_class *br_aes_x86ni_cbcdec_get_vtable(void);
 
@@ -1213,9 +1843,22 @@ const br_block_cbcdec_class *br_aes_x86ni_cbcdec_get_vtable(void);
  * opcodes are available on the currently running CPU. If either of
  * these conditions is not met, then this function returns `NULL`.
  *
- * \return  the `aes_x868ni` AES-CTR implementation, or `NULL`.
+ * \return  the `aes_x86ni` AES-CTR implementation, or `NULL`.
  */
 const br_block_ctr_class *br_aes_x86ni_ctr_get_vtable(void);
+
+/**
+ * \brief Obtain the `aes_x86ni` AES-CTR + CBC-MAC implementation, if
+ * available.
+ *
+ * This function returns a pointer to `br_aes_x86ni_ctrcbc_vtable`, if
+ * that implementation was compiled in the library _and_ the x86 AES
+ * opcodes are available on the currently running CPU. If either of
+ * these conditions is not met, then this function returns `NULL`.
+ *
+ * \return  the `aes_x86ni` AES-CTR implementation, or `NULL`.
+ */
+const br_block_ctrcbc_class *br_aes_x86ni_ctrcbc_get_vtable(void);
 
 /*
  * AES implementation using POWER8 opcodes.
@@ -1277,6 +1920,24 @@ typedef struct {
 } br_aes_pwr8_ctr_keys;
 
 /**
+ * \brief Context for AES subkeys (`aes_pwr8` implementation, CTR encryption
+ * and decryption + CBC-MAC).
+ *
+ * First field is a pointer to the vtable; it is set by the initialisation
+ * function. Other fields are not supposed to be accessed by user code.
+ */
+typedef struct {
+	/** \brief Pointer to vtable for this context. */
+	const br_block_ctrcbc_class *vtable;
+#ifndef BR_DOXYGEN_IGNORE
+	union {
+		unsigned char skni[16 * 15];
+	} skey;
+	unsigned num_rounds;
+#endif
+} br_aes_pwr8_ctrcbc_keys;
+
+/**
  * \brief Class instance for AES CBC encryption (`aes_pwr8` implementation).
  *
  * Since this implementation might be omitted from the library, or the
@@ -1303,6 +1964,16 @@ extern const br_block_cbcdec_class br_aes_pwr8_cbcdec_vtable;
  * instance should be obtained through `br_aes_pwr8_ctr_get_vtable()`.
  */
 extern const br_block_ctr_class br_aes_pwr8_ctr_vtable;
+
+/**
+ * \brief Class instance for AES CTR encryption/decryption + CBC-MAC
+ * (`aes_pwr8` implementation).
+ *
+ * Since this implementation might be omitted from the library, or the
+ * AES opcode unavailable on the current CPU, a pointer to this class
+ * instance should be obtained through `br_aes_pwr8_ctrcbc_get_vtable()`.
+ */
+extern const br_block_ctrcbc_class br_aes_pwr8_ctrcbc_vtable;
 
 /**
  * \brief Context initialisation (key schedule) for AES CBC encryption
@@ -1335,6 +2006,17 @@ void br_aes_pwr8_cbcdec_init(br_aes_pwr8_cbcdec_keys *ctx,
  * \param len   secret key length (in bytes).
  */
 void br_aes_pwr8_ctr_init(br_aes_pwr8_ctr_keys *ctx,
+	const void *key, size_t len);
+
+/**
+ * \brief Context initialisation (key schedule) for AES CTR + CBC-MAC
+ * (`aes_pwr8` implementation).
+ *
+ * \param ctx   context to initialise.
+ * \param key   secret key.
+ * \param len   secret key length (in bytes).
+ */
+void br_aes_pwr8_ctrcbc_init(br_aes_pwr8_ctrcbc_keys *ctx,
 	const void *key, size_t len);
 
 /**
@@ -1373,6 +2055,52 @@ uint32_t br_aes_pwr8_ctr_run(const br_aes_pwr8_ctr_keys *ctx,
 	const void *iv, uint32_t cc, void *data, size_t len);
 
 /**
+ * \brief CTR encryption + CBC-MAC with AES (`aes_pwr8` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to encrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_pwr8_ctrcbc_encrypt(const br_aes_pwr8_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR decryption + CBC-MAC with AES (`aes_pwr8` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to decrypt (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_pwr8_ctrcbc_decrypt(const br_aes_pwr8_ctrcbc_keys *ctx,
+	void *ctr, void *cbcmac, void *data, size_t len);
+
+/**
+ * \brief CTR encryption/decryption with AES (`aes_pwr8` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param ctr      counter for CTR (16 bytes, updated).
+ * \param data     data to MAC (updated).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_pwr8_ctrcbc_ctr(const br_aes_pwr8_ctrcbc_keys *ctx,
+	void *ctr, void *data, size_t len);
+
+/**
+ * \brief CBC-MAC with AES (`aes_pwr8` implementation).
+ *
+ * \param ctx      context (already initialised).
+ * \param cbcmac   IV for CBC-MAC (updated).
+ * \param data     data to MAC (unmodified).
+ * \param len      data length (in bytes, MUST be a multiple of 16).
+ */
+void br_aes_pwr8_ctrcbc_mac(const br_aes_pwr8_ctrcbc_keys *ctx,
+	void *cbcmac, const void *data, size_t len);
+
+/**
  * \brief Obtain the `aes_pwr8` AES-CBC (encryption) implementation, if
  * available.
  *
@@ -1409,6 +2137,19 @@ const br_block_cbcdec_class *br_aes_pwr8_cbcdec_get_vtable(void);
  * \return  the `aes_pwr8` AES-CTR implementation, or `NULL`.
  */
 const br_block_ctr_class *br_aes_pwr8_ctr_get_vtable(void);
+
+/**
+ * \brief Obtain the `aes_pwr8` AES-CTR + CBC-MAC implementation, if
+ * available.
+ *
+ * This function returns a pointer to `br_aes_pwr8_ctrcbc_vtable`, if
+ * that implementation was compiled in the library _and_ the POWER8 AES
+ * opcodes are available on the currently running CPU. If either of
+ * these conditions is not met, then this function returns `NULL`.
+ *
+ * \return  the `aes_pwr8` AES-CTR implementation, or `NULL`.
+ */
+const br_block_ctrcbc_class *br_aes_pwr8_ctrcbc_get_vtable(void);
 
 /**
  * \brief Aggregate structure large enough to be used as context for
@@ -1451,6 +2192,20 @@ typedef union {
 	br_aes_x86ni_ctr_keys c_x86ni;
 	br_aes_pwr8_ctr_keys c_pwr8;
 } br_aes_gen_ctr_keys;
+
+/**
+ * \brief Aggregate structure large enough to be used as context for
+ * subkeys (CTR encryption/decryption + CBC-MAC) for all AES implementations.
+ */
+typedef union {
+	const br_block_ctrcbc_class *vtable;
+	br_aes_big_ctrcbc_keys c_big;
+	br_aes_small_ctrcbc_keys c_small;
+	br_aes_ct_ctrcbc_keys c_ct;
+	br_aes_ct64_ctrcbc_keys c_ct64;
+	br_aes_x86ni_ctrcbc_keys c_x86ni;
+	br_aes_pwr8_ctrcbc_keys c_pwr8;
+} br_aes_gen_ctrcbc_keys;
 
 /*
  * Traditional, table-based implementation for DES/3DES. Since tables are

@@ -37,7 +37,7 @@ br_rsa_i62_private(unsigned char *x, const br_rsa_private_key *sk)
 	size_t plen, qlen;
 	size_t fwlen;
 	uint32_t p0i, q0i;
-	size_t xlen;
+	size_t xlen, u;
 	uint64_t tmp[TLEN];
 	long z;
 	uint32_t *mp, *mq, *s1, *s2, *t1, *t2, *t3;
@@ -95,19 +95,56 @@ br_rsa_i62_private(unsigned char *x, const br_rsa_private_key *sk)
 	br_i31_decode(mq, q, qlen);
 
 	/*
+	 * Decode p.
+	 */
+	t1 = (uint32_t *)(tmp + fwlen);
+	br_i31_decode(t1, p, plen);
+
+	/*
+	 * Compute the modulus (product of the two factors), to compare
+	 * it with the source value. We use br_i31_mulacc(), since it's
+	 * already used later on.
+	 */
+	t2 = (uint32_t *)(tmp + 2 * fwlen);
+	br_i31_zero(t2, mq[0]);
+	br_i31_mulacc(t2, mq, t1);
+
+	/*
+	 * We encode the modulus into bytes, to perform the comparison
+	 * with bytes. We know that the product length, in bytes, is
+	 * exactly xlen.
+	 * The comparison actually computes the carry when subtracting
+	 * the modulus from the source value; that carry must be 1 for
+	 * a value in the correct range. We keep it in r, which is our
+	 * accumulator for the error code.
+	 */
+	t3 = (uint32_t *)(tmp + 4 * fwlen);
+	br_i31_encode(t3, xlen, t2);
+	u = xlen;
+	r = 0;
+	while (u > 0) {
+		uint32_t wn, wx;
+
+		u --;
+		wn = ((unsigned char *)t3)[u];
+		wx = x[u];
+		r = ((wx - (wn + r)) >> 8) & 1;
+	}
+
+	/*
+	 * Move the decoded p to another temporary buffer.
+	 */
+	mp = (uint32_t *)(tmp + 2 * fwlen);
+	memmove(mp, t1, 2 * fwlen * sizeof *t1);
+
+	/*
 	 * Compute s2 = x^dq mod q.
 	 */
 	q0i = br_i31_ninv31(mq[1]);
 	s2 = (uint32_t *)(tmp + fwlen);
 	br_i31_decode_reduce(s2, x, xlen, mq);
-	r = br_i62_modpow_opt(s2, sk->dq, sk->dqlen, mq, q0i,
-		tmp + 2 * fwlen, TLEN - 2 * fwlen);
-
-	/*
-	 * Decode p.
-	 */
-	mp = (uint32_t *)(tmp + 2 * fwlen);
-	br_i31_decode(mp, p, plen);
+	r &= br_i62_modpow_opt(s2, sk->dq, sk->dqlen, mq, q0i,
+		tmp + 3 * fwlen, TLEN - 3 * fwlen);
 
 	/*
 	 * Compute s1 = x^dp mod p.

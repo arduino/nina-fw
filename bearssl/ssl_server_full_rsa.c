@@ -53,6 +53,10 @@ br_ssl_server_init_full_rsa(br_ssl_server_context *cc,
 		BR_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
 		BR_TLS_RSA_WITH_AES_128_GCM_SHA256,
 		BR_TLS_RSA_WITH_AES_256_GCM_SHA384,
+		BR_TLS_RSA_WITH_AES_128_CCM,
+		BR_TLS_RSA_WITH_AES_256_CCM,
+		BR_TLS_RSA_WITH_AES_128_CCM_8,
+		BR_TLS_RSA_WITH_AES_256_CCM_8,
 		BR_TLS_RSA_WITH_AES_128_CBC_SHA256,
 		BR_TLS_RSA_WITH_AES_256_CBC_SHA256,
 		BR_TLS_RSA_WITH_AES_128_CBC_SHA,
@@ -121,6 +125,7 @@ br_ssl_server_init_full_rsa(br_ssl_server_context *cc,
 	 * Symmetric encryption.
 	 */
 	br_ssl_engine_set_default_aes_cbc(&cc->eng);
+	br_ssl_engine_set_default_aes_ccm(&cc->eng);
 	br_ssl_engine_set_default_aes_gcm(&cc->eng);
 	br_ssl_engine_set_default_des_cbc(&cc->eng);
 	br_ssl_engine_set_default_chapol(&cc->eng);

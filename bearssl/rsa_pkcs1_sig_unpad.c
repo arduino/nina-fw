@@ -68,7 +68,7 @@ br_rsa_pkcs1_sig_unpad(const unsigned char *sig, size_t sig_len,
 
 	/*
 	 * Check the "00 01 FF .. FF 00" with at least eight 0xFF bytes.
-	 * The comparaison is valid because we made sure that the signature
+	 * The comparison is valid because we made sure that the signature
 	 * is at least 11 bytes long.
 	 */
 	if (memcmp(sig, pad1, sizeof pad1) != 0) {
