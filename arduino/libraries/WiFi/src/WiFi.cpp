@@ -171,6 +171,7 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   memset(&wifiConfig, 0x00, sizeof(wifiConfig));
   strncpy((char*)wifiConfig.sta.ssid, ssid, sizeof(wifiConfig.sta.ssid));
   strncpy((char*)wifiConfig.sta.password, key, sizeof(wifiConfig.sta.password));
+  wifiConfig.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
   _status = WL_NO_SSID_AVAIL;
 
   _interface = ESP_IF_WIFI_STA;
