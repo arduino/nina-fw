@@ -42,4 +42,6 @@ private:
 
 extern CommandHandlerClass CommandHandler;
 
+extern "C" int downloadAndSaveFile(char* url, char* filename, FILE* f);
+
 #endif
