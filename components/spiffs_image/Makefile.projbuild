@@ -1,0 +1,30 @@
+
+SPIFFS_IMAGE_COMPONENT_PATH := $(COMPONENT_PATH)
+ifeq ($(OS),Windows_NT)
+	MKSPIFFS_BIN="mkspiffs.exe"
+	MKSPIFFS_BIN_PATH := $(PROJECT_PATH)/components/mkspiffs/mkspiffs.exe
+else
+	MKSPIFFS_BIN="mkspiffs"
+	MKSPIFFS_BIN_PATH := $(PROJECT_PATH)/components/mkspiffs/mkspiffs
+endif
+
+$(shell $(SPIFFS_IMAGE_COMPONENT_PATH)/spiffs_part_info.py)
+
+include $(SPIFFS_IMAGE_COMPONENT_PATH)/spiffs_param.mk
+
+.PHONY: flashfs
+.PHONY: makefs
+.PHONY: copyfs
+
+flashfs:
+	@echo "Make & flash spiffs image ..."
+	$(MKSPIFFS_BIN_PATH) -c $(SPIFFS_IMAGE_COMPONENT_PATH)/image -b 4096 -p 256 -s $(PART_SPIFFS_SIZE) $(BUILD_DIR_BASE)/spiffs_image.img
+	$(ESPTOOLPY_WRITE_FLASH) $(PART_SPIFFS_BASE_ADDR) $(BUILD_DIR_BASE)/spiffs_image.img
+
+makefs:
+	@echo "Making spiffs image ..."
+	$(MKSPIFFS_BIN_PATH) -c $(SPIFFS_IMAGE_COMPONENT_PATH)/image -b 4096 -p 256 -s $(PART_SPIFFS_SIZE) $(BUILD_DIR_BASE)/spiffs_image.img
+
+copyfs: 
+	@echo "Flashing spiffs image ..."
+	$(ESPTOOLPY_WRITE_FLASH) $(PART_SPIFFS_BASE_ADDR) $(SPIFFS_IMAGE_COMPONENT_PATH)/spiffs_image.img
