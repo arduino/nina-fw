@@ -6,7 +6,7 @@ appData = open("build/nina-fw.bin", "rb").read()
 certsData = open("data/roots.pem", "rb").read()
 
 # calculate the output binary size, app offset 
-outputSize = 0x190000 + len(certsData) + 1
+outputSize = 0x30000 + len(appData)
 if (outputSize % 1024):
 	outputSize += 1024 - (outputSize % 1024)
 
@@ -21,13 +21,13 @@ for i in range(0, len(partitionData)):
 	outputData[0x8000 + i] = partitionData[i]
 
 for i in range(0, len(appData)):
-	outputData[0x10000 + i] = appData[i]
+	outputData[0x30000 + i] = appData[i]
 
 for i in range(0, len(certsData)):
-        outputData[0x190000 + i] = certsData[i]
+        outputData[0x10000 + i] = certsData[i]
 
 # zero terminate the pem file
-outputData[0x190000 + len(certsData)] = 0
+outputData[0x10000 + len(certsData)] = 0
 
 # write out
 with open("NINA_W102.bin","w+b") as f:
