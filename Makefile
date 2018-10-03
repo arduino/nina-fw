@@ -9,7 +9,7 @@ endif
 
 include $(IDF_PATH)/make/project.mk
 
-firmware: all
+firmware: all makefs
 	python combine.py
 
 .PHONY: firmware
