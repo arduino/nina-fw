@@ -4,12 +4,12 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
 ## Building
 
-1. [Download the ESP32 toolchain](http://esp-idf.readthedocs.io/en/v3.0/get-started/index.html#setup-toolchain)
+1. [Download the ESP32 toolchain](http://esp-idf.readthedocs.io/en/v3.1/get-started/index.html#setup-toolchain)
 1. Extract it and add it to your `PATH`: `export PATH=$PATH:<path/to/toolchain>/bin`
-1. Clone **v3.0** of the IDF: `git clone --branch v3.0 --recursive https://github.com/espressif/esp-idf.git`
+1. Clone **v3.1** of the IDF: `git clone --branch v3.1 --recursive https://github.com/espressif/esp-idf.git`
 1. Set the `IDF_PATH` environment variable: `export IDF_PATH=<path/to/idf>`
 1. Run `make` to build the firmware (in the directory of this read me)
-1. Load the `WiFiNINAFirmwareUpdater` example sketch on to the board
+1. Load the `Tools -> SerialNINAPassthrough` example sketch on to the board
 1. Use `esptool` to flash the compiled firmware
 
 ## License
