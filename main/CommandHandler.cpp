@@ -25,7 +25,7 @@
 
 #include "CommandHandler.h"
 
-const char FIRMWARE_VERSION[6] = "1.0.0";
+const char FIRMWARE_VERSION[6] = "1.1.0";
 
 /*IPAddress*/uint32_t resolvedHostname;
 
