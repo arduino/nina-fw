@@ -42,9 +42,9 @@ int ECCX08Class::begin()
 {
   _wire->begin();
 
-  long ver = version();
+  long ver = version() & 0x0F00000;
 
-  if (ver != 0x500000 && ver != 0x1600000) {
+  if (ver != 0x0500000 && ver != 0x0600000) {
     return 0;
   }
 
