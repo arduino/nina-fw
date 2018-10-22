@@ -43,6 +43,7 @@ WiFiClass::WiFiClass() :
   _eventGroup = xEventGroupCreate();
   memset(&_apRecord, 0x00, sizeof(_apRecord));
   memset(&_ipInfo, 0x00, sizeof(_ipInfo));
+  memset(&_dnsServers, 0x00, sizeof(_dnsServers));
 }
 
 uint8_t WiFiClass::status()
@@ -302,6 +303,9 @@ void WiFiClass::setDNS(/*IPAddress*/uint32_t dns_server1, /*IPAddress*/uint32_t 
 {
   ip_addr_t d;
   d.type = IPADDR_TYPE_V4;
+
+  _dnsServers[0] = dns_server1;
+  _dnsServers[1] = dns_server2;
 
   if (dns_server1) {
     d.u_addr.ip4.addr = static_cast<uint32_t>(dns_server1);
@@ -622,6 +626,9 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       esp_wifi_sta_get_ap_info(&_apRecord);
 
       if (_ipInfo.ip.addr) {
+        // re-apply the custom DNS settings
+        setDNS(_dnsServers[0], _dnsServers[1]);
+
         // static IP
         _status = WL_CONNECTED;
       }
@@ -647,6 +654,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
     case SYSTEM_EVENT_STA_LOST_IP:
       memset(&_ipInfo, 0x00, sizeof(_ipInfo));
+      memset(&_dnsServers, 0x00, sizeof(_dnsServers));
       _status = WL_CONNECTION_LOST;
       break;
 
@@ -672,6 +680,9 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
         tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
         tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &_ipInfo);
         tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP);
+
+        // re-apply the custom DNS settings
+        setDNS(_dnsServers[0], _dnsServers[1]);
       } else {
         tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &_ipInfo);
       }

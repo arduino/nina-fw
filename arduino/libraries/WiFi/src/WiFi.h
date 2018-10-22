@@ -117,6 +117,7 @@ private:
   wifi_ap_record_t _scanResults[MAX_SCAN_RESULTS];
   wifi_ap_record_t _apRecord;
   tcpip_adapter_ip_info_t _ipInfo;
+  uint32_t _dnsServers[2];
 
   netif_input_fn _staNetifInput;
   netif_input_fn _apNetifInput;
