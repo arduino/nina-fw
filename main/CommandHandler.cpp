@@ -237,6 +237,38 @@ int getTemperature(const uint8_t command[], uint8_t response[])
   return 9;
 }
 
+static int stats_display_proto(struct stats_proto *proto, char* buf)
+{
+  int cc = 0;
+  cc += snprintf(buf + cc, 256, "xmit: %hu\n", proto->xmit);
+  cc += snprintf(buf + cc, 256, "recv: %hu\n", proto->recv);
+  cc += snprintf(buf + cc, 256, "fw: %hu\n", proto->fw);
+  cc += snprintf(buf + cc, 256, "drop: %hu\n", proto->drop);
+  cc += snprintf(buf + cc, 256, "chkerr: %hu\n", proto->chkerr);
+  cc += snprintf(buf + cc, 256, "lenerr: %hu\n", proto->lenerr);
+  cc += snprintf(buf + cc, 256, "memerr: %hu\n", proto->memerr);
+  cc += snprintf(buf + cc, 256, "rterr: %hu\n", proto->rterr);
+  cc += snprintf(buf + cc, 256, "proterr: %hu\n", proto->proterr);
+  cc += snprintf(buf + cc, 256, "opterr: %hu\n", proto->opterr);
+  cc += snprintf(buf + cc, 256, "err: %hu\n", proto->err);
+  cc += snprintf(buf + cc, 256, "cachehit: %hu\n", proto->cachehit);
+  return cc;
+}
+
+int getStats(const uint8_t command[], uint8_t response[])
+{
+  int ret = 0;
+  if (command[4] == 0)
+    ret = stats_display_proto(&lwip_stats.tcp, (char*)&response[4]);
+  else
+    ret = stats_display_proto(&lwip_stats.udp, (char*)&response[4]);
+
+  response[2] = 1; // number of parameters
+  response[3] = ret; // parameter 1 length
+
+  return ret + 4;
+}
+
 int getConnStatus(const uint8_t command[], uint8_t response[])
 {
   uint8_t status = WiFi.status();
@@ -1034,7 +1066,7 @@ const CommandHandlerType commandHandlers[] = {
   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x10 -> 0x1f
-  setNet, setPassPhrase, setKey, NULL, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, NULL, NULL,
+  setNet, setPassPhrase, setKey, NULL, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, NULL, getStats,
 
   // 0x20 -> 0x2f
   getConnStatus, getIPaddr, getMACaddr, getCurrSSID, getCurrBSSID, getCurrRSSI, getCurrEnct, scanNetworks, startServerTcp, getStateTcp, dataSentTcp, availDataTcp, getDataTcp, startClientTcp, stopClientTcp, getClientStateTcp,
