@@ -124,6 +124,8 @@ void setupBluetooth() {
   esp_bt_controller_enable(ESP_BT_MODE_BLE);
   esp_bt_sleep_enable();
 
+  vTaskSuspend(NULL);
+
   while (1) {
     vTaskDelay(portMAX_DELAY);
   }
