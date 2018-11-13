@@ -7,6 +7,11 @@ CFLAGS += -DNDEBUG -DCONFIG_FREERTOS_ASSERT_DISABLE -Os -DLOG_LOCAL_LEVEL=0
 CPPFLAGS += -DNDEBUG -Os
 endif
 
+ifeq ($(UNO_WIFI_REV2),1)
+CFLAGS += -DUNO_WIFI_REV2
+CPPFLAGS += -DUNO_WIFI_REV2
+endif
+
 include $(IDF_PATH)/make/project.mk
 
 firmware: all

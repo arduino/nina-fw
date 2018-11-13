@@ -21,6 +21,8 @@
 
 extern "C" {
   #include <driver/periph_ctrl.h>
+  #include <driver/uart.h>
+  #include <esp_bt.h>
 }
 
 #include <Arduino.h>
@@ -77,6 +79,9 @@ void setDebug(int d) {
   }
 }
 
+void setupWiFi();
+void setupBluetooth();
+
 void setup() {
   setDebug(debug);
 
@@ -84,6 +89,49 @@ void setup() {
   pinMode(15, INPUT);
   pinMode(21, INPUT);
 
+  pinMode(5, INPUT);
+  if (digitalRead(5) == LOW) {
+    setupBluetooth();
+  } else {
+    setupWiFi();
+  }
+}
+
+// #define UNO_WIFI_REV2
+
+void setupBluetooth() {
+  periph_module_enable(PERIPH_UART1_MODULE);
+  periph_module_enable(PERIPH_UHCI0_MODULE);
+
+#ifdef UNO_WIFI_REV2
+  uart_set_pin(UART_NUM_1, 1, 3, 33, 0); // TX, RX, RTS, CTS
+#else
+  uart_set_pin(UART_NUM_1, 23, 12, 18, 5);
+#endif
+  uart_set_hw_flow_ctrl(UART_NUM_1, UART_HW_FLOWCTRL_CTS_RTS, 5);
+
+  esp_bt_controller_config_t btControllerConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT(); 
+
+  btControllerConfig.hci_uart_no = UART_NUM_1;
+#ifdef UNO_WIFI_REV2
+  btControllerConfig.hci_uart_baudrate = 115200;
+#else
+  btControllerConfig.hci_uart_baudrate = 912600;
+#endif
+
+  esp_bt_controller_init(&btControllerConfig);
+  while (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE);
+  esp_bt_controller_enable(ESP_BT_MODE_BLE);
+  esp_bt_sleep_enable();
+
+  vTaskSuspend(NULL);
+
+  while (1) {
+    vTaskDelay(portMAX_DELAY);
+  }
+}
+
+void setupWiFi() {
   SPIS.begin();
 
   if (WiFi.status() == WL_NO_SHIELD) {

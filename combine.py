@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys;
+
 booloaderData = open("build/bootloader/bootloader.bin", "rb").read()
 partitionData = open("build/partitions.bin", "rb").read()
 appData = open("build/nina-fw.bin", "rb").read()
@@ -29,7 +31,11 @@ for i in range(0, len(certsData)):
 # zero terminate the pem file
 outputData[0x10000 + len(certsData)] = 0
 
+outputFilename = "NINA_W102.bin"
+if (len(sys.argv) > 1):
+	outputFilename = sys.argv[1]
+
 # write out
-with open("NINA_W102.bin","w+b") as f:
+with open(outputFilename,"w+b") as f:
 	f.seek(0)
 	f.write(outputData)

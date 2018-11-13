@@ -22,5 +22,9 @@
 #include "Arduino.h"
 
 void init() {
-  nvs_flash_init();
+  if (nvs_flash_init() != ESP_OK) {
+    nvs_flash_erase();
+
+    nvs_flash_init();
+  }
 }

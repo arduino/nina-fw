@@ -42,3 +42,8 @@ void digitalWrite(uint32_t pin, uint32_t val)
 {
   gpio_set_level((gpio_num_t)pin, val);
 }
+
+int digitalRead(uint32_t pin)
+{
+  return gpio_get_level(pin);
+}
