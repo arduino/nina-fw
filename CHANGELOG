@@ -1,0 +1,15 @@
+Arduino NINA-W102 firmware ?.?.? - ????.??.??
+
+Arduino NINA-W102 firmware 1.1.0 - 2018.10.4
+
+* WiFi is now stopped before connecting to AP
+* Changed default STA hostname to "arduino-XXYY"
+* Switched to all channel scan when connecting to AP in STA mode
+* Fixed static IP's support in STA + AP modes
+* Return failure on bad AP params
+* Moved certificates to separate mmapped partition, added a larger set of built-in root CA's
+* Updated to use esp-idf v3.1
+
+Arduino NINA-W102 firmware 1.0.0 - 2018.06.28
+
+* Initial release
