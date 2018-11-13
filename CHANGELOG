@@ -1,5 +1,11 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.2.0 - 2018.11.13
+
+* Fixed DNS servers not sticking when static IP address is used
+* Added HCI UART mode on boot, enabled if SS is LOW
+* Erase NVS flash on init failure
+
 Arduino NINA-W102 firmware 1.1.0 - 2018.10.4
 
 * WiFi is now stopped before connecting to AP
