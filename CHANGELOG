@@ -1,5 +1,9 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.2.1 - 2018.11.16
+
+* Fixed factory SSL certificates being incorrectly parsed due to OOM caused by Bluetooth inclusion
+
 Arduino NINA-W102 firmware 1.2.0 - 2018.11.13
 
 * Fixed DNS servers not sticking when static IP address is used
