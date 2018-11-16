@@ -132,6 +132,7 @@ void setupBluetooth() {
 }
 
 void setupWiFi() {
+  esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
   SPIS.begin();
 
   if (WiFi.status() == WL_NO_SHIELD) {
