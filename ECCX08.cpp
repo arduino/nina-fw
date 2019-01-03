@@ -228,6 +228,89 @@ int ECCX08Class::ecSign(int slot, const byte message[], byte signature[])
   return 1;
 }
 
+int ECCX08Class::beginSHA256()
+{
+  uint8_t status;
+
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (!sendCommand(0x47, 0x00, 0x0000)) {
+    return 0;
+  }
+
+  delay(9);
+
+  if (!receiveResponse(&status, sizeof(status))) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  if (status != 0) {
+    return 0;
+  }
+
+  return 1;
+}
+
+int ECCX08Class::updateSHA256(const byte data[])
+{
+  uint8_t status;
+
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (!sendCommand(0x47, 0x01, 64, data, 64)) {
+    return 0;
+  }
+
+  delay(9);
+
+  if (!receiveResponse(&status, sizeof(status))) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  if (status != 0) {
+    return 0;
+  }
+
+  return 1;
+}
+
+int ECCX08Class::endSHA256(byte result[])
+{
+  return endSHA256(NULL, 0, result);
+}
+
+int ECCX08Class::endSHA256(const byte data[], int length, byte result[])
+{
+  if (!wakeup()) {
+    return 0;
+  }
+
+  if (!sendCommand(0x47, 0x02, length, data, length)) {
+    return 0;
+  }
+
+  delay(9);
+
+  if (!receiveResponse(result, 32)) {
+    return 0;
+  }
+
+  delay(1);
+  idle();
+
+  return 1;
+}
+
 int ECCX08Class::readSlot(int slot, byte data[], int length)
 {
   if (slot < 0 || slot > 15) {

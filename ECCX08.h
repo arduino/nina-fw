@@ -44,6 +44,11 @@ public:
   int ecdsaVerify(const byte message[], const byte signature[], const byte pubkey[]);
   int ecSign(int slot, const byte message[], byte signature[]);
 
+  int beginSHA256();
+  int updateSHA256(const byte data[]); // 64 bytes
+  int endSHA256(byte result[]);
+  int endSHA256(const byte data[], int length, byte result[]);
+
   int readSlot(int slot, byte data[], int length);
   int writeSlot(int slot, const byte data[], int length);
 
