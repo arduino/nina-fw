@@ -698,7 +698,7 @@ int ECCX08Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
 
 int ECCX08Class::receiveResponse(void* response, size_t length)
 {
-  int retries = 20;
+  int retries = 100;
   size_t responseSize = length + 3; // 1 for length header, 2 for CRC
   byte responseBuffer[responseSize];
 
