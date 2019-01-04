@@ -52,16 +52,19 @@ public:
   using Print::write;
 
   void setEccSlot(int ecc508KeySlot, const byte cert[], int certLength);
+  void setEccSlot(int ecc508KeySlot, const char cert[]);
 
 private:
   int connectSSL(const char* host);
   static int clientRead(void *ctx, unsigned char *buf, size_t len);
   static int clientWrite(void *ctx, const unsigned char *buf, size_t len);
+  static void clientAppendCert(void *ctx, const void *data, size_t len);
 
 private:
-  Client* _client;
+  Client* _client;  
   br_ec_private_key _ecKey;
   br_x509_certificate _ecCert;
+  bool _ecCertDynamic;
 
   br_ssl_client_context _sc;
   br_x509_minimal_context _xc;

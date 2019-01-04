@@ -39,10 +39,15 @@ BearSSLClient::BearSSLClient(Client& client) :
 
   _ecCert.data = NULL;
   _ecCert.data_len = 0;
+  _ecCertDynamic = false;
 }
 
 BearSSLClient::~BearSSLClient()
 {
+  if (_ecCertDynamic && _ecCert.data) {
+    free(_ecCert.data);
+    _ecCert.data = NULL;
+  }
 }
 
 int BearSSLClient::connect(IPAddress ip, uint16_t port)
@@ -175,6 +180,55 @@ void BearSSLClient::setEccSlot(int ecc508KeySlot, const byte cert[], int certLen
 
   _ecCert.data = (unsigned char*)cert;
   _ecCert.data_len = certLength;
+  _ecCertDynamic = false;
+}
+
+void BearSSLClient::setEccSlot(int ecc508KeySlot, const char cert[])
+{
+  // try to decode the cert
+  br_pem_decoder_context pemDecoder;
+
+  size_t certLen = strlen(cert);
+
+  // free old data
+  if (_ecCertDynamic && _ecCert.data) {
+    free(_ecCert.data);
+    _ecCert.data = NULL;
+  }
+
+  // assume the decoded cert is 3/4 the length of the input
+  _ecCert.data = (unsigned char*)malloc(((certLen * 3) + 3) / 4);
+  _ecCert.data_len = 0;
+
+  br_pem_decoder_init(&pemDecoder);
+
+  while (certLen) {
+    size_t len = br_pem_decoder_push(&pemDecoder, cert, certLen);
+
+    cert += len;
+    certLen -= len;
+
+    switch (br_pem_decoder_event(&pemDecoder)) {
+      case BR_PEM_BEGIN_OBJ:
+        br_pem_decoder_setdest(&pemDecoder, BearSSLClient::clientAppendCert, this);
+        break;
+
+      case BR_PEM_END_OBJ:
+        if (_ecCert.data_len) {
+          // done
+          setEccSlot(ecc508KeySlot, _ecCert.data, _ecCert.data_len);
+          _ecCertDynamic = true;
+          return;
+        }
+        break;
+
+      case BR_PEM_ERROR:
+        // failure
+        free(_ecCert.data);
+        setEccSlot(ecc508KeySlot, NULL, 0);
+        return;
+    }
+  }
 }
 
 int BearSSLClient::connectSSL(const char* host)
@@ -295,4 +349,12 @@ int BearSSLClient::clientWrite(void *ctx, const unsigned char *buf, size_t len)
   }
 
   return result;
+}
+
+void BearSSLClient::clientAppendCert(void *ctx, const void *data, size_t len)
+{
+  BearSSLClient* c = (BearSSLClient*)ctx;
+
+  memcpy(&c->_ecCert.data[c->_ecCert.data_len], data, len);
+  c->_ecCert.data_len += len;
 }
