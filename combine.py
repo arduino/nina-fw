@@ -4,8 +4,9 @@ import sys;
 
 booloaderData = open("build/bootloader/bootloader.bin", "rb").read()
 partitionData = open("build/partitions.bin", "rb").read()
-appData = open("build/nina-fw.bin", "rb").read()
+phyData = open("data/phy.bin", "rb").read()
 certsData = open("data/roots.pem", "rb").read()
+appData = open("build/nina-fw.bin", "rb").read()
 
 # calculate the output binary size, app offset 
 outputSize = 0x30000 + len(appData)
@@ -22,14 +23,18 @@ for i in range(0, len(booloaderData)):
 for i in range(0, len(partitionData)):
 	outputData[0x8000 + i] = partitionData[i]
 
-for i in range(0, len(appData)):
-	outputData[0x30000 + i] = appData[i]
+for i in range(0, len(phyData)):
+        outputData[0xf000 + i] = phyData[i]
 
 for i in range(0, len(certsData)):
         outputData[0x10000 + i] = certsData[i]
 
 # zero terminate the pem file
 outputData[0x10000 + len(certsData)] = 0
+
+for i in range(0, len(appData)):
+	outputData[0x30000 + i] = appData[i]
+
 
 outputFilename = "NINA_W102.bin"
 if (len(sys.argv) > 1):
