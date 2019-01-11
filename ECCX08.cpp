@@ -425,7 +425,7 @@ int ECCX08Class::wakeup()
   _wire->beginTransmission(0x00);
   _wire->endTransmission();
 
-  delayMicroseconds(800);
+  delay(1);
 
   byte response;
 
