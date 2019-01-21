@@ -42,6 +42,9 @@ int ECCX08Class::begin()
 {
   _wire->begin();
 
+  wakeup();
+  idle();
+  
   long ver = version() & 0x0F00000;
 
   if (ver != 0x0500000 && ver != 0x0600000) {
@@ -425,7 +428,7 @@ int ECCX08Class::wakeup()
   _wire->beginTransmission(0x00);
   _wire->endTransmission();
 
-  delay(1);
+  delayMicroseconds(1500);
 
   byte response;
 
@@ -447,6 +450,8 @@ int ECCX08Class::sleep()
     return 0;
   }
 
+  delay(1);
+
   return 1;
 }
 
@@ -458,6 +463,8 @@ int ECCX08Class::idle()
   if (_wire->endTransmission() != 0) {
     return 0;
   }
+
+  delay(1);
 
   return 1;
 }
@@ -698,7 +705,7 @@ int ECCX08Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
 
 int ECCX08Class::receiveResponse(void* response, size_t length)
 {
-  int retries = 100;
+  int retries = 20;
   size_t responseSize = length + 3; // 1 for length header, 2 for CRC
   byte responseBuffer[responseSize];
 
