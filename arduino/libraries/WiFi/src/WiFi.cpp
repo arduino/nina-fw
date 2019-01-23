@@ -644,8 +644,11 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
       memset(&_apRecord, 0x00, sizeof(_apRecord));
 
-      if (reason == 201/*NO_AP_FOUND*/ || reason == 202/*AUTH_FAIL*/ || reason == 203/*ASSOC_FAIL*/) {
+      if (reason == 201/*NO_AP_FOUND*/ || reason == 202/*AUTH_FAIL*/) {
         _status = WL_CONNECT_FAILED;
+      } else if (reason == 203/*ASSOC_FAIL*/) {
+        // try to reconnect
+        esp_wifi_connect();
       } else {
         _status = WL_DISCONNECTED;
       }
