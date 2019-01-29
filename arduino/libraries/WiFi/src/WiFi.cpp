@@ -172,7 +172,7 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   memset(&wifiConfig, 0x00, sizeof(wifiConfig));
   strncpy((char*)wifiConfig.sta.ssid, ssid, sizeof(wifiConfig.sta.ssid));
   strncpy((char*)wifiConfig.sta.password, key, sizeof(wifiConfig.sta.password));
-  wifiConfig.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+  wifiConfig.sta.scan_method = WIFI_FAST_SCAN;
   _status = WL_NO_SSID_AVAIL;
 
   _interface = ESP_IF_WIFI_STA;
@@ -644,8 +644,11 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
       memset(&_apRecord, 0x00, sizeof(_apRecord));
 
-      if (reason == 201/*NO_AP_FOUND*/ || reason == 202/*AUTH_FAIL*/ || reason == 203/*ASSOC_FAIL*/) {
+      if (reason == 201/*NO_AP_FOUND*/ || reason == 202/*AUTH_FAIL*/) {
         _status = WL_CONNECT_FAILED;
+      } else if (reason == 203/*ASSOC_FAIL*/) {
+        // try to reconnect
+        esp_wifi_connect();
       } else {
         _status = WL_DISCONNECTED;
       }
