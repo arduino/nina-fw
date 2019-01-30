@@ -49,40 +49,6 @@ public:
   void setCommonName(const String& commonName) { setCommonName(commonName.c_str()); }
 
 private:
-  int versionLength();
-
-  int subjectLength(const String& countryName,
-                    const String& stateProvinceName,
-                    const String& localityName,
-                    const String& organizationName,
-                    const String& organizationalUnitName,
-                    const String& commonName);
-
-  int publicKeyLength();
-
-  int signatureLength(const byte signature[]);
-
-  int sequenceHeaderLength(int length);
-
-  void appendVersion(int version, byte out[]);
-
-  void appendSubject(const String& countryName,
-                     const String& stateProvinceName,
-                     const String& localityName,
-                     const String& organizationName,
-                     const String& organizationalUnitName,
-                     const String& commonName,
-                     byte out[]);
-
-   void appendPublicKey(const byte publicKey[], byte out[]);
-
-   void appendSignature(const byte signature[], byte out[]);
-
-   int appendName(const String& name, int type, byte out[]);
-
-   void appendSequenceHeader(int length, byte out[]);
-
-private:
   int _slot;
 
   String _countryName;
