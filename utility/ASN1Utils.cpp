@@ -24,12 +24,12 @@ int ASN1UtilsClass::versionLength()
   return 3;
 }
 
-int ASN1UtilsClass::subjectLength(const String& countryName,
-                                  const String& stateProvinceName,
-                                  const String& localityName,
-                                  const String& organizationName,
-                                  const String& organizationalUnitName,
-                                  const String& commonName)
+int ASN1UtilsClass::issuerOrSubjectLength(const String& countryName,
+                                          const String& stateProvinceName,
+                                          const String& localityName,
+                                          const String& organizationName,
+                                          const String& organizationalUnitName,
+                                          const String& commonName)
 {
   int length                       = 0;
   int countryNameLength            = countryName.length();
@@ -100,6 +100,20 @@ int ASN1UtilsClass::signatureLength(const byte signature[])
   return (21 + rLength + sLength);
 }
 
+int ASN1UtilsClass::serialNumberLength(const byte serialNumber[], int length)
+{
+  while (*serialNumber == 0 && length) {
+    serialNumber++;
+    length--;
+  }
+
+  if (length && *serialNumber & 0x80) {
+    length++;
+  }
+
+  return (2 + length);
+}
+
 int ASN1UtilsClass::sequenceHeaderLength(int length)
 {
   if (length > 255) {
@@ -118,13 +132,13 @@ void ASN1UtilsClass::appendVersion(int version, byte out[])
   out[2] = version;
 }
 
-void ASN1UtilsClass::appendSubject(const String& countryName,
-                                    const String& stateProvinceName,
-                                    const String& localityName,
-                                    const String& organizationName,
-                                    const String& organizationalUnitName,
-                                    const String& commonName,
-                                    byte out[])
+void ASN1UtilsClass::appendIssuerOrSubject(const String& countryName,
+                                            const String& stateProvinceName,
+                                            const String& localityName,
+                                            const String& organizationName,
+                                            const String& organizationalUnitName,
+                                            const String& commonName,
+                                            byte out[])
 {
   if (countryName.length() > 0) {
     out += appendName(countryName, 0x06, out);
@@ -261,6 +275,28 @@ void ASN1UtilsClass::appendSignature(const byte signature[], byte out[])
   out += rLength;
 }
 
+void ASN1UtilsClass::appendSerialNumber(const byte serialNumber[], int length, byte out[])
+{
+  while (*serialNumber == 0 && length) {
+    serialNumber++;
+    length--;
+  }
+
+  if (length && *serialNumber & 0x80) {
+    length++;  
+  }
+
+  *out++ = ASN1_INTEGER;
+  *out++ = length;
+
+  if (length && *serialNumber & 0x80) {
+    *out++ = 0x00;
+    length--;
+  }
+
+  memcpy(out, serialNumber, length);
+}
+
 int ASN1UtilsClass::appendName(const String& name, int type, byte out[])
 {
   int nameLength = name.length();
@@ -344,6 +380,58 @@ String ASN1UtilsClass::base64Encode(const byte in[], unsigned int length, const 
   }
 
   return out;
+}
+
+int ASN1UtilsClass::appendDate(int year, int month, int day, int hour, int minute, int second, byte out[])
+{
+  bool useGeneralizedTime = (year > 2049);
+
+  if (useGeneralizedTime) {
+    *out++ = 0x18;
+    *out++ = 0x0f;
+    *out++ = '0' + (year / 1000);
+    *out++ = '0' + ((year % 1000) / 100);
+    *out++ = '0' + ((year % 100) / 10);
+    *out++ = '0' + (year % 10);
+  } else {
+    year -= 2000;
+
+    *out++ = 0x17;
+    *out++ = 0x0d;
+    *out++ = '0' + (year / 10);
+    *out++ = '0' + (year % 10);
+  }
+  *out++ = '0' + (month / 10);
+  *out++ = '0' + (month % 10);
+  *out++ = '0' + (day / 10);
+  *out++ = '0' + (day % 10);
+  *out++ = '0' + (hour / 10);
+  *out++ = '0' + (hour % 10);
+  *out++ = '0' + (minute / 10);
+  *out++ = '0' + (minute % 10);
+  *out++ = '0' + (second / 10);
+  *out++ = '0' + (second % 10);
+  *out++ = 0x5a; // UTC
+
+  return (useGeneralizedTime ? 17 : 15);
+}
+
+int ASN1UtilsClass::appendEcdsaWithSHA256(byte out[])
+{
+  *out++ = ASN1_SEQUENCE;
+  *out++ = 0x0A;
+  *out++ = ASN1_OBJECT_IDENTIFIER;
+  *out++ = 0x08;
+  *out++ = 0x2A;
+  *out++ = 0x86;
+  *out++ = 0x48;
+  *out++ = 0xCE;
+  *out++ = 0x3D;
+  *out++ = 0x04;
+  *out++ = 0x03;
+  *out++ = 0x02;
+
+  return 12;
 }
 
 ASN1UtilsClass ASN1Utils;

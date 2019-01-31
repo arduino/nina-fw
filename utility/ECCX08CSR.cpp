@@ -51,12 +51,12 @@ int ECCX08CSRClass::begin(int slot, bool newPrivateKey)
 String ECCX08CSRClass::end()
 {
   int versionLen = ASN1Utils.versionLength();
-  int subjectLen = ASN1Utils.subjectLength(_countryName,
-                                            _stateProvinceName,
-                                            _localityName,
-                                            _organizationName,
-                                            _organizationalUnitName,
-                                            _commonName);
+  int subjectLen = ASN1Utils.issuerOrSubjectLength(_countryName,
+                                                    _stateProvinceName,
+                                                    _localityName,
+                                                    _organizationName,
+                                                    _organizationalUnitName,
+                                                    _commonName);
   int subjectHeaderLen = ASN1Utils.sequenceHeaderLength(subjectLen);
   int publicKeyLen = ASN1Utils.publicKeyLength();
 
@@ -76,12 +76,12 @@ String ECCX08CSRClass::end()
   // subject
   ASN1Utils.appendSequenceHeader(subjectLen, out);
   out += subjectHeaderLen;
-  ASN1Utils.appendSubject(_countryName,
-                _stateProvinceName,
-                _localityName,
-                _organizationName,
-                _organizationalUnitName,
-                _commonName, out);
+  ASN1Utils.appendIssuerOrSubject(_countryName,
+                                  _stateProvinceName,
+                                  _localityName,
+                                  _organizationName,
+                                  _organizationalUnitName,
+                                  _commonName, out);
   out += subjectLen;
 
   // public key

@@ -34,7 +34,7 @@ class ASN1UtilsClass {
 public:
   int versionLength();
 
-  int subjectLength(const String& countryName,
+  int issuerOrSubjectLength(const String& countryName,
                     const String& stateProvinceName,
                     const String& localityName,
                     const String& organizationName,
@@ -45,25 +45,33 @@ public:
 
   int signatureLength(const byte signature[]);
 
+  int serialNumberLength(const byte serialNumber[], int length);
+
   int sequenceHeaderLength(int length);
 
   void appendVersion(int version, byte out[]);
 
-  void appendSubject(const String& countryName,
-                     const String& stateProvinceName,
-                     const String& localityName,
-                     const String& organizationName,
-                     const String& organizationalUnitName,
-                     const String& commonName,
-                     byte out[]);
+  void appendIssuerOrSubject(const String& countryName,
+                             const String& stateProvinceName,
+                             const String& localityName,
+                             const String& organizationName,
+                             const String& organizationalUnitName,
+                             const String& commonName,
+                             byte out[]);
 
    void appendPublicKey(const byte publicKey[], byte out[]);
 
    void appendSignature(const byte signature[], byte out[]);
 
+   void appendSerialNumber(const byte serialNumber[], int length, byte out[]);
+
    int appendName(const String& name, int type, byte out[]);
 
    void appendSequenceHeader(int length, byte out[]);
+
+   int appendDate(int year, int month, int day, int hour, int minute, int second, byte out[]);
+
+   int appendEcdsaWithSHA256(byte out[]);
 
    String base64Encode(const byte in[], unsigned int length, const char* prefix, const char* suffix);
 };
