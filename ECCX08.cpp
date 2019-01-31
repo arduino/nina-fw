@@ -61,20 +61,29 @@ void ECCX08Class::end()
 #endif
 }
 
+int ECCX08Class::serialNumber(byte sn[])
+{
+  if (!read(0, 0, &sn[0], 4)) {
+    return 0;
+  }
+
+  if (!read(0, 2, &sn[4], 4)) {
+    return 0;
+  }
+
+  if (!read(0, 3, &sn[8], 4)) {
+    return 0;
+  }
+
+  return 1;
+}
+
 String ECCX08Class::serialNumber()
 {
   String result = (char*)NULL;
   byte sn[12];
 
-  if (!read(0, 0, &sn[0], 4)) {
-    return result;
-  }
-
-  if (!read(0, 2, &sn[4], 4)) {
-    return result;
-  }
-
-  if (!read(0, 3, &sn[8], 4)) {
+  if (!serialNumber(sn)) {
     return result;
   }
 

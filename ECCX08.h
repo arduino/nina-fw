@@ -32,6 +32,7 @@ public:
   int begin();
   void end();
 
+  int serialNumber(byte sn[]);
   String serialNumber();
 
   long random(long max);
