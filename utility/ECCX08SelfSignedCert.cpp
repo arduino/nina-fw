@@ -39,9 +39,11 @@ struct __attribute__((__packed__)) CompressedCert {
   uint8_t unused[5];
 };
 
+static const uint8_t DEFAULT_SERIAL_NUMBER[] = { 0x01 };
+
 ECCX08SelfSignedCertClass::ECCX08SelfSignedCertClass() :
-  _serialNumber(NULL),
-  _serialNumberLength(0),
+  _serialNumber(DEFAULT_SERIAL_NUMBER),
+  _serialNumberLength(sizeof(DEFAULT_SERIAL_NUMBER)),
   _bytes(NULL),
   _length(0)
 {
