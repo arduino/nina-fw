@@ -165,7 +165,7 @@ void ASN1UtilsClass::appendIssuerOrSubject(const String& countryName,
   }
 }
 
-void ASN1UtilsClass::appendPublicKey(const byte publicKey[], byte out[])
+int ASN1UtilsClass::appendPublicKey(const byte publicKey[], byte out[])
 {
   int subjectPublicKeyDataLength = 2 + 9 + 10 + 4 + 64;
 
@@ -205,9 +205,11 @@ void ASN1UtilsClass::appendPublicKey(const byte publicKey[], byte out[])
   *out++ = 0x04;
 
   memcpy(out, publicKey, 64);
+
+  return (2 + subjectPublicKeyDataLength);
 }
 
-void ASN1UtilsClass::appendSignature(const byte signature[], byte out[])
+int ASN1UtilsClass::appendSignature(const byte signature[], byte out[])
 {
   // signature algorithm
   *out++ = ASN1_SEQUENCE;
@@ -273,9 +275,11 @@ void ASN1UtilsClass::appendSignature(const byte signature[], byte out[])
   }
   memcpy(out, s, sLength);
   out += rLength;
+
+  return (21 + rLength + sLength);
 }
 
-void ASN1UtilsClass::appendSerialNumber(const byte serialNumber[], int length, byte out[])
+int ASN1UtilsClass::appendSerialNumber(const byte serialNumber[], int length, byte out[])
 {
   while (*serialNumber == 0 && length) {
     serialNumber++;
@@ -295,6 +299,8 @@ void ASN1UtilsClass::appendSerialNumber(const byte serialNumber[], int length, b
   }
 
   memcpy(out, serialNumber, length);
+
+  return (2 + length);
 }
 
 int ASN1UtilsClass::appendName(const String& name, int type, byte out[])
@@ -320,7 +326,7 @@ int ASN1UtilsClass::appendName(const String& name, int type, byte out[])
   return (nameLength + 11);
 }
 
-void ASN1UtilsClass::appendSequenceHeader(int length, byte out[])
+int ASN1UtilsClass::appendSequenceHeader(int length, byte out[])
 {
   *out++ = ASN1_SEQUENCE;
   if (length > 255) {
@@ -330,56 +336,14 @@ void ASN1UtilsClass::appendSequenceHeader(int length, byte out[])
     *out++ = 0x81;
   }
   *out++ = (length) & 0xff;
-}
 
-
-String ASN1UtilsClass::base64Encode(const byte in[], unsigned int length, const char* prefix, const char* suffix)
-{
-  static const char* CODES = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-
-  int b;
-  String out;
-
-  int reserveLength = 4 * ((length + 2) / 3) + ((length / 3 * 4) / 76) + strlen(prefix) + strlen(suffix);
-  out.reserve(reserveLength);
-
-  if (prefix) {
-    out += prefix;
+  if (length > 255) {
+    return 4;
+  } else if (length > 127) {
+    return 3;
+  } else {
+    return 2;
   }
-  
-  for (unsigned int i = 0; i < length; i += 3) {
-    if (i > 0 && (i / 3 * 4) % 76 == 0) { 
-      out += '\n'; 
-    }
-
-    b = (in[i] & 0xFC) >> 2;
-    out += CODES[b];
-
-    b = (in[i] & 0x03) << 4;
-    if (i + 1 < length) {
-      b |= (in[i + 1] & 0xF0) >> 4;
-      out += CODES[b];
-      b = (in[i + 1] & 0x0F) << 2;
-      if (i + 2 < length) {
-         b |= (in[i + 2] & 0xC0) >> 6;
-         out += CODES[b];
-         b = in[i + 2] & 0x3F;
-         out += CODES[b];
-      } else {
-        out += CODES[b];
-        out += '=';
-      }
-    } else {
-      out += CODES[b];
-      out += "==";
-    }
-  }
-
-  if (suffix) {
-    out += suffix;
-  }
-
-  return out;
 }
 
 int ASN1UtilsClass::appendDate(int year, int month, int day, int hour, int minute, int second, byte out[])

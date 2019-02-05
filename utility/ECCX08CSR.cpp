@@ -20,6 +20,7 @@
 #include "ArduinoECCX08.h"
 
 #include "ASN1Utils.h"
+#include "PEMUtils.h"
 
 #include "ECCX08CSR.h"
 
@@ -139,7 +140,7 @@ String ECCX08CSRClass::end()
   ASN1Utils.appendSignature(signature, out);
   out += signatureLen;
 
-  return ASN1Utils.base64Encode(csr, csrLen + csrHeaderLen, "-----BEGIN CERTIFICATE REQUEST-----\n", "\n-----END CERTIFICATE REQUEST-----\n");
+  return PEMUtils.base64Encode(csr, csrLen + csrHeaderLen, "-----BEGIN CERTIFICATE REQUEST-----\n", "\n-----END CERTIFICATE REQUEST-----\n");
 }
 
 void ECCX08CSRClass::setCountryName(const char *countryName)
