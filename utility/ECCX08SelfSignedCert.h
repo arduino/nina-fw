@@ -36,6 +36,8 @@ public:
   uint8_t* bytes();
   int length();
 
+  String sha1();
+
   void setIssueYear(int issueYear);
   void setIssueMonth(int issueMonth);
   void setIssueDay(int issueDay);

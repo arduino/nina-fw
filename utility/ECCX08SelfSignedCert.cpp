@@ -19,6 +19,9 @@
 
 #include "ArduinoECCX08.h"
 
+extern "C" {
+  #include "sha1.h"
+}
 #include "ASN1Utils.h"
 #include "PEMUtils.h"
 
@@ -120,6 +123,28 @@ uint8_t* ECCX08SelfSignedCertClass::bytes()
 int ECCX08SelfSignedCertClass::length()
 {
   return _length;
+}
+
+String ECCX08SelfSignedCertClass::sha1()
+{
+  char result[20 + 1];
+
+  SHA1(result, (const char*)_bytes, _length);
+
+  String sha1Str;
+
+  sha1Str.reserve(40);
+
+  for (int i = 0; i < 20; i++) {
+    uint8_t b = result[i];
+
+    if (b < 16) {
+      sha1Str += '0';
+    }
+    sha1Str += String(b, HEX);
+  }
+
+  return sha1Str;
 }
 
 void ECCX08SelfSignedCertClass::setIssueYear(int issueYear)
