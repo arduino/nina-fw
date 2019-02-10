@@ -113,4 +113,4 @@ void SPISClass::handleSetupComplete()
   xSemaphoreGiveFromISR(_readySemaphore, NULL);
 }
 
-SPISClass SPIS(VSPI_HOST, 1, 12, 23, 18, 5, 33);
+SPISClass SPIS(VSPI_HOST, 1, 14, 23, 18, 5, 33);

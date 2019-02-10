@@ -66,6 +66,8 @@ void setDebug(int d) {
     // uartAttach();
     ets_install_uart_printf();
     uart_tx_switch(CONFIG_CONSOLE_UART_NUM);
+
+    ets_printf("*** DEBUG ON\n");
   } else {
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[1], PIN_FUNC_GPIO);
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[3], PIN_FUNC_GPIO);
@@ -91,13 +93,17 @@ void setup() {
 
   pinMode(5, INPUT);
   if (digitalRead(5) == LOW) {
+    if (debug)  ets_printf("*** BLUETOOTH ON\n");
+
     setupBluetooth();
   } else {
+    if (debug)  ets_printf("*** WIFI ON\n");
+
     setupWiFi();
   }
 }
 
-// #define UNO_WIFI_REV2
+#define UNO_WIFI_REV2
 
 void setupBluetooth() {
   periph_module_enable(PERIPH_UART1_MODULE);
@@ -133,23 +139,27 @@ void setupBluetooth() {
 
 void setupWiFi() {
   esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
+  if (debug)  ets_printf("*** SPIS\n");
   SPIS.begin();
 
   if (WiFi.status() == WL_NO_SHIELD) {
+    if (debug)  ets_printf("*** NOSHIELD\n");
     while (1); // no shield
   }
   
   commandBuffer = (uint8_t*)heap_caps_malloc(SPI_BUFFER_LEN, MALLOC_CAP_DMA);
   responseBuffer = (uint8_t*)heap_caps_malloc(SPI_BUFFER_LEN, MALLOC_CAP_DMA);
 
+  if (debug)  ets_printf("*** BEGIN\n");
   CommandHandler.begin();
 }
 
 void loop() {
+  if (debug)  ets_printf(".");
   // wait for a command
   memset(commandBuffer, 0x00, SPI_BUFFER_LEN);
   int commandLength = SPIS.transfer(NULL, commandBuffer, SPI_BUFFER_LEN);
-
+  if (debug)  ets_printf("%d", commandLength);
   if (commandLength == 0) {
     return;
   }
