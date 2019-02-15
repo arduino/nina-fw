@@ -56,6 +56,9 @@ int ECCX08Class::begin()
 
 void ECCX08Class::end()
 {
+  // First wake up the device otherwise the chip didn't react to a sleep commando
+  wakeup();
+  sleep();
 #ifdef WIRE_HAS_END
   _wire->end();
 #endif
