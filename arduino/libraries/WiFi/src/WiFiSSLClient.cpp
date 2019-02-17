@@ -56,6 +56,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     _netContext.fd = -1;
     _connected = false;
 
+    ets_printf("*** connect init\n");
     mbedtls_ssl_init(&_sslContext);
     mbedtls_ctr_drbg_init(&_ctrDrbgContext);
     mbedtls_ssl_config_init(&_sslConfig);
@@ -63,20 +64,38 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     mbedtls_x509_crt_init(&_caCrt);
     mbedtls_net_init(&_netContext);
 
+    ets_printf("*** connect inited\n");
+
+    ets_printf("*** connect drbgseed\n");
+
     if (mbedtls_ctr_drbg_seed(&_ctrDrbgContext, mbedtls_entropy_func, &_entropyContext, NULL, 0) != 0) {
       stop();
       return 0;
     }
+
+    ets_printf("*** connect ssl hostname\n");
+     /* Hostname set here should match CN in server certificate */
+    if(mbedtls_ssl_set_hostname(&_sslContext, host) != 0)
+    {
+      stop();
+      return 0;
+    }
+
+    ets_printf("*** connect ssl config\n");
 
     if (mbedtls_ssl_config_defaults(&_sslConfig, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
       stop();
       return 0;
     }
 
+    ets_printf("*** connect authmode\n");
+
     mbedtls_ssl_conf_authmode(&_sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
 
     spi_flash_mmap_handle_t handle;
     const unsigned char* certs_data = {};
+
+    ets_printf("*** connect part findfirst\n");
 
     const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
     if (part == NULL)
@@ -84,11 +103,15 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
       return 0;
     }
 
+    ets_printf("*** connect part mmap\n");
+
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
     if (ret != ESP_OK)
     {
       return 0;
     }
+
+    ets_printf("*** connect crt parse\n");
 
     ret = mbedtls_x509_crt_parse(&_caCrt, certs_data, strlen((char*)certs_data) + 1);
     if (ret < 0) {
@@ -96,9 +119,16 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
       return 0;
     }
 
+    ets_printf("*** connect conf ca chain\n");
+
     mbedtls_ssl_conf_ca_chain(&_sslConfig, &_caCrt, NULL);
 
+
+    ets_printf("*** connect conf RNG\n");
+
     mbedtls_ssl_conf_rng(&_sslConfig, mbedtls_ctr_drbg_random, &_ctrDrbgContext);
+
+    ets_printf("*** connect ssl setup\n");
 
     if (mbedtls_ssl_setup(&_sslContext, &_sslConfig) != 0) {
       stop();
@@ -108,24 +138,39 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     char portStr[6];
     itoa(port, portStr, 10);
 
+    ets_printf("*** connect netconnect\n");
+
     if (mbedtls_net_connect(&_netContext, host, portStr, MBEDTLS_NET_PROTO_TCP) != 0) {
       stop();
       return 0;
     }
 
+    ets_printf("*** connect set bio\n");
+
     mbedtls_ssl_set_bio(&_sslContext, &_netContext, mbedtls_net_send, mbedtls_net_recv, NULL);
 
-    int result;
+    int result = -1;
 
     do {
+      ets_printf("*** connect ssl handshake\n");
       result = mbedtls_ssl_handshake(&_sslContext);
     } while (result == MBEDTLS_ERR_SSL_WANT_READ || result == MBEDTLS_ERR_SSL_WANT_WRITE);
 
     if (result != 0) {
+      uint8_t module_id = (result >> 12) & 0x7;
+      uint8_t module_dep = (result >> 7) & 0x1F;
+      uint8_t lowlevel = result & 0x7F;
+      ets_printf("*** ssl fail! result %x\t module id: %x module dependant: %x lowlevel: %x\n", result, module_id, module_dep, lowlevel);
+
+      char str[100];
+      mbedtls_strerror(result, str, 100);
+      ets_printf("strerror: %s\n", str);
+
       stop();
       return 0;
     }
-
+    
+    ets_printf("*** ssl set nonblock\n");
     mbedtls_net_set_nonblock(&_netContext);
     _connected = true;
 
