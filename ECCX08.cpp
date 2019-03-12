@@ -151,7 +151,7 @@ int ECCX08Class::random(byte data[], size_t length)
       return 0;
     }
 
-    int copyLength = min(32, length);
+    int copyLength = min(32, (int)length);
     memcpy(data, response, copyLength);
 
     length -= copyLength;
