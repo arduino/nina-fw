@@ -79,7 +79,7 @@ int ASN1UtilsClass::signatureLength(const byte signature[])
   int rLength = 32;
   int sLength = 32;
 
-  while (*r == 0x00 && rLength) {
+  while (*r == 0x00 && rLength > 1) {
     r++;
     rLength--;
   }
@@ -88,7 +88,7 @@ int ASN1UtilsClass::signatureLength(const byte signature[])
     rLength++;
   }
 
-  while (*s == 0x00 && sLength) {
+  while (*s == 0x00 && sLength > 1) {
     s++;
     sLength--;
   }
@@ -102,12 +102,12 @@ int ASN1UtilsClass::signatureLength(const byte signature[])
 
 int ASN1UtilsClass::serialNumberLength(const byte serialNumber[], int length)
 {
-  while (*serialNumber == 0 && length) {
+  while (*serialNumber == 0 && length > 1) {
     serialNumber++;
     length--;
   }
 
-  if (length && *serialNumber & 0x80) {
+  if (*serialNumber & 0x80) {
     length++;
   }
 
@@ -233,12 +233,12 @@ int ASN1UtilsClass::appendSignature(const byte signature[], byte out[])
   int rLength = 32;
   int sLength = 32;
 
-  while (*r == 0 && rLength) {
+  while (*r == 0 && rLength > 1) {
     r++;
     rLength--;
   }
 
-  while (*s == 0 && sLength) {
+  while (*s == 0 && sLength > 1) {
     s++;
     sLength--;
   }
@@ -260,45 +260,57 @@ int ASN1UtilsClass::appendSignature(const byte signature[], byte out[])
 
   *out++ = ASN1_INTEGER;
   *out++ = rLength;
-  if ((*r & 0x80) && rLength) {
+  if (*r & 0x80) {
     *out++ = 0;
     rLength--;
   }
   memcpy(out, r, rLength);
   out += rLength;
 
+  if (*r & 0x80) {
+    rLength++;
+  }
+
   *out++ = ASN1_INTEGER;
   *out++ = sLength;
-  if ((*s & 0x80) && sLength) {
+  if (*s & 0x80) {
     *out++ = 0;
     sLength--;
   }
   memcpy(out, s, sLength);
-  out += rLength;
-
+  out += sLength;
+  
+  if (*s & 0x80) {
+    sLength++;
+  }
+  
   return (21 + rLength + sLength);
 }
 
 int ASN1UtilsClass::appendSerialNumber(const byte serialNumber[], int length, byte out[])
 {
-  while (*serialNumber == 0 && length) {
+  while (*serialNumber == 0 && length > 1) {
     serialNumber++;
     length--;
   }
 
-  if (length && *serialNumber & 0x80) {
+  if (*serialNumber & 0x80) {
     length++;  
   }
 
   *out++ = ASN1_INTEGER;
   *out++ = length;
 
-  if (length && *serialNumber & 0x80) {
+  if (*serialNumber & 0x80) {
     *out++ = 0x00;
     length--;
   }
 
   memcpy(out, serialNumber, length);
+  
+  if (*serialNumber & 0x80) {
+    length++;
+  }
 
   return (2 + length);
 }
