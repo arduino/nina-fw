@@ -1016,6 +1016,7 @@ void CommandHandlerClass::begin()
   _updateGpio0PinSemaphore = xSemaphoreCreateCounting(2, 0);
 
   WiFi.onReceive(CommandHandlerClass::onWiFiReceive);
+  WiFi.onDisconnect(CommandHandlerClass::onWiFiDisconnect);
 
   xTaskCreatePinnedToCore(CommandHandlerClass::gpio0Updater, "gpio0Updater", 8192, NULL, 1, NULL, 1);
 }
@@ -1101,6 +1102,18 @@ void CommandHandlerClass::onWiFiReceive()
 void CommandHandlerClass::handleWiFiReceive()
 {
   xSemaphoreGiveFromISR(_updateGpio0PinSemaphore, NULL);
+}
+
+void CommandHandlerClass::onWiFiDisconnect()
+{
+  CommandHandler.handleWiFiDisconnect();
+}
+
+void CommandHandlerClass::handleWiFiDisconnect()
+{
+  for (int i = 0; i < MAX_SOCKETS; i++) {
+    tcpClients[i].stop();
+  }
 }
 
 CommandHandlerClass CommandHandler;
