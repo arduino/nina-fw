@@ -20,8 +20,9 @@
 #include <errno.h>
 #include <string.h>
 
-#include <lwip/netdb.h>
 #include <lwip/sockets.h>
+
+#include "WiFi.h"
 
 #include "WiFiUdp.h"
 
@@ -94,13 +95,13 @@ void WiFiUDP::stop()
 
 int WiFiUDP::beginPacket(const char *host, uint16_t port)
 {
-  struct hostent* server = gethostbyname(host);
+  uint32_t address;
 
-  if (server == NULL) {
-      return 0;
+  if (!WiFi.hostByName(host, address)) {
+    return 0;
   }
 
-  return beginPacket(server->h_addr, port);
+  return beginPacket(address, port);
 }
 
 int WiFiUDP::beginPacket(/*IPAddress*/uint32_t ip, uint16_t port)

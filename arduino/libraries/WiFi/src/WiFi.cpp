@@ -59,15 +59,21 @@ uint8_t WiFiClass::status()
 
 int WiFiClass::hostByName(const char* hostname, /*IPAddress*/uint32_t& result)
 {
+  struct addrinfo hints;
+  struct addrinfo* addr_list;
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = 0;
+  hints.ai_protocol = 0;
+
   result = 0xffffffff;
 
-  struct hostent* hostEntry = lwip_gethostbyname(hostname);
-
-  if (hostEntry == NULL) {
+  if (getaddrinfo(hostname, NULL, &hints, &addr_list) != 0) {
     return 0;
   }
-  
-  memcpy(&result, hostEntry->h_addr_list[0], sizeof(result));
+
+  result = ((struct sockaddr_in*)addr_list->ai_addr)->sin_addr.s_addr;
 
   return 1;
 }

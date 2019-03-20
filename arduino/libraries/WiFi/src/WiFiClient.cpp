@@ -20,8 +20,9 @@
 #include <errno.h>
 #include <string.h>
 
-#include <lwip/netdb.h>
 #include <lwip/sockets.h>
+
+#include "WiFi.h"
 
 #include "WiFiClient.h"
 
@@ -38,13 +39,13 @@ WiFiClient::WiFiClient(int socket) :
 
 int WiFiClient::connect(const char* host, uint16_t port)
 {
-  struct hostent* server = gethostbyname(host);
+  uint32_t address;
 
-  if (server == NULL) {
-      return 0;
+  if (!WiFi.hostByName(host, address)) {
+    return 0;
   }
 
-  return connect(server->h_addr, port);
+  return connect(address, port);
 }
 
 int WiFiClient::connect(/*IPAddress*/uint32_t ip, uint16_t port)
