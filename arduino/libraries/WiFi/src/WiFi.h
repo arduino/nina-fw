@@ -96,6 +96,7 @@ public:
   void noLowPowerMode();
 
   void onReceive(void(*)(void));
+  void onDisconnect(void(*)(void));
 
 private:
   void init();
@@ -123,6 +124,7 @@ private:
   netif_input_fn _apNetifInput;
 
   void (*_onReceiveCallback)(void);
+  void (*_onDisconnectCallback)(void);
 };
 
 extern WiFiClass WiFi;

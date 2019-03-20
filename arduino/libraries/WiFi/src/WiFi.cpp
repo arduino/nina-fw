@@ -38,7 +38,8 @@ WiFiClass::WiFiClass() :
   _initialized(false),
   _status(WL_NO_SHIELD),
   _interface(ESP_IF_WIFI_STA),
-  _onReceiveCallback(NULL)
+  _onReceiveCallback(NULL),
+  _onDisconnectCallback(NULL)
 {
   _eventGroup = xEventGroupCreate();
   memset(&_apRecord, 0x00, sizeof(_apRecord));
@@ -533,6 +534,11 @@ void WiFiClass::onReceive(void(*callback)(void))
   _onReceiveCallback = callback;
 }
 
+void WiFiClass::onDisconnect(void(*callback)(void))
+{
+  _onDisconnectCallback = callback;
+}
+
 err_t WiFiClass::staNetifInputHandler(struct pbuf* p, struct netif* inp)
 {
   return WiFi.handleStaNetifInput(p, inp);
@@ -651,6 +657,10 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
         esp_wifi_connect();
       } else {
         _status = WL_DISCONNECTED;
+
+        if (_onDisconnectCallback) {
+          _onDisconnectCallback();
+        }
       }
       break;
     }
