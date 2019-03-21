@@ -17,6 +17,8 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include <lwip/sockets.h>
+
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiServer.h>
@@ -1111,8 +1113,22 @@ void CommandHandlerClass::onWiFiDisconnect()
 
 void CommandHandlerClass::handleWiFiDisconnect()
 {
-  for (int i = 0; i < MAX_SOCKETS; i++) {
-    tcpClients[i].stop();
+  // workaround to stop lwip_connect hanging
+  // close all non-listening sockets
+
+  for (int i = 0; i < CONFIG_LWIP_MAX_SOCKETS; i++) {
+    struct sockaddr_in addr; 
+    size_t addrLen = sizeof(addr);
+    int socket = LWIP_SOCKET_OFFSET + i;
+
+    if (lwip_getsockname(socket, (sockaddr*)&addr, &addrLen) < 0) {
+      continue;
+    }
+
+    if (addr.sin_addr.s_addr != 0) {
+      // non-listening socket, close
+      close(socket);
+    }
   }
 }
 
