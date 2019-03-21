@@ -75,6 +75,8 @@ int WiFiClass::hostByName(const char* hostname, /*IPAddress*/uint32_t& result)
 
   result = ((struct sockaddr_in*)addr_list->ai_addr)->sin_addr.s_addr;
 
+  freeaddrinfo(addr_list);
+
   return 1;
 }
 
