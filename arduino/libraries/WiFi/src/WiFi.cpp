@@ -43,6 +43,7 @@ WiFiClass::WiFiClass() :
 {
   _eventGroup = xEventGroupCreate();
   memset(&_apRecord, 0x00, sizeof(_apRecord));
+  _staticIp = false;
   memset(&_ipInfo, 0x00, sizeof(_ipInfo));
   memset(&_dnsServers, 0x00, sizeof(_dnsServers));
 }
@@ -186,6 +187,7 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
 
   _interface = ESP_IF_WIFI_STA;
 
+  xEventGroupClearBits(_eventGroup, BIT0);
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_STA);
   esp_wifi_start();
@@ -195,7 +197,7 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
     _status = WL_CONNECT_FAILED;
   }
 
-  if (_ipInfo.ip.addr) {
+  if (_staticIp) {
     tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
     tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &_ipInfo);
   } else {
@@ -221,6 +223,7 @@ uint8_t WiFiClass::beginAP(const char *ssid, uint8_t channel)
 
   _interface = ESP_IF_WIFI_AP;
 
+  xEventGroupClearBits(_eventGroup, BIT1);
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_AP);
 
@@ -249,6 +252,7 @@ uint8_t WiFiClass::beginAP(const char *ssid, uint8_t key_idx, const char* key, u
 
   _interface = ESP_IF_WIFI_AP;
 
+  xEventGroupClearBits(_eventGroup, BIT1);
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_AP);
 
@@ -277,6 +281,7 @@ uint8_t WiFiClass::beginAP(const char *ssid, const char* key, uint8_t channel)
 
   _interface = ESP_IF_WIFI_AP;
 
+  xEventGroupClearBits(_eventGroup, BIT1);
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_AP);
 
@@ -294,6 +299,7 @@ void WiFiClass::config(/*IPAddress*/uint32_t local_ip, /*IPAddress*/uint32_t gat
 {
   dns_clear_servers(true);
 
+  _staticIp = true;
   _ipInfo.ip.addr = local_ip;
   _ipInfo.gw.addr = gateway;
   _ipInfo.netmask.addr = subnet;
@@ -428,6 +434,8 @@ uint8_t* WiFiClass::BSSID(uint8_t* bssid)
 
 int8_t WiFiClass::scanNetworks()
 {
+  xEventGroupClearBits(_eventGroup, BIT0);
+  esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_STA);
   esp_wifi_start();
   xEventGroupWaitBits(_eventGroup, BIT0, false, true, portMAX_DELAY);
@@ -639,7 +647,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
     case SYSTEM_EVENT_STA_CONNECTED:
       esp_wifi_sta_get_ap_info(&_apRecord);
 
-      if (_ipInfo.ip.addr) {
+      if (_staticIp) {
         // re-apply the custom DNS settings
         setDNS(_dnsServers[0], _dnsServers[1]);
 
@@ -696,7 +704,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       memcpy(_apRecord.ssid, config.ap.ssid, sizeof(config.ap.ssid));
       _apRecord.authmode = config.ap.authmode;
 
-      if (_ipInfo.ip.addr) {
+      if (_staticIp) {
         // custom static IP
         tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
         tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &_ipInfo);

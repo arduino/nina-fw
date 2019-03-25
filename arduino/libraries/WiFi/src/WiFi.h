@@ -117,6 +117,7 @@ private:
 
   wifi_ap_record_t _scanResults[MAX_SCAN_RESULTS];
   wifi_ap_record_t _apRecord;
+  bool _staticIp;
   tcpip_adapter_ip_info_t _ipInfo;
   uint32_t _dnsServers[2];
 
