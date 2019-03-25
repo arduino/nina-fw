@@ -200,8 +200,6 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   if (_staticIp) {
     tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
     tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &_ipInfo);
-  } else {
-    tcpip_adapter_dhcpc_start(TCPIP_ADAPTER_IF_STA);
   }
 
   esp_wifi_connect();
