@@ -1,5 +1,14 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.2.2 - 2018.03.26
+
+* Changed connections to use WIFI_FAST_SCAN instead of WIFI_ALL_CHANNEL_SCAN
+* Changed ASSOC_FAIL error handling, to now try to re-connect
+* Added phy_init partition with u-blox recommended phy init data and use 
+* Fixed socket connections hanging when WiFi is disconnected
+* Fixed issues where DNS server could be reset to 0.0.0.0 on WiFi re-connections
+* Updated to use esp-idf 3.1.3
+
 Arduino NINA-W102 firmware 1.2.1 - 2018.11.16
 
 * Fixed factory SSL certificates being incorrectly parsed due to OOM caused by Bluetooth inclusion
