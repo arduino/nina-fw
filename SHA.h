@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Arduino SA. All rights reserved.
+ * Copyright (c) 2019 Arduino SA. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining 
  * a copy of this software and associated documentation files (the
@@ -22,25 +22,51 @@
  * SOFTWARE.
  */
 
-#ifndef _ARDUINO_BEAR_SSL_H_
-#define _ARDUINO_BEAR_SSL_H_
+#ifndef SHA_H
+#define SHA_H
 
-#include "BearSSLClient.h"
-#include "SHA1.h"
-#include "SHA256.h"
+#include <Arduino.h>
 
-class ArduinoBearSSLClass {
+class SHAClass : public Stream {
+
 public:
-  ArduinoBearSSLClass();
-  virtual ~ArduinoBearSSLClass();
+  SHAClass(int blockSize, int digestSize);
+  virtual ~SHAClass();
 
-  unsigned long getTime();
-  void onGetTime(unsigned long(*)(void));
+  int beginHash();
+  int endHash();
+
+  int beginHmac(const String& secret);
+  int beginHmac(const char* secret);
+  int beginHmac(const byte secret[], int length);
+  int endHmac();
+
+  // Stream
+  virtual int available();
+  virtual int read();
+  virtual int peek();
+  virtual void flush();
+
+  // Print
+  virtual size_t write(uint8_t data);
+  virtual size_t write(const uint8_t *buffer, size_t size);
+
+  size_t readBytes(char* buffer, size_t length); // read chars from stream into buffer
+  size_t readBytes(uint8_t* buffer, size_t length) { return readBytes((char *)buffer, length); }
+
+protected:
+  virtual int begin() = 0;
+  virtual int update(const uint8_t *buffer, size_t size) = 0;
+  virtual int end(uint8_t *digest) = 0;
 
 private:
-  unsigned long (*_onGetTimeCallback)(void);
-};
+  int _blockSize;
+  int _digestSize;
 
-extern ArduinoBearSSLClass ArduinoBearSSL;
+  uint8_t* _digest;
+  int _digestIndex;
+  uint8_t* _secret;
+  int _secretLength;
+};
 
 #endif

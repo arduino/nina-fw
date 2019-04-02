@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Arduino SA. All rights reserved.
+ * Copyright (c) 2019 Arduino SA. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining 
  * a copy of this software and associated documentation files (the
@@ -22,25 +22,36 @@
  * SOFTWARE.
  */
 
-#ifndef _ARDUINO_BEAR_SSL_H_
-#define _ARDUINO_BEAR_SSL_H_
-
-#include "BearSSLClient.h"
 #include "SHA1.h"
-#include "SHA256.h"
 
-class ArduinoBearSSLClass {
-public:
-  ArduinoBearSSLClass();
-  virtual ~ArduinoBearSSLClass();
+SHA1Class::SHA1Class() :
+  SHAClass(SHA1_BLOCK_SIZE, SHA1_DIGEST_SIZE)
+{
+}
 
-  unsigned long getTime();
-  void onGetTime(unsigned long(*)(void));
+SHA1Class::~SHA1Class()
+{
+}
 
-private:
-  unsigned long (*_onGetTimeCallback)(void);
-};
+int SHA1Class::begin()
+{
+  br_sha1_init(&_ctx);
 
-extern ArduinoBearSSLClass ArduinoBearSSL;
+  return 1;
+}
 
-#endif
+int SHA1Class::update(const uint8_t *buffer, size_t size)
+{
+  br_sha1_update(&_ctx, buffer, size);
+
+  return 1;
+}
+
+int SHA1Class::end(uint8_t *digest)
+{
+  br_sha1_out(&_ctx, digest);
+
+  return 1;
+}
+
+SHA1Class SHA1;
