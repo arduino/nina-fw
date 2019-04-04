@@ -36,6 +36,10 @@ void SHA1Final(
     SHA1_CTX * context
     );
 
+#ifdef ARDUINO
+#define SHA1 SHA1_ // to make the function "internal"
+#endif
+
 void SHA1(
     char *hash_out,
     const char *str,
