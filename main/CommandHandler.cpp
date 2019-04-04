@@ -22,6 +22,7 @@
 #include <WiFiServer.h>
 #include <WiFiSSLClient.h>
 #include <WiFiUdp.h>
+#include "esp_wpa2.h"
 
 #include "CommandHandler.h"
 
@@ -976,6 +977,74 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int wpa2EntSetIdentity(const uint8_t command[], uint8_t response[]) {
+  char identity[32 + 1];
+
+  memset(identity, 0x00, sizeof(identity));
+  memcpy(identity, &command[4], command[3]);
+
+  esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)identity, strlen(identity));
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
+int wpa2EntSetUsername(const uint8_t command[], uint8_t response[]) {
+  char username[32 + 1];
+
+  memset(username, 0x00, sizeof(username));
+  memcpy(username, &command[4], command[3]);
+
+  esp_wifi_sta_wpa2_ent_set_username((uint8_t *)username, strlen(username));
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
+int wpa2EntSetPassword(const uint8_t command[], uint8_t response[]) {
+  char password[32 + 1];
+
+  memset(password, 0x00, sizeof(password));
+  memcpy(password, &command[4], command[3]);
+
+  esp_wifi_sta_wpa2_ent_set_password((uint8_t *)password, strlen(password));
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
+int wpa2EntSetCACert(const uint8_t command[], uint8_t response[]) {
+  // not yet implemented (need to decide if writing in the filesystem is better than loading every time)
+  // keep in mind size limit for messages
+  return 0;
+}
+
+int wpa2EntSetCertKey(const uint8_t command[], uint8_t response[]) {
+  // not yet implemented (need to decide if writing in the filesystem is better than loading every time)
+  // keep in mind size limit for messages
+  return 0;
+}
+
+int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
+
+  esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
+  esp_wifi_sta_wpa2_ent_enable(&config);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
 
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
@@ -993,7 +1062,7 @@ const CommandHandlerType commandHandlers[] = {
   disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, NULL, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
 
   // 0x40 -> 0x4f
-  NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, wpa2EntSetIdentity, wpa2EntSetUsername, wpa2EntSetPassword, wpa2EntSetCACert, wpa2EntSetCertKey, wpa2EntEnable,
 
   // 0x50 -> 0x5f
   setPinMode, setDigitalWrite, setAnalogWrite,
