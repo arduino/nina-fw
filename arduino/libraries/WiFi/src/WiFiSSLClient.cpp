@@ -50,7 +50,7 @@ WiFiSSLClient::WiFiSSLClient() :
   _mbedMutex = xSemaphoreCreateRecursiveMutex();
 }
 
-int WiFiSSLClient::connect(const char* host, uint16_t port)
+int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
 {
   synchronized {
     _netContext.fd = -1;
@@ -105,6 +105,11 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
       return 0;
     }
 
+    if (sni && mbedtls_ssl_set_hostname(&_sslContext, host) != 0) {
+      stop();
+      return 0;
+    }
+
     char portStr[6];
     itoa(port, portStr, 10);
 
@@ -133,13 +138,18 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
   }
 }
 
+int WiFiSSLClient::connect(const char* host, uint16_t port)
+{
+  return connect(host, port, true);
+}
+
 int WiFiSSLClient::connect(/*IPAddress*/uint32_t ip, uint16_t port)
 {
   char ipStr[16];
 
   sprintf(ipStr, "%d.%d.%d.%d", ((ip & 0xff000000) >> 24), ((ip & 0x00ff0000) >> 16), ((ip & 0x0000ff00) >> 8), ((ip & 0x000000ff) >> 0)/*ip[0], ip[1], ip[2], ip[3]*/);
 
-  return connect(ipStr, port);
+  return connect(ipStr, port, false);
 }
 
 size_t WiFiSSLClient::write(uint8_t b)
