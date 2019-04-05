@@ -37,6 +37,7 @@
 WiFiClass::WiFiClass() :
   _initialized(false),
   _status(WL_NO_SHIELD),
+  _reasonCode(0),
   _interface(ESP_IF_WIFI_STA),
   _onReceiveCallback(NULL),
   _onDisconnectCallback(NULL)
@@ -56,6 +57,11 @@ uint8_t WiFiClass::status()
   }
 
   return _status;
+}
+
+uint8_t WiFiClass::reasonCode()
+{
+  return _reasonCode;
 }
 
 int WiFiClass::hostByName(const char* hostname, /*IPAddress*/uint32_t& result)
@@ -643,6 +649,8 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       break;
 
     case SYSTEM_EVENT_STA_CONNECTED:
+      _reasonCode = 0;
+
       esp_wifi_sta_get_ap_info(&_apRecord);
 
       if (_staticIp) {
@@ -661,6 +669,8 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
     case SYSTEM_EVENT_STA_DISCONNECTED: {
       uint8_t reason = event->event_info.disconnected.reason;
+
+      _reasonCode = reason;
 
       memset(&_apRecord, 0x00, sizeof(_apRecord));
 

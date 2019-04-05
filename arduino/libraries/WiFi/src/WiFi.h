@@ -85,6 +85,7 @@ public:
   uint8_t channel(uint8_t pos);
 
   uint8_t status();
+  uint8_t reasonCode();
 
   int hostByName(const char* hostname, /*IPAddress*/uint32_t& result);
 
@@ -112,6 +113,7 @@ private:
 private:
   bool _initialized;
   volatile uint8_t _status;
+  volatile uint8_t _reasonCode;
   EventGroupHandle_t _eventGroup;
   esp_interface_t _interface;
 
