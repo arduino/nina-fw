@@ -1,5 +1,10 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.2.3 - 2018.04.09
+
+* Added reason code command to retrieve the disconnect reason code
+* WiFiSSLClient: enable SNI via mbedtls_ssl_set_hostname when using hostname
+
 Arduino NINA-W102 firmware 1.2.2 - 2018.03.26
 
 * Changed connections to use WIFI_FAST_SCAN instead of WIFI_ALL_CHANNEL_SCAN
