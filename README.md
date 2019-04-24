@@ -1,7 +1,7 @@
 # Adafruit fork of the Arduino NINA-W102 firmware
 
 This is the Adafruit fork of the Arduino NINA-W102 firmware. The original
-GitHub repository is located at https://github.com/arduino/nina-fw
+repository is located at https://github.com/arduino/nina-fw
 
 This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
