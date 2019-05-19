@@ -1,16 +1,24 @@
-# Arduino NINA-W102 firmware
+# Adafruit fork of the Arduino NINA-W102 firmware
+
+This is the Adafruit fork of the Arduino NINA-W102 firmware. The original
+repository is located at https://github.com/arduino/nina-fw
 
 This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
 ## Building
 
-1. [Download the ESP32 toolchain](http://esp-idf.readthedocs.io/en/v3.1/get-started/index.html#setup-toolchain)
+The firmware shipped in Adafruit's products is compiled following these
+instructions. These may differ from the instructions included in the
+original Arduino firmware repository.
+
+1. [Download the ESP32 toolchain](https://docs.espressif.com/projects/esp-idf/en/v3.2/get-started/index.html#setup-toolchain)
 1. Extract it and add it to your `PATH`: `export PATH=$PATH:<path/to/toolchain>/bin`
-1. Clone **v3.1** of the IDF: `git clone --branch v3.1 --recursive https://github.com/espressif/esp-idf.git`
+1. Clone **v3.2** of the IDF: `git clone --branch v3.2 --recursive https://github.com/espressif/esp-idf.git`
 1. Set the `IDF_PATH` environment variable: `export IDF_PATH=<path/to/idf>`
-1. Run `make` to build the firmware (in the directory of this read me)
-1. Load the `Tools -> SerialNINAPassthrough` example sketch on to the board
-1. Use `esptool` to flash the compiled firmware
+1. Run `make firmware` to build the firmware (in the directory of this read me)
+1. You should have a file named `NINA_W102-x.x.x.bin` in the top directory
+1. Use appropriate tools (esptool.py, appropriate pass-through firmware etc)
+   to load this binary file onto your board.
 
 ## License
 
