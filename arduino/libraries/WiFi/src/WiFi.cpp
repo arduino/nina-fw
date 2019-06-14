@@ -22,8 +22,7 @@
 #include <esp_wifi.h>
 #include <tcpip_adapter.h>
 
-#include <apps/sntp/sntp.h>
-
+#include <lwip/apps/sntp.h>
 #include <lwip/dns.h>
 #include <lwip/netdb.h>
 #include <lwip/raw.h>
@@ -127,7 +126,7 @@ int WiFiClass::ping(/*IPAddress*/uint32_t host, uint8_t ttl)
 
   to.sin_len = sizeof(to);
   to.sin_family = AF_INET;
-  inet_addr_from_ipaddr(&to.sin_addr, ip_2_ip4(&addr));
+  inet_addr_from_ip4addr(&to.sin_addr, ip_2_ip4(&addr));
 
   sendto(s, &request, sizeof(request), 0, (struct sockaddr*)&to, sizeof(to));
   unsigned long sendTime = millis();
