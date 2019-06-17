@@ -577,7 +577,7 @@ int ECCX08Class::sign(int slot, byte signature[])
     return 0;
   }
 
-  delay(60);
+  delay(70);
 
   if (!receiveResponse(signature, 64)) {
     return 0;
