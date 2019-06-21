@@ -46,6 +46,7 @@ WiFiClass::WiFiClass() :
   _staticIp = false;
   memset(&_ipInfo, 0x00, sizeof(_ipInfo));
   memset(&_dnsServers, 0x00, sizeof(_dnsServers));
+  memset(&_hostname, 0x00, sizeof(_hostname));
 }
 
 uint8_t WiFiClass::status()
@@ -338,7 +339,7 @@ void WiFiClass::setDNS(/*IPAddress*/uint32_t dns_server1, /*IPAddress*/uint32_t 
 
 void WiFiClass::hostname(const char* name)
 {
-  tcpip_adapter_set_hostname(_interface == ESP_IF_WIFI_AP ? TCPIP_ADAPTER_IF_AP : TCPIP_ADAPTER_IF_STA, name);
+  strncpy(_hostname, name, HOSTNAME_MAX_LENGTH);
 }
 
 void WiFiClass::disconnect()
@@ -604,7 +605,6 @@ void WiFiClass::init()
   sntp_setservername(1, (char*)"1.pool.ntp.org");
   sntp_setservername(2, (char*)"2.pool.ntp.org");
   sntp_init();
-
   _status = WL_IDLE_STATUS;
 }
 
@@ -624,12 +624,12 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
     case SYSTEM_EVENT_STA_START: {
       struct netif* staNetif;
-      uint8_t mac[6];
-      char defaultHostname[13];
-
-      esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
-      sprintf(defaultHostname, "arduino-%.2x%.2x", mac[4], mac[5]);
-      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, defaultHostname);
+      if (strlen(_hostname) == 0) {
+        uint8_t mac[6];
+        esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
+        sprintf(_hostname, "arduino-%.2x%.2x", mac[4], mac[5]);
+      }
+      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, _hostname);
 
       if (tcpip_adapter_get_netif(TCPIP_ADAPTER_IF_STA, (void**)&staNetif) == ESP_OK) {
         if (staNetif->input != WiFiClass::staNetifInputHandler) {

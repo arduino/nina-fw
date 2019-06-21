@@ -44,6 +44,7 @@ typedef enum {
 } wl_status_t;
 
 #define MAX_SCAN_RESULTS 10
+#define HOSTNAME_MAX_LENGTH 32
 
 class WiFiClass
 {
@@ -122,7 +123,7 @@ private:
   bool _staticIp;
   tcpip_adapter_ip_info_t _ipInfo;
   uint32_t _dnsServers[2];
-
+  char _hostname[HOSTNAME_MAX_LENGTH+1];
   netif_input_fn _staNetifInput;
   netif_input_fn _apNetifInput;
 
