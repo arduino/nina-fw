@@ -218,7 +218,7 @@ uint8_t WiFiClass::beginAP(const char *ssid, uint8_t channel)
 
   memset(&wifiConfig, 0x00, sizeof(wifiConfig));
   strncpy((char*)wifiConfig.ap.ssid, ssid, sizeof(wifiConfig.sta.ssid));
-  wifiConfig.ap.channel = 0;
+  wifiConfig.ap.channel = channel;
   wifiConfig.ap.authmode = WIFI_AUTH_OPEN;
   wifiConfig.ap.max_connection = 4;
 
@@ -247,7 +247,7 @@ uint8_t WiFiClass::beginAP(const char *ssid, uint8_t key_idx, const char* key, u
   memset(&wifiConfig, 0x00, sizeof(wifiConfig));
   strncpy((char*)wifiConfig.ap.ssid, ssid, sizeof(wifiConfig.sta.ssid));
   strncpy((char*)wifiConfig.ap.password, key, sizeof(wifiConfig.sta.password));
-  wifiConfig.ap.channel = 0;
+  wifiConfig.ap.channel = channel;
   wifiConfig.ap.authmode = WIFI_AUTH_WEP;
   wifiConfig.ap.max_connection = 4;
 
@@ -276,7 +276,7 @@ uint8_t WiFiClass::beginAP(const char *ssid, const char* key, uint8_t channel)
   memset(&wifiConfig, 0x00, sizeof(wifiConfig));
   strncpy((char*)wifiConfig.ap.ssid, ssid, sizeof(wifiConfig.sta.ssid));
   strncpy((char*)wifiConfig.ap.password, key, sizeof(wifiConfig.sta.password));
-  wifiConfig.ap.channel = 0;
+  wifiConfig.ap.channel = channel;
   wifiConfig.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
   wifiConfig.ap.max_connection = 4;
 
