@@ -31,7 +31,14 @@
 #include "BearSSLClient.h"
 
 BearSSLClient::BearSSLClient(Client& client) :
-  _client(&client)
+  BearSSLClient(client, TAs, TAs_NUM)
+{
+}
+
+BearSSLClient::BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs) :
+  _client(&client),
+  _TAs(myTAs),
+  _numTAs(myNumTAs)
 {
   _ecKey.curve = 0;
   _ecKey.x = NULL;
@@ -234,7 +241,7 @@ void BearSSLClient::setEccSlot(int ecc508KeySlot, const char cert[])
 int BearSSLClient::connectSSL(const char* host)
 {
   // initialize client context with all algorithms and hardcoded trust anchors
-  br_ssl_client_init_full(&_sc, &_xc, TAs, TAs_NUM);
+  br_ssl_client_init_full(&_sc, &_xc, _TAs, _numTAs);
 
   // set the buffer in split mode
   br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), 1);
