@@ -615,11 +615,17 @@ esp_err_t WiFiClass::systemEventHandler(void* ctx, system_event_t* event)
   return ESP_OK;
 }
 
+#include "wifi_manager.h"
+
 void WiFiClass::handleSystemEvent(system_event_t* event)
 {
   switch (event->event_id) {
     case SYSTEM_EVENT_SCAN_DONE:
       xEventGroupSetBits(_eventGroup, BIT2);
+
+      xEventGroupClearBits(wifi_manager_event_group, WIFI_MANAGER_SCAN_BIT);
+      wifi_manager_send_message(EVENT_SCAN_DONE, NULL);
+
       break;
 
     case SYSTEM_EVENT_STA_START: {
@@ -664,9 +670,19 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
     case SYSTEM_EVENT_STA_GOT_IP:
       memcpy(&_ipInfo, &event->event_info.got_ip.ip_info, sizeof(_ipInfo));
       _status = WL_CONNECTED;
+
+      xEventGroupSetBits(wifi_manager_event_group, WIFI_MANAGER_WIFI_CONNECTED_BIT);
+      wifi_manager_send_message(EVENT_STA_GOT_IP, (void*)event->event_info.got_ip.ip_info.ip.addr );
+
       break;
 
     case SYSTEM_EVENT_STA_DISCONNECTED: {
+
+      /* if a DISCONNECT message is posted while a scan is in progress this scan will NEVER end, causing scan to never work again. For this reason SCAN_BIT is cleared too */
+      xEventGroupClearBits(wifi_manager_event_group, WIFI_MANAGER_WIFI_CONNECTED_BIT | WIFI_MANAGER_SCAN_BIT);
+      /* post disconnect event with reason code */
+      wifi_manager_send_message(EVENT_STA_DISCONNECTED, (void*)( (uint32_t)event->event_info.disconnected.reason) );
+
       uint8_t reason = event->event_info.disconnected.reason;
 
       _reasonCode = reason;
@@ -725,6 +741,8 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
       _status = WL_AP_LISTENING;
       xEventGroupSetBits(_eventGroup, BIT1);
+      xEventGroupSetBits(wifi_manager_event_group, WIFI_MANAGER_AP_STARTED_BIT);
+
       break;
     }
 
@@ -737,12 +755,16 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
     case SYSTEM_EVENT_AP_STACONNECTED:
       _status = WL_AP_CONNECTED;
+      xEventGroupSetBits(wifi_manager_event_group, WIFI_MANAGER_AP_STA_CONNECTED_BIT);
+
       break;
 
     case SYSTEM_EVENT_AP_STADISCONNECTED:
       wifi_sta_list_t staList;
 
       esp_wifi_ap_get_sta_list(&staList);
+
+      xEventGroupClearBits(wifi_manager_event_group, WIFI_MANAGER_AP_STA_CONNECTED_BIT);
 
       if (staList.num == 0) {
         _status = WL_AP_LISTENING;
