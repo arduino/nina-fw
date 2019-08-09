@@ -93,7 +93,7 @@ struct wifi_settings_t wifi_settings = {
 
 const char wifi_manager_nvs_namespace[] = "espwifimgr";
 
-EventGroupHandle_t wifi_manager_event_group;
+EventGroupHandle_t wifi_manager_event_group = NULL;
 
 
 void wifi_manager_scan_async(){
