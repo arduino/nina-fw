@@ -998,7 +998,7 @@ int wpa2EntSetIdentity(const uint8_t command[], uint8_t response[]) {
   memset(identity, 0x00, sizeof(identity));
   memcpy(identity, &command[4], command[3]);
 
-  esp_wifi_sta_wpa2_ent_set_identity((const unsigned char*)identity, sizeof(identity));
+  esp_wifi_sta_wpa2_ent_set_identity((const unsigned char*)identity, strlen(identity));
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1013,7 +1013,7 @@ int wpa2EntSetUsername(const uint8_t command[], uint8_t response[]) {
   memset(username, 0x00, sizeof(username));
   memcpy(username, &command[4], command[3]);
 
-  esp_wifi_sta_wpa2_ent_set_username((const unsigned char*)username, sizeof(username));
+  esp_wifi_sta_wpa2_ent_set_username((const unsigned char*)username, strlen(username));
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1028,7 +1028,7 @@ int wpa2EntSetPassword(const uint8_t command[], uint8_t response[]) {
   memset(password, 0x00, sizeof(password));
   memcpy(password, &command[4], command[3]);
 
-  esp_wifi_sta_wpa2_ent_set_password((const unsigned char*)password, sizeof(password));
+  esp_wifi_sta_wpa2_ent_set_password((const unsigned char*)password, strlen(password));
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
