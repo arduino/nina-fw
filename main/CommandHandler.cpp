@@ -1038,18 +1038,15 @@ int wpa2EntSetPassword(const uint8_t command[], uint8_t response[]) {
 }
 
 int wpa2EntSetCACert(const uint8_t command[], uint8_t response[]) {
-  // use a previously saved file
-  const char* filename = "/fs/ca.pem";
-  FILE* ca_pem = fopen(filename, "rb");
-  if (ca_pem != NULL) {
-    struct stat st;
-    stat(filename, &st);
-    uint8_t* ca_cert_buf = (uint8_t*)malloc(st.st_size + 1);
-    memset(ca_cert_buf, 0, st.st_size + 1);
-    fread(ca_cert_buf, st.st_size, 1, ca_pem);
-    //never deallocate this object since it will be used later
-    esp_wifi_sta_wpa2_ent_set_ca_cert(ca_cert_buf, st.st_size);
-  }
+
+  // Add +1 for \0 termination
+  size_t ca_cert_buf_size = (command[3] << 8 | command[4]);
+  uint8_t* ca_cert_buf = (uint8_t*)malloc(ca_cert_buf_size + 1);
+
+  memset(ca_cert_buf, 0x00, ca_cert_buf_size + 1);
+  memcpy(ca_cert_buf, &command[6], ca_cert_buf_size);
+
+  esp_wifi_sta_wpa2_ent_set_ca_cert(ca_cert_buf, ca_cert_buf_size + 1);
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1059,29 +1056,20 @@ int wpa2EntSetCACert(const uint8_t command[], uint8_t response[]) {
 }
 
 int wpa2EntSetCertKey(const uint8_t command[], uint8_t response[]) {
-  // use a previously saved file
-  const char* key_filename = "/fs/client.key";
-  FILE* client_key = fopen(key_filename, "rb");
 
-  const char* crt_filename = "/fs/client.crt";
-  FILE* client_crt = fopen(crt_filename, "rb");
+  // Add +1 for \0 termination
+  size_t client_crt_buf_size = (command[3] << 8 | command[4]);
+  size_t client_key_buf_size = (command[5] << 8 | command[6]);
+  uint8_t* client_crt_buf = (uint8_t*)malloc(client_crt_buf_size + 1);
+  uint8_t* client_key_buf = (uint8_t*)malloc(client_key_buf_size + 1);
 
-  if (client_key != NULL && client_crt != NULL) {
-    struct stat st;
-    stat(key_filename, &st);
-    size_t client_key_buf_size = st.st_size;
-    uint8_t* client_key_buf = (uint8_t*)malloc(st.st_size + 1);
-    memset(client_key_buf, 0, st.st_size + 1);
-    fread(client_key_buf, client_key_buf_size, 1, client_key);
+  memset(client_crt_buf, 0x00, client_crt_buf_size + 1);
+  memset(client_key_buf, 0x00, client_key_buf_size + 1);
 
-    stat(crt_filename, &st);
-    uint8_t* client_crt_buf = (uint8_t*)malloc(st.st_size + 1);
-    memset(client_crt_buf, 0, st.st_size + 1);
-    size_t client_crt_buf_size = st.st_size;
-    fread(client_crt_buf, client_crt_buf_size, 1, client_crt);
+  memcpy(client_crt_buf, &command[8], client_crt_buf_size);
+  memcpy(client_key_buf, &command[9 + client_crt_buf_size], client_key_buf_size);
 
-    esp_wifi_sta_wpa2_ent_set_cert_key(client_crt_buf, client_crt_buf_size + 1, client_key_buf, client_key_buf_size + 1, NULL, 0);
-  }
+  esp_wifi_sta_wpa2_ent_set_cert_key(client_crt_buf, client_crt_buf_size + 1, client_key_buf, client_key_buf_size + 1, NULL, 0);
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1091,9 +1079,6 @@ int wpa2EntSetCertKey(const uint8_t command[], uint8_t response[]) {
 }
 
 int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
-
-  wpa2EntSetCACert(command, response);
-  wpa2EntSetCertKey(command, response);
 
   esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
   esp_wifi_sta_wpa2_ent_enable(&config);
@@ -1121,7 +1106,7 @@ const CommandHandlerType commandHandlers[] = {
   disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, NULL, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
 
   // 0x40 -> 0x4f
-  NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, wpa2EntSetIdentity, wpa2EntSetUsername, wpa2EntSetPassword, NULL, NULL, wpa2EntEnable,
+  NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, wpa2EntSetIdentity, wpa2EntSetUsername, wpa2EntSetPassword, wpa2EntSetCACert, wpa2EntSetCertKey, wpa2EntEnable,
 
   // 0x50 -> 0x5f
   setPinMode, setDigitalWrite, setAnalogWrite,
