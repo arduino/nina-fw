@@ -1044,7 +1044,8 @@ int wpa2EntSetCACert(const uint8_t command[], uint8_t response[]) {
   if (ca_pem != NULL) {
     struct stat st;
     stat(filename, &st);
-    uint8_t* ca_cert_buf = (uint8_t*)malloc(st.st_size);
+    uint8_t* ca_cert_buf = (uint8_t*)malloc(st.st_size + 1);
+    memset(ca_cert_buf, 0, st.st_size + 1);
     fread(ca_cert_buf, st.st_size, 1, ca_pem);
     //never deallocate this object since it will be used later
     esp_wifi_sta_wpa2_ent_set_ca_cert(ca_cert_buf, st.st_size);
@@ -1069,15 +1070,17 @@ int wpa2EntSetCertKey(const uint8_t command[], uint8_t response[]) {
     struct stat st;
     stat(key_filename, &st);
     size_t client_key_buf_size = st.st_size;
-    uint8_t* client_key_buf = (uint8_t*)malloc(st.st_size);
+    uint8_t* client_key_buf = (uint8_t*)malloc(st.st_size + 1);
+    memset(client_key_buf, 0, st.st_size + 1);
     fread(client_key_buf, client_key_buf_size, 1, client_key);
 
     stat(crt_filename, &st);
-    uint8_t* client_crt_buf = (uint8_t*)malloc(st.st_size);
+    uint8_t* client_crt_buf = (uint8_t*)malloc(st.st_size + 1);
+    memset(client_crt_buf, 0, st.st_size + 1);
     size_t client_crt_buf_size = st.st_size;
     fread(client_crt_buf, client_crt_buf_size, 1, client_crt);
 
-    esp_wifi_sta_wpa2_ent_set_cert_key(client_crt_buf, client_crt_buf_size, client_key_buf, client_key_buf_size, NULL, 0);
+    esp_wifi_sta_wpa2_ent_set_cert_key(client_crt_buf, client_crt_buf_size + 1, client_key_buf, client_key_buf_size + 1, NULL, 0);
   }
 
   response[2] = 1; // number of parameters
