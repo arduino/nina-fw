@@ -238,6 +238,11 @@ void BearSSLClient::setEccSlot(int ecc508KeySlot, const char cert[])
   }
 }
 
+int BearSSLClient::errorCode()
+{
+  return br_ssl_engine_last_error(&_sc.eng);
+}
+
 int BearSSLClient::connectSSL(const char* host)
 {
   // initialize client context with all algorithms and hardcoded trust anchors

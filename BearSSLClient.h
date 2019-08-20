@@ -59,6 +59,8 @@ public:
   void setEccSlot(int ecc508KeySlot, const byte cert[], int certLength);
   void setEccSlot(int ecc508KeySlot, const char cert[]);
 
+  int errorCode();
+
 private:
   int connectSSL(const char* host);
   static int clientRead(void *ctx, unsigned char *buf, size_t len);
