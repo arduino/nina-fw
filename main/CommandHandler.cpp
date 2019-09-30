@@ -26,7 +26,9 @@
 
 #include "CommandHandler.h"
 
-const char FIRMWARE_VERSION[6] = "1.3.1";
+#include "Arduino.h"
+
+const char FIRMWARE_VERSION[6] = "1.4.0";
 
 /*IPAddress*/uint32_t resolvedHostname;
 
@@ -1046,6 +1048,36 @@ int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
   return 6;
 }
 
+int setClientCert(const uint8_t command[], uint8_t response[]){
+
+  ets_printf("*** Called setClientCert\n");
+  size_t cert_buf_sz = command[3] << 8;
+  ets_printf("Cert Length: %d\n", cert_buf_sz);
+  ets_printf("%d", sizeof(cert_buf_sz));
+
+  char cert[cert_buf_sz];
+  memset(cert, 0x00, sizeof(cert_buf_sz));
+  memcpy(cert, &command[4], command[3]);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
+
+int setCertKey(const uint8_t command[], uint8_t response[]){
+
+  ets_printf("*** Called setCertKey\n");
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
 const CommandHandlerType commandHandlers[] = {
@@ -1062,7 +1094,7 @@ const CommandHandlerType commandHandlers[] = {
   disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, NULL, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
 
   // 0x40 -> 0x4f
-  NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, wpa2EntSetIdentity, wpa2EntSetUsername, wpa2EntSetPassword, wpa2EntSetCACert, wpa2EntSetCertKey, wpa2EntEnable,
+  setClientCert, setCertKey, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, wpa2EntSetIdentity, wpa2EntSetUsername, wpa2EntSetPassword, wpa2EntSetCACert, wpa2EntSetCertKey, wpa2EntEnable,
 
   // 0x50 -> 0x5f
   setPinMode, setDigitalWrite, setAnalogWrite,
