@@ -56,7 +56,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
   char* client_cert = NULL;
   char* client_key = NULL;
-  int ret;
+  int ret, flags;
   synchronized {
     _netContext.fd = -1;
     _connected = false;
@@ -203,13 +203,33 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     {
       ets_printf("Protocol is %s Ciphersuite is %s", mbedtls_ssl_get_version(&_sslContext), mbedtls_ssl_get_ciphersuite(&_sslContext));
     }
+    ets_printf("Verifying peer X.509 certificate");
+    char buf[512];
+    if ((flags = mbedtls_ssl_get_verify_result(&_sslContext)) != 0) {
+      bzero(buf, sizeof(buf));
+      mbedtls_x509_crt_verify_info(buf, sizeof(buf), "  ! ", flags);
+      ets_printf("Failed to verify peer certificate! verification info: %s", buf);
+      stop(); // invalid certificate, stop
+      return -1;
+    } else {
+      ets_printf("Certificate chain verified.");
+    }
 
-
-    
     ets_printf("*** ssl set nonblock\n");
     mbedtls_net_set_nonblock(&_netContext);
 
-    // TODO: Free heap (all certs, incl. CA cert...)
+    //ets_printf("Free internal heap before cleanup: %u\n", ESP.getFreeHeap());
+    // free up the heap
+    if (certs_data != NULL) {
+      mbedtls_x509_crt_free(&_caCrt);
+    }
+    if (client_cert != NULL) {
+      mbedtls_x509_crt_free(&_clientCrt);
+    }
+    if (client_key !=NULL) {
+      mbedtls_pk_free(&_clientKey);
+    }
+    //ets_printf("Free internal heap after cleanup: %u\n", ESP.getFreeHeap());
     _connected = true;
     return 1;
   }
