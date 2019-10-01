@@ -66,7 +66,6 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     mbedtls_ssl_config_init(&_sslConfig);
 
 
-    mbedtls_x509_crt_init(&_caCrt);
     mbedtls_net_init(&_netContext);
 
     ets_printf("*** connect inited\n");
@@ -84,54 +83,52 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 
     ets_printf("*** connect ssl hostname\n");
      /* Hostname set here should match CN in server certificate */
-    if(mbedtls_ssl_set_hostname(&_sslContext, host) != 0)
-    {
+    if(mbedtls_ssl_set_hostname(&_sslContext, host) != 0) {
       stop();
       return 0;
     }
 
     ets_printf("*** connect ssl config\n");
-
-    if (mbedtls_ssl_config_defaults(&_sslConfig, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
+    if (ret= mbedtls_ssl_config_defaults(&_sslConfig, MBEDTLS_SSL_IS_CLIENT,
+                                        MBEDTLS_SSL_TRANSPORT_STREAM,
+                                        MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
       stop();
+      ets_printf("Error Setting up SSL Config: %d", ret);
       return 0;
     }
 
     ets_printf("*** connect authmode\n");
-
+    // we're always using the root CA cert from partition, so MBEDTLS_SSL_VERIFY_REQUIRED
+    ets_printf("*** Loading CA Cert...");
+    mbedtls_x509_crt_init(&_caCrt);
     mbedtls_ssl_conf_authmode(&_sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
 
+    // setting up CA certificates from partition
     spi_flash_mmap_handle_t handle;
     const unsigned char* certs_data = {};
-
     ets_printf("*** connect part findfirst\n");
-
     const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
-    if (part == NULL)
-    {
+    if (part == NULL) {
       return 0;
     }
 
     ets_printf("*** connect part mmap\n");
-
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
-    if (ret != ESP_OK)
-    {
+    if (ret != ESP_OK) {
+      ets_printf("*** Error partition mmap %d\n", ret);
       return 0;
     }
 
     ets_printf("*** connect crt parse\n");
-
     ret = mbedtls_x509_crt_parse(&_caCrt, certs_data, strlen((char*)certs_data) + 1);
+    ets_printf("*** connect conf ca chain\n");
+    mbedtls_ssl_conf_ca_chain(&_sslConfig, &_caCrt, NULL);
     if (ret < 0) {
       stop();
       return 0;
     }
 
-    ets_printf("*** connect conf ca chain\n");
-
-    mbedtls_ssl_conf_ca_chain(&_sslConfig, &_caCrt, NULL);
-
+    // TODO: Check for _cert and _private_key
 
     ets_printf("*** connect conf RNG\n");
 
