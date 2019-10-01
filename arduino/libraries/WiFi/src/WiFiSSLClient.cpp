@@ -165,55 +165,52 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     }
 
     ets_printf("*** connect conf RNG\n");
-
     mbedtls_ssl_conf_rng(&_sslConfig, mbedtls_ctr_drbg_random, &_ctrDrbgContext);
 
     ets_printf("*** connect ssl setup\n");
-
-    if (mbedtls_ssl_setup(&_sslContext, &_sslConfig) != 0) {
+    if ((ret = mbedtls_ssl_setup(&_sslContext, &_sslConfig)) != 0) {
+      ets_printf("Unable to connect ssl setup %d", ret);
       stop();
       return 0;
     }
 
     char portStr[6];
     itoa(port, portStr, 10);
-
     ets_printf("*** connect netconnect\n");
-
     if (mbedtls_net_connect(&_netContext, host, portStr, MBEDTLS_NET_PROTO_TCP) != 0) {
       stop();
       return 0;
     }
 
     ets_printf("*** connect set bio\n");
-
     mbedtls_ssl_set_bio(&_sslContext, &_netContext, mbedtls_net_send, mbedtls_net_recv, NULL);
 
-    int result = -1;
-
-    do {
-      ets_printf("*** connect ssl handshake\n");
-      result = mbedtls_ssl_handshake(&_sslContext);
-    } while (result == MBEDTLS_ERR_SSL_WANT_READ || result == MBEDTLS_ERR_SSL_WANT_WRITE);
-
-    if (result != 0) {
-      uint8_t module_id = (result >> 12) & 0x7;
-      uint8_t module_dep = (result >> 7) & 0x1F;
-      uint8_t lowlevel = result & 0x7F;
-      ets_printf("*** ssl fail! result %x\t module id: %x module dependant: %x lowlevel: %x\n", result, module_id, module_dep, lowlevel);
-
-      char str[100];
-      mbedtls_strerror(result, str, 100);
-      ets_printf("strerror: %s\n", str);
-
-      stop();
-      return 0;
+    ets_printf("*** start SSL/TLS handshake...");
+    unsigned long start_handshake = millis();
+    // ref: https://tls.mbed.org/api/ssl_8h.html#a4a37e497cd08c896870a42b1b618186e
+    while ((ret = mbedtls_ssl_handshake(&_sslContext)) !=0) {
+      if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+        ets_printf("Error performing SSL handshake");
+      }
+      if((millis() - start_handshake) > handshake_timeout){
+        ets_printf("Handshake timeout");
+        return -1;
+      }
+      vTaskDelay(10 / portTICK_PERIOD_MS);
     }
+
+    if (client_cert != NULL && client_key != NULL)
+    {
+      ets_printf("Protocol is %s Ciphersuite is %s", mbedtls_ssl_get_version(&_sslContext), mbedtls_ssl_get_ciphersuite(&_sslContext));
+    }
+
+
     
     ets_printf("*** ssl set nonblock\n");
     mbedtls_net_set_nonblock(&_netContext);
-    _connected = true;
 
+    // TODO: Free heap (all certs, incl. CA cert...)
+    _connected = true;
     return 1;
   }
 }
