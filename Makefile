@@ -1,7 +1,12 @@
 PROJECT_NAME := nina-fw
+
+# Ports
 M4_PORT := /dev/cu.usbmodem1431201
-M4_BOOTLOADER := /Volumes/FEATHERBOOT/.
 ESP_PORT := /dev/cu.usbserial-AH03B302
+
+# Directories and Files
+BOOT_VOLUME := /Volumes/FEATHERBOOT/.
+CIRCUITPYTHON_UF2 := adafruit-circuitpython-feather_m4_express-en_US-4.1.0.uf2
 
 EXTRA_COMPONENT_DIRS := $(PWD)/arduino
 
@@ -17,18 +22,17 @@ endif
 
 include $(IDF_PATH)/make/project.mk
 
-# M4 to USB-Serial Passthrough
 passthrough:
-	cp passthrough.UF2  $(M4_BOOTLOADER)
-	echo "Copied to BOOT!"
+	cp passthrough.UF2  $(BOOT_VOLUME)
 
-# Upload to ESP32 after entering passthrough
-upload:
-	echo "Uploading nina-fw to ESP32"
+upload-nina:
 	esptool.py --port $(M4_PORT) --before no_reset --baud 115200 write_flash 0 NINA_W102-1.3.1.bin
 
+upload-circuitpython:
+	cp $(CIRCUITPYTHON_UF2) $(BOOT_VOLUME)
+
 serial:
-	miniterm.py -p 
+	miniterm.py $(ESP_PORT) 115200
 
 firmware: all
 	python combine.py
@@ -37,6 +41,8 @@ firmware: all
 
 .PHONY: passthrough
 
-.PHONY: upload
+.PHONY: upload-nina
+
+.PHONY: upload-circuitpython
 
 .PHONY: serial
