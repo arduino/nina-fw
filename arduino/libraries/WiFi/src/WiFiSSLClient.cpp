@@ -269,11 +269,15 @@ void WiFiSSLClient::setCertificate(const char *client_ca)
   _cert = client_ca;
 }
 
-void WiFiSSLClient:: setPrivateKey(const char *private_key)
+void WiFiSSLClient::setPrivateKey(const char *private_key)
 {
   _private_key = private_key;
 }
 
+void WiFiSSLClient::setHandshakeTimeout(unsigned long handshake_timeout)
+{
+  handshake_timeout = handshake_timeout * 1000;
+}
 
 void WiFiSSLClient::flush()
 {
@@ -283,10 +287,12 @@ void WiFiSSLClient::stop()
 {
   synchronized {
     if (_netContext.fd > 0) {
-      mbedtls_ssl_session_reset(&_sslContext);    
+      mbedtls_ssl_session_reset(&_sslContext);
 
       mbedtls_net_free(&_netContext);
       mbedtls_x509_crt_free(&_caCrt);
+      mbedtls_x509_crt_free(&_clientCrt);
+      mbedtls_pk_free(&_clientKey);
       mbedtls_entropy_free(&_entropyContext);
       mbedtls_ssl_config_free(&_sslConfig);
       mbedtls_ctr_drbg_free(&_ctrDrbgContext);

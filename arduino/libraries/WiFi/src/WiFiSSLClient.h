@@ -52,6 +52,7 @@ public:
   virtual operator bool();
   virtual void setCertificate(const char *client_ca);
   virtual void setPrivateKey (const char *private_key);
+  virtual void setHandshakeTimeout(unsigned long handshake_timeout);
 
   // using Print::write;
 
@@ -73,6 +74,7 @@ private:
   mbedtls_pk_context _clientKey;
   bool _connected;
   int _peek;
+  unsigned long handshake_timeout;
 
   SemaphoreHandle_t _mbedMutex;
 };
