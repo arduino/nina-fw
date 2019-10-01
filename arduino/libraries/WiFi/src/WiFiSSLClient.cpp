@@ -17,11 +17,15 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include "Arduino.h"
+#include <lwip/err.h>
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
 #include "esp_partition.h"
 
 #include "WiFiSSLClient.h"
+
+const char *pers = "esp32-tls";
 
 class __Guard {
 public:
@@ -57,18 +61,22 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     _connected = false;
 
     ets_printf("*** connect init\n");
+    // SSL Client Initialization
     mbedtls_ssl_init(&_sslContext);
     mbedtls_ctr_drbg_init(&_ctrDrbgContext);
     mbedtls_ssl_config_init(&_sslConfig);
-    mbedtls_entropy_init(&_entropyContext);
+
+
     mbedtls_x509_crt_init(&_caCrt);
     mbedtls_net_init(&_netContext);
 
     ets_printf("*** connect inited\n");
 
     ets_printf("*** connect drbgseed\n");
-
-    if (mbedtls_ctr_drbg_seed(&_ctrDrbgContext, mbedtls_entropy_func, &_entropyContext, NULL, 0) != 0) {
+    mbedtls_entropy_init(&_entropyContext);
+    // Seeds and sets up CTR_DRBG for future reseeds, pers is device personalization (esp)
+    if (mbedtls_ctr_drbg_seed(&_ctrDrbgContext, mbedtls_entropy_func,
+                              &_entropyContext, (const unsigned char *) pers, strlen(pers)) != 0) {
       stop();
       return 0;
     }
