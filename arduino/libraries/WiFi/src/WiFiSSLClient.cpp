@@ -54,6 +54,8 @@ WiFiSSLClient::WiFiSSLClient() :
 
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
+  char* client_cert = NULL;
+  char* client_key = NULL;
   int ret;
   synchronized {
     _netContext.fd = -1;
@@ -89,13 +91,14 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     }
 
     ets_printf("*** connect ssl config\n");
-    if (ret= mbedtls_ssl_config_defaults(&_sslConfig, MBEDTLS_SSL_IS_CLIENT,
+     ret= mbedtls_ssl_config_defaults(&_sslConfig, MBEDTLS_SSL_IS_CLIENT,
                                         MBEDTLS_SSL_TRANSPORT_STREAM,
-                                        MBEDTLS_SSL_PRESET_DEFAULT) != 0) {
+                                        MBEDTLS_SSL_PRESET_DEFAULT);
+      if (ret != 0) {
       stop();
       ets_printf("Error Setting up SSL Config: %d", ret);
       return 0;
-    }
+      }
 
     ets_printf("*** connect authmode\n");
     // we're always using the root CA cert from partition, so MBEDTLS_SSL_VERIFY_REQUIRED
@@ -109,6 +112,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     ets_printf("*** connect part findfirst\n");
     const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
     if (part == NULL) {
+      stop();
       return 0;
     }
 
@@ -116,6 +120,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
     if (ret != ESP_OK) {
       ets_printf("*** Error partition mmap %d\n", ret);
+      stop();
       return 0;
     }
 
@@ -128,7 +133,36 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
       return 0;
     }
 
-    // TODO: Check for _cert and _private_key
+    ets_printf("*** check for client_cert and client_key");
+    if (client_cert != NULL && client_key != NULL) {
+        mbedtls_x509_crt_init(&_clientCrt);
+        mbedtls_pk_init(&_clientKey);
+
+        ets_printf("Loading client certificate.");
+        // note: +1 added for line ending
+        ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
+        if (ret != 0) {
+          ets_printf("Client cert not parsed, %d", ret);
+          stop();
+        }
+
+        ets_printf("Loading private key.");
+        ret = mbedtls_pk_parse_key(&_clientKey, (const unsigned char *)client_key, strlen(client_key)+1,
+                                   NULL, 0);
+        if (ret != 0) {
+          ets_printf("Private key not parsed properly: %d", ret);
+          stop();
+        }
+        // set own certificate chain and key
+        ret = mbedtls_ssl_conf_own_cert(&_sslConfig, &_clientCrt, &_clientKey);
+        if (ret != 0) {
+          ets_printf("Private key not parsed properly: %d", ret);
+          stop();
+        }
+    }
+    else {
+      ets_printf("Client certificate and key not provided.");
+    }
 
     ets_printf("*** connect conf RNG\n");
 
