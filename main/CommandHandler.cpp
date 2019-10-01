@@ -1051,13 +1051,6 @@ int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
 int setClientCert(const uint8_t command[], uint8_t response[]){
 
   ets_printf("*** Called setClientCert\n");
-  size_t cert_buf_sz = command[3] << 8;
-  ets_printf("Cert Length: %d\n", cert_buf_sz);
-  ets_printf("%d", sizeof(cert_buf_sz));
-
-  char cert[cert_buf_sz];
-  memset(cert, 0x00, sizeof(cert_buf_sz));
-  memcpy(cert, &command[4], command[3]);
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
