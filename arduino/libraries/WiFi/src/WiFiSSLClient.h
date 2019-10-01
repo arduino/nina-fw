@@ -22,13 +22,14 @@
 
 #include <mbedtls/net.h>
 #include <mbedtls/ssl.h>
+#include <mbedtls/platform.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
+#include <mbedtls/debug.h>
 
 #include <Arduino.h>
-// #include <Client.h>
-// #include <IPAddress.h>
+
 
 class WiFiSSLClient /*: public Client*/ {
 
@@ -49,6 +50,8 @@ public:
   virtual void stop();
   virtual uint8_t connected();
   virtual operator bool();
+  virtual void setCertificate(const char *client_ca);
+  virtual void setPrivateKey (const char *private_key);
 
   // using Print::write;
 
@@ -57,6 +60,8 @@ public:
 
 private:
   static const char* ROOT_CAs;
+  const char *_cert; // user-provided certificate
+  const char *_private_key; // user-provided private
 
   mbedtls_entropy_context _entropyContext;
   mbedtls_ctr_drbg_context _ctrDrbgContext;
@@ -64,6 +69,8 @@ private:
   mbedtls_ssl_config _sslConfig;
   mbedtls_net_context _netContext;
   mbedtls_x509_crt _caCrt;
+  mbedtls_x509_crt _clientCrt;
+  mbedtls_pk_context _clientKey;
   bool _connected;
   int _peek;
 

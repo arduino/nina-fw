@@ -264,6 +264,17 @@ int WiFiSSLClient::peek()
   return _peek;
 }
 
+void WiFiSSLClient::setCertificate(const char *client_ca)
+{
+  _cert = client_ca;
+}
+
+void WiFiSSLClient:: setPrivateKey(const char *private_key)
+{
+  _private_key = private_key;
+}
+
+
 void WiFiSSLClient::flush()
 {
 }
