@@ -54,8 +54,13 @@ WiFiSSLClient::WiFiSSLClient() :
 
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
-  char* client_cert = NULL;
-  char* client_key = NULL;
+  return connect(host, port, _cert, _private_key);
+}
+
+int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_cert, const char* client_key)
+{
+  //char* client_cert = NULL;
+  //char* client_key = NULL;
   int ret, flags;
   synchronized {
     _netContext.fd = -1;
