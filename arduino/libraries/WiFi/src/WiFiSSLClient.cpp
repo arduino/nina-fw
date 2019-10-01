@@ -25,8 +25,6 @@
 
 #include "WiFiSSLClient.h"
 
-const char *pers = "esp32-tls";
-
 class __Guard {
 public:
   __Guard(SemaphoreHandle_t handle) {
@@ -56,6 +54,7 @@ WiFiSSLClient::WiFiSSLClient() :
 
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
+  int ret;
   synchronized {
     _netContext.fd = -1;
     _connected = false;
@@ -75,8 +74,10 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
     ets_printf("*** connect drbgseed\n");
     mbedtls_entropy_init(&_entropyContext);
     // Seeds and sets up CTR_DRBG for future reseeds, pers is device personalization (esp)
-    if (mbedtls_ctr_drbg_seed(&_ctrDrbgContext, mbedtls_entropy_func,
-                              &_entropyContext, (const unsigned char *) pers, strlen(pers)) != 0) {
+    ret = mbedtls_ctr_drbg_seed(&_ctrDrbgContext, mbedtls_entropy_func,
+                              &_entropyContext, (const unsigned char *) pers, strlen(pers));
+    if (ret < 0) {
+      ets_printf("Unable to set up mbedtls_entropy.\n");
       stop();
       return 0;
     }

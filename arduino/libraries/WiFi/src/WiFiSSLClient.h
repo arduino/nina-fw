@@ -58,6 +58,7 @@ public:
 
   virtual /*IPAddress*/uint32_t remoteIP();
   virtual uint16_t remotePort();
+  const char *pers = "esp32-tls";
 
 private:
   static const char* ROOT_CAs;
