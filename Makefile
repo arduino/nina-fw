@@ -8,6 +8,7 @@ ESP_PORT := /dev/cu.usbserial-AH03B302
 BOOT_VOLUME := /Volumes/FEATHERBOOT/.
 CIRCUITPYTHON_UF2 := adafruit-circuitpython-feather_m4_express-en_US-4.1.0.uf2
 
+UPLOAD_BAUD = 115200
 EXTRA_COMPONENT_DIRS := $(PWD)/arduino
 
 ifeq ($(RELEASE),1)
@@ -25,10 +26,10 @@ include $(IDF_PATH)/make/project.mk
 passthrough:
 	cp passthrough.UF2  $(BOOT_VOLUME)
 
-upload-nina:
-	esptool.py --port $(M4_PORT) --before no_reset --baud 115200 write_flash 0 NINA_W102-1.3.1.bin
+load-nina:
+	esptool.py --port $(M4_PORT) --before no_reset --baud $(UPLOAD_BAUD) write_flash 0 NINA_W102-1.3.1.bin
 
-upload-circuitpython:
+load-circuitpython:
 	cp $(CIRCUITPYTHON_UF2) $(BOOT_VOLUME)
 
 serial:
@@ -41,8 +42,8 @@ firmware: all
 
 .PHONY: passthrough
 
-.PHONY: upload-nina
+.PHONY: load-nina
 
-.PHONY: upload-circuitpython
+.PHONY: load-circuitpython
 
 .PHONY: serial
