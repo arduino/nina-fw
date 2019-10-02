@@ -548,6 +548,7 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
   if (type == 0x00) {
     int result;
 
+    ets_printf("*** Commandhandler L551, .connect init'd\n");
     if (host[0] != '\0') {
       result = tcpClients[socket].connect(host, port);
     } else {
@@ -591,7 +592,7 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
     }
   } else if (type == 0x02) {
     int result;
-
+    ets_printf("*** Commandhandler 595, .connect init'd\n");
     if (host[0] != '\0') {
       result = tlsClients[socket].connect(host, port);
     } else {
@@ -1049,8 +1050,26 @@ int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
 }
 
 int setClientCert(const uint8_t command[], uint8_t response[]){
-
   ets_printf("*** Called setClientCert\n");
+  size_t cert_sz = (command[3] << 8) & 0xff; // certificate length
+  ets_printf("*** Cert Size: %d\n", cert_sz);
+  //char* cert = (char*) malloc(cert_sz + 1);
+  // manually allocate for now
+  char cert[1225 * 4];
+
+  memset(cert, 0x00, sizeof(cert));
+  memcpy(cert, &command[4], command[3]);
+
+   // TODO: Remove the following, switch to MAX_SOCKETS impl.
+  // for testing, we'll only be using 
+  tlsClients[0].setCertificate(cert);
+
+   /*
+  // don't know the socket slot, try up to MAX_SOCKETS
+  for (int socket=0; socket<MAX_SOCKETS; socket++){
+    tlsClients[socket].setCertificate(cert);
+  }
+  */
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length

@@ -1,7 +1,7 @@
 PROJECT_NAME := nina-fw
 
 # Ports
-M4_PORT := /dev/cu.usbmodem1431201
+M4_PORT := /dev/cu.usbmodem141224241
 ESP_PORT := /dev/cu.usbserial-AH03B302
 
 # Directories and Files
@@ -23,7 +23,7 @@ endif
 
 include $(IDF_PATH)/make/project.mk
 
-passthrough:
+load-passthrough:
 	cp passthrough.UF2  $(BOOT_VOLUME)
 
 load-nina:
@@ -33,14 +33,14 @@ load-circuitpython:
 	cp $(CIRCUITPYTHON_UF2) $(BOOT_VOLUME)
 
 serial:
-	miniterm.py $(ESP_PORT) 115200
+	miniterm.py $(ESP_PORT) $(UPLOAD_BAUD)
 
 firmware: all
 	python combine.py
 
 .PHONY: firmware
 
-.PHONY: passthrough
+.PHONY: load-passthrough
 
 .PHONY: load-nina
 

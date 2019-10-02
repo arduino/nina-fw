@@ -54,6 +54,61 @@ WiFiSSLClient::WiFiSSLClient() :
 
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
+  // Hardcode CERT
+  const char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
+"MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
+"BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\n" \
+"SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTE5MDkyNTE2NDA1\n" \
+"NVoXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0\n" \
+"ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMygEW9cO1ZXQY4Fo3PY\n" \
+"vBGV6WHwJYKIOd5iTZ4MQmkYNqn9q2YnuXEwYJ+sw6QxSYyZ9O8yniZfviggJ2Dg\n" \
+"GdTGKIbSK7B/C3w6cLnwPNsKbA2xsxnQU3yoQ99noaue4kG+WL7a5SHJHwzcFpT4\n" \
+"tVffsUlFtI9fTyGg75+0X4OJiKtzPhpVrCDesKDl0wLewqqgfxasgXWk3bLGCcBy\n" \
+"7YPEM2x0lp6644xz0jkJ/3KO09+AuFG54K+zv7UZOi4Tph8eiKnI2/2sM58yC233\n" \
+"pCnB8gtxCegvJJ1ByM5SR3Zw5C1hq6cgN5ePv1fQ7QqOnIHygc0gDp8/nw5gnH8P\n" \
+"3LcCAwEAAaNgMF4wHwYDVR0jBBgwFoAU1YI5dEJDKJgyKP6e/lSezmki1tUwHQYD\n" \
+"VR0OBBYEFDTH23PCBu1Pw4xdOR3rY3Pcueh4MAwGA1UdEwEB/wQCMAAwDgYDVR0P\n" \
+"AQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQA1p78t3Tk+6V5h0SlokRaC5bVm\n" \
+"RoXwXRmmCsZJlwvIG25buBdUAWC/2odreV4anM9HmRnECxZMIV7Q0NiuVcl3Kiok\n" \
+"xtWsdsCyZkH0OMcBuiTEu+o3osTtxAp8dkzcBlh768htDXZCsAzRjFTwtZ78BqFk\n" \
+"rzduv1FDtpbxoD95X8B3MOc+ZrsZ5TTA+dpepeid6K3jmG9LPmFnahCkK31Hp5dv\n" \
+"WKKDKZn51PvOVAvti1QeAYcFabgeXFWb8OuCJcqWEKFJuvQRvKrpyLfpSR4NNq7M\n" \
+"nM12jsbhjrGYVCmQjczqOMqF+LMnXYUSY+o6gsBCM5XRAwOLY4S7Gv53K4+l\n" \
+"-----END CERTIFICATE-----\n";
+
+  // hardcode private key
+  const char AWS_CERT_PRIVATE[] =
+"-----BEGIN RSA PRIVATE KEY-----\n" \
+"MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
+"Zie5cTBgn6zDpDFJjJn07zKeJl++KCAnYOAZ1MYohtIrsH8LfDpwufA82wpsDbGz\n" \
+"GdBTfKhD32ehq57iQb5YvtrlIckfDNwWlPi1V9+xSUW0j19PIaDvn7Rfg4mIq3M+\n" \
+"GlWsIN6woOXTAt7CqqB/FqyBdaTdssYJwHLtg8QzbHSWnrrjjHPSOQn/co7T34C4\n" \
+"Ubngr7O/tRk6LhOmHx6Iqcjb/awznzILbfekKcHyC3EJ6C8knUHIzlJHdnDkLWGr\n" \
+"pyA3l4+/V9DtCo6cgfKBzSAOnz+fDmCcfw/ctwIDAQABAoIBAGV+N2eevaezm8ZP\n" \
+"saTyKUYnrxxuuowl+V3+MDVmK0JpSiPCuFLw/R/ROPu5+0fjUnG0ozJJTvwFnRHV\n" \
+"8PIx9V3983f7osPmH9I8QlFXgTe70aBxNT5mgCJia1fR1PSE2AB34xi3BdNeKFJ+\n" \
+"j4zQV1IAl7SaKFa8lUk+w9vY4U8h8kjj2OZWBsYKXz2Gk0WZP0mdP+eQeGtKVmWB\n" \
+"HE+QO+fZIkT/QaZzntFYPfDy5accZRFelZt+opOVQvyi3riUeBlcRi5Xd+cPfKNY\n" \
+"J0MQem2yBUuNiqCiaWAgIcFHHAI2kwB+4ju79aRFGlgP6ocFG/MazMV9GJWjGUGB\n" \
+"1PoQ54ECgYEA/LSKbwpWVYVQhoxlJzet248Mj78dM3r4mYHmqrfxECycOu25pl0B\n" \
+"TcU8g9t1ZxGdBwA4rKFRmYvIWSiwKRd36VsKHihFLxGAE7Vr0/DQgsBPlM88+Ca8\n" \
+"fCEt6/NMr0U+hLZUMgTcG5L5P1cjC6DmM+zJHldkLAsHsDrKLwoqXiECgYEAz0sM\n" \
+"xRc4ROs27POVqSl00FdBApFItYMR8O7FDYhWbX4Nghgd2WuQr4X7qbYsQZtRL8Ip\n" \
+"InbeA/4KMG3Wxu/uMCyltNBhzx0ZfmF5pYv+BkmUPJY6quaQjagW72IgaIDwbg7I\n" \
+"Rohu2L5tZqZ0ryjsokrbzOT31SM9UA1ijlBa79cCgYAbyiLbGTDrULDNSw0opefZ\n" \
+"mD6SZDrq2WATSYS7S2UYGT/I/zGGSP4GtmT0PyMHBZnWFkElQsw9bXDH1UCiFDGc\n" \
+"mOVg8Z7CEVObVz0XXokfh9R4kd2rkF7z65YoN2Y8dAnvADn8Eiq+YYhFXei9s6D9\n" \
+"HtHzIzsh2MisqZpoV97W4QKBgAKaZ6ul8f/zkDoDiRKZwazIG7njhy04WyZSaUkV\n" \
+"ODihx5uln+JWFngNz64+6mlcgPV/k7KqGXmlXA1lo7fV1YDnXqFZqJDIRcSvhq6M\n" \
+"hoEftWvZWx1ATfppbPhOnCeTzvEi4GL6XaH9KjSKzJZShj43gHEfQvl7Os7hjCZL\n" \
+"Xgj7AoGBALaXRmY0vHziaX8A0IpSklxiQm0cO4pxl2S9YQdHmzjEnLE3STJZkIBo\n" \
+"YJwtTj3ZgQ7YDWFwzObX/UVi8Smnwf+qNnPqY9IpOKUKxUjFGCrGdiAITTCZfbMo\n" \
+"8cD8F7nkbodpQNEXKEEWLTkMq0UQH813Fe2mltgrHPJ94YYIwfK6\n" \
+"-----END RSA PRIVATE KEY-----\n";
+
+  //_cert = AWS_CERT_CRT;
+  _private_key = AWS_CERT_PRIVATE;
+
   return connect(host, port, _cert, _private_key);
 }
 
@@ -328,17 +383,22 @@ int WiFiSSLClient::peek()
 
 void WiFiSSLClient::setCertificate(const char *client_ca)
 {
+  ets_printf("\n*** Setting client certificate...\n");
   _cert = client_ca;
+  ets_printf("%s", client_ca);
+  ets_printf("\n*** Set client certificate\n");
 }
 
 void WiFiSSLClient::setPrivateKey(const char *private_key)
 {
+  ets_printf("Setting client private key...\n");
   _private_key = private_key;
+  ets_printf("Set client private key\n");
 }
 
-void WiFiSSLClient::setHandshakeTimeout(unsigned long handshake_timeout)
+void WiFiSSLClient::setHandshakeTimeout(unsigned long timeout)
 {
-  handshake_timeout = handshake_timeout * 1000;
+  handshake_timeout = timeout * 1000;
 }
 
 void WiFiSSLClient::flush()
