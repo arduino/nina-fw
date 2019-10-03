@@ -56,6 +56,28 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
   ets_printf("** Connect Called");
 
+  // Hardcode CERT
+  const char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
+"MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
+"BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\n" \
+"SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTE5MDkyNTE2NDA1\n" \
+"NVoXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0\n" \
+"ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMygEW9cO1ZXQY4Fo3PY\n" \
+"vBGV6WHwJYKIOd5iTZ4MQmkYNqn9q2YnuXEwYJ+sw6QxSYyZ9O8yniZfviggJ2Dg\n" \
+"GdTGKIbSK7B/C3w6cLnwPNsKbA2xsxnQU3yoQ99noaue4kG+WL7a5SHJHwzcFpT4\n" \
+"tVffsUlFtI9fTyGg75+0X4OJiKtzPhpVrCDesKDl0wLewqqgfxasgXWk3bLGCcBy\n" \
+"7YPEM2x0lp6644xz0jkJ/3KO09+AuFG54K+zv7UZOi4Tph8eiKnI2/2sM58yC233\n" \
+"pCnB8gtxCegvJJ1ByM5SR3Zw5C1hq6cgN5ePv1fQ7QqOnIHygc0gDp8/nw5gnH8P\n" \
+"3LcCAwEAAaNgMF4wHwYDVR0jBBgwFoAU1YI5dEJDKJgyKP6e/lSezmki1tUwHQYD\n" \
+"VR0OBBYEFDTH23PCBu1Pw4xdOR3rY3Pcueh4MAwGA1UdEwEB/wQCMAAwDgYDVR0P\n" \
+"AQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQA1p78t3Tk+6V5h0SlokRaC5bVm\n" \
+"RoXwXRmmCsZJlwvIG25buBdUAWC/2odreV4anM9HmRnECxZMIV7Q0NiuVcl3Kiok\n" \
+"xtWsdsCyZkH0OMcBuiTEu+o3osTtxAp8dkzcBlh768htDXZCsAzRjFTwtZ78BqFk\n" \
+"rzduv1FDtpbxoD95X8B3MOc+ZrsZ5TTA+dpepeid6K3jmG9LPmFnahCkK31Hp5dv\n" \
+"WKKDKZn51PvOVAvti1QeAYcFabgeXFWb8OuCJcqWEKFJuvQRvKrpyLfpSR4NNq7M\n" \
+"nM12jsbhjrGYVCmQjczqOMqF+LMnXYUSY+o6gsBCM5XRAwOLY4S7Gv53K4+l\n" \
+"-----END CERTIFICATE-----\n";
+
   const char AWS_CERT_PRIVATE[] =
 "-----BEGIN RSA PRIVATE KEY-----\n" \
 "MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
@@ -85,7 +107,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 "8cD8F7nkbodpQNEXKEEWLTkMq0UQH813Fe2mltgrHPJ94YYIwfK6\n" \
 "-----END RSA PRIVATE KEY-----\n";
 
-  //_cert = AWS_CERT_CRT;
+  _cert = AWS_CERT_CRT;
   _private_key = AWS_CERT_PRIVATE;
 
   return connect(host, port, _cert, _private_key);
@@ -145,6 +167,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     mbedtls_x509_crt_init(&_caCrt);
     mbedtls_ssl_conf_authmode(&_sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
 
+    ets_printf("\n***Free internal heap before certs_data %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     // setting up CA certificates from partition
     spi_flash_mmap_handle_t handle;
     const unsigned char* certs_data = {};
@@ -163,6 +186,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
       return 0;
     }
 
+    ets_printf("Length of certs_data: %d", strlen((char*)certs_data)+1);
     ets_printf("*** connect crt parse\n");
     ret = mbedtls_x509_crt_parse(&_caCrt, certs_data, strlen((char*)certs_data) + 1);
     ets_printf("*** connect conf ca chain\n");
@@ -171,23 +195,24 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
       stop();
       return 0;
     }
+    ets_printf("\n***Free internal heap after certs_data %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     ets_printf("*** check for client_cert and client_key\n");
     if (client_cert != NULL && client_key != NULL) {
         mbedtls_x509_crt_init(&_clientCrt);
         mbedtls_pk_init(&_clientKey);
 
-        ets_printf("Loading client certificate.");
+        ets_printf("*** Loading client certificate.");
         // note: +1 added for line ending
         ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
         if (ret != 0) {
-          ets_printf("Client cert not parsed, %d\n", ret);
+          ets_printf("ERROR: Client cert not parsed, %d\n", ret);
           ets_printf("\nCert: \n %s", &_clientCrt);
           stop();
           return 0;
         }
 
-        ets_printf("Loading private key.\n");
+        ets_printf("*** Loading private key.\n");
         ret = mbedtls_pk_parse_key(&_clientKey, (const unsigned char *)client_key, strlen(client_key)+1,
                                    NULL, 0);
         if (ret != 0) {
@@ -271,7 +296,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     ets_printf("*** ssl set nonblock\n");
     mbedtls_net_set_nonblock(&_netContext);
 
-    //ets_printf("Free internal heap before cleanup: %u\n", ESP.getFreeHeap());
+    ets_printf("Free internal heap before cleanup: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     // free up the heap
     if (certs_data != NULL) {
       mbedtls_x509_crt_free(&_caCrt);
@@ -282,7 +307,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     if (client_key !=NULL) {
       mbedtls_pk_free(&_clientKey);
     }
-    //ets_printf("Free internal heap after cleanup: %u\n", ESP.getFreeHeap());
+    ets_printf("Free internal heap after cleanup: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     _connected = true;
     return 1;
   }
