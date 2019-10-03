@@ -218,7 +218,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         // set own certificate chain and key
         ret = mbedtls_ssl_conf_own_cert(&_sslConfig, &_clientCrt, &_clientKey);
         if (ret != 0) {
-          if (ret == -0x7F00) {
+          if (ret == -0x7f00) {
             ets_printf("Memory allocation failed, MBEDTLS_ERR_SSL_ALLOC_FAILED");
           }
           ets_printf("Private key not parsed properly: %d\n", ret);
@@ -235,6 +235,10 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
 
     ets_printf("*** connect ssl setup\n");
     if ((ret = mbedtls_ssl_setup(&_sslContext, &_sslConfig)) != 0) {
+      if (ret == -0x7f00){
+        ets_printf("MBEDTLS_ERR_SSL_ALLOC_FAILED");
+        ets_printf("Free internal heap after TLS %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+      }
       ets_printf("Unable to connect ssl setup %d", ret);
       stop();
       return 0;
@@ -260,6 +264,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
       }
       if((millis() - start_handshake) > handshake_timeout){
         ets_printf("Handshake timeout");
+        stop();
         return -1;
       }
       vTaskDelay(10 / portTICK_PERIOD_MS);
