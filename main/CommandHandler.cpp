@@ -1051,6 +1051,7 @@ int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
 
 int setClientCert(const uint8_t command[], uint8_t response[]){
   ets_printf("*** Called setClientCert\n");
+  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   size_t ca_cert_buf_size = (command[3] << 8 | command[4]);
   char* ca_cert_buf = (char*)malloc(ca_cert_buf_size+1);
@@ -1066,6 +1067,8 @@ int setClientCert(const uint8_t command[], uint8_t response[]){
 
   // todo: remove in favor of max_sockets impl. below
   tlsClients[0].setCertificate(ca_cert_buf);
+  //free(ca_cert_buf);
+  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   /*
   // we're not sure which socket will be allocated in
