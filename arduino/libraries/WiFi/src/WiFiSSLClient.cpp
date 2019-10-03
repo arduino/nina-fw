@@ -120,6 +120,8 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     _netContext.fd = -1;
     _connected = false;
 
+    ets_printf("Free internal heap before TLS %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+
     ets_printf("*** connect init\n");
     // SSL Client Initialization
     mbedtls_ssl_init(&_sslContext);
@@ -256,6 +258,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     mbedtls_ssl_set_bio(&_sslContext, &_netContext, mbedtls_net_send, mbedtls_net_recv, NULL);
 
     ets_printf("*** start SSL/TLS handshake...");
+    ets_printf("Free internal heap after TLS %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     unsigned long start_handshake = millis();
     // ref: https://tls.mbed.org/api/ssl_8h.html#a4a37e497cd08c896870a42b1b618186e
     while ((ret = mbedtls_ssl_handshake(&_sslContext)) !=0) {
