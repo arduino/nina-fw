@@ -115,8 +115,6 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 
 int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_cert, const char* client_key)
 {
-  //char* client_cert = NULL;
-  //char* client_key = NULL;
   int ret, flags;
   synchronized {
     _netContext.fd = -1;
@@ -204,7 +202,9 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
         if (ret != 0) {
           ets_printf("Client cert not parsed, %d\n", ret);
+          ets_printf("\nCert: \n %s", &_clientCrt);
           stop();
+          return 0;
         }
 
         ets_printf("Loading private key.\n");
@@ -213,6 +213,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         if (ret != 0) {
           ets_printf("Private key not parsed properly: %d\n", ret);
           stop();
+          return 0;
         }
         // set own certificate chain and key
         ret = mbedtls_ssl_conf_own_cert(&_sslConfig, &_clientCrt, &_clientKey);
@@ -222,6 +223,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
           }
           ets_printf("Private key not parsed properly: %d\n", ret);
           stop();
+          return 0;
         }
     }
     else {
