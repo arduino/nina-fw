@@ -54,6 +54,7 @@ WiFiSSLClient::WiFiSSLClient() :
 
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
+  ets_printf("** Connect Called");
   // Hardcode CERT
   const char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
 "MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \

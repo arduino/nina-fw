@@ -1051,23 +1051,27 @@ int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
 
 int setClientCert(const uint8_t command[], uint8_t response[]){
   ets_printf("*** Called setClientCert\n");
-  size_t cert_sz = (command[3] << 8) & 0xff; // certificate length
-  ets_printf("*** Cert Size: %d\n", cert_sz);
-  //char* cert = (char*) malloc(cert_sz + 1);
-  // manually allocate for now
-  char cert[1225 * 4];
 
-  memset(cert, 0x00, sizeof(cert));
-  memcpy(cert, &command[4], command[3]);
+  size_t ca_cert_buf_size = (command[3] << 8 | command[4]);
+  char* ca_cert_buf = (char*)malloc(ca_cert_buf_size+1);
+  if (!ca_cert_buf) {
+      ets_printf("Certificate allocation failed!\n");
+      return -1;
+  }
 
-   // TODO: Remove the following, switch to MAX_SOCKETS impl.
-  // for testing, we'll only be using 
-  tlsClients[0].setCertificate(cert);
+  ets_printf("\nCert Sz: %d\n", ca_cert_buf_size);
+  memset(ca_cert_buf, 0x00, ca_cert_buf_size+1);
+  memcpy(ca_cert_buf, &command[4], ca_cert_buf_size);
+  ets_printf("\nCert: \n %s", ca_cert_buf);
 
-   /*
-  // don't know the socket slot, try up to MAX_SOCKETS
+  // todo: remove in favor of max_sockets impl. below
+  tlsClients[0].setCertificate(ca_cert_buf);
+
+  /*
+  // we're not sure which socket will be allocated in
+  // connect, so setCertificate for MAX_SOCKETS
   for (int socket=0; socket<MAX_SOCKETS; socket++){
-    tlsClients[socket].setCertificate(cert);
+    tlsClients[socket].setCertificate(ca_cert_buf);
   }
   */
 
