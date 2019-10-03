@@ -1,7 +1,7 @@
 PROJECT_NAME := nina-fw
 
 # Ports
-M4_PORT := /dev/cu.usbmodem141224241
+M4_PORT := /dev/cu.usbmodem1411201
 ESP_PORT := /dev/cu.usbserial-AH03B302
 
 # Directories and Files
