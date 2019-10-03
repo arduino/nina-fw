@@ -163,7 +163,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
 
     ets_printf("*** connect authmode\n");
     // we're always using the root CA cert from partition, so MBEDTLS_SSL_VERIFY_REQUIRED
-    ets_printf("*** Loading CA Cert...");
+    ets_printf("*** Loading CA Cert...\n");
     mbedtls_x509_crt_init(&_caCrt);
     mbedtls_ssl_conf_authmode(&_sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
 
@@ -194,7 +194,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
       return 0;
     }
 
-    ets_printf("*** check for client_cert and client_key");
+    ets_printf("*** check for client_cert and client_key\n");
     if (client_cert != NULL && client_key != NULL) {
         mbedtls_x509_crt_init(&_clientCrt);
         mbedtls_pk_init(&_clientKey);
@@ -203,21 +203,24 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         // note: +1 added for line ending
         ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
         if (ret != 0) {
-          ets_printf("Client cert not parsed, %d", ret);
+          ets_printf("Client cert not parsed, %d\n", ret);
           stop();
         }
 
-        ets_printf("Loading private key.");
+        ets_printf("Loading private key.\n");
         ret = mbedtls_pk_parse_key(&_clientKey, (const unsigned char *)client_key, strlen(client_key)+1,
                                    NULL, 0);
         if (ret != 0) {
-          ets_printf("Private key not parsed properly: %d", ret);
+          ets_printf("Private key not parsed properly: %d\n", ret);
           stop();
         }
         // set own certificate chain and key
         ret = mbedtls_ssl_conf_own_cert(&_sslConfig, &_clientCrt, &_clientKey);
         if (ret != 0) {
-          ets_printf("Private key not parsed properly: %d", ret);
+          if (ret == -0x7F00) {
+            ets_printf("Memory allocation failed, MBEDTLS_ERR_SSL_ALLOC_FAILED");
+          }
+          ets_printf("Private key not parsed properly: %d\n", ret);
           stop();
         }
     }
