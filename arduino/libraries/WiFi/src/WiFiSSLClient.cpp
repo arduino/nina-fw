@@ -55,7 +55,7 @@ WiFiSSLClient::WiFiSSLClient() :
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
   ets_printf("** Connect Called");
-  // hardcode private key
+
   const char AWS_CERT_PRIVATE[] =
 "-----BEGIN RSA PRIVATE KEY-----\n" \
 "MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
@@ -216,11 +216,11 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     ets_printf("*** connect ssl setup\n");
     if ((ret = mbedtls_ssl_setup(&_sslContext, &_sslConfig)) != 0) {
       if (ret == -0x7f00){
-        ets_printf("%s", _clientCrt);
+        ets_printf("%s", &_clientCrt);
         ets_printf("\nMBEDTLS_ERR_SSL_ALLOC_FAILED\n");
         ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
       }
-      ets_printf("Unable to connect ssl setup %d", ret);
+      ets_printf("Unable to connect ssl setup %d\n", ret);
       stop();
       return 0;
     }

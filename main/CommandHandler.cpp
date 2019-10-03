@@ -1066,8 +1066,8 @@ int setClientCert(const uint8_t command[], uint8_t response[]){
   ets_printf("\nCert: \n %s", ca_cert_buf);
 
   // todo: remove in favor of max_sockets impl. below
+  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
   tlsClients[0].setCertificate(ca_cert_buf);
-  //free(ca_cert_buf);
   ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   /*
@@ -1077,7 +1077,6 @@ int setClientCert(const uint8_t command[], uint8_t response[]){
     tlsClients[socket].setCertificate(ca_cert_buf);
   }
   */
-
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
   response[4] = 1;
