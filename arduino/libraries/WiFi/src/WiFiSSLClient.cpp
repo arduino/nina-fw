@@ -43,7 +43,8 @@ private:
 
 #define synchronized __Guard __guard(_mbedMutex);
 
-  // Hardcode CERT
+// AWS Device Certificate
+// NOTE: I'm aware this certificate is here :)
 char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
 "MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
 "BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\n" \
@@ -65,6 +66,8 @@ char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
 "nM12jsbhjrGYVCmQjczqOMqF+LMnXYUSY+o6gsBCM5XRAwOLY4S7Gv53K4+l\n" \
 "-----END CERTIFICATE-----\n";
 
+// AWS Device Private Key
+// NOTE: I'm aware this certificate is here :)
 char AWS_CERT_PRIVATE[] =
 "-----BEGIN RSA PRIVATE KEY-----\n" \
 "MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
@@ -105,9 +108,10 @@ WiFiSSLClient::WiFiSSLClient() :
 
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
-  ets_printf("** Connect Called");
+  ets_printf("** Connect host/port Called\n");
 
-  // set certs AWS_ globals
+  // TODO: Remove these calls, call from CommandHandler.cpp instead to make user-setable.
+  // Set _cert and _private key to globals
   _cert = AWS_CERT_CRT;
   _private_key = AWS_CERT_PRIVATE;
 
@@ -116,6 +120,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 
 int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_cert, const char* client_key)
 {
+  ets_printf("** Main connect called\n");
   int ret, flags;
   synchronized {
     _netContext.fd = -1;
@@ -158,7 +163,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
                                         MBEDTLS_SSL_PRESET_DEFAULT);
       if (ret != 0) {
       stop();
-      ets_printf("Error Setting up SSL Config: %d", ret);
+      ets_printf("Error Setting up SSL Config: %d\n", ret);
       return 0;
       }
 
@@ -193,10 +198,11 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     ets_printf("*** connect conf ca chain\n");
     mbedtls_ssl_conf_ca_chain(&_sslConfig, &_caCrt, NULL);
     if (ret < 0) {
+      ets_printf("*** Error parsing CA chain.\n");
       stop();
       return 0;
     }
-    ets_printf("\n***Free internal heap after certs_data %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    ets_printf("***Free internal heap after certs_data %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     ets_printf("*** check for client_cert and client_key\n");
     if (client_cert != NULL && client_key != NULL) {
@@ -208,7 +214,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
         if (ret != 0) {
           ets_printf("ERROR: Client cert not parsed, %d\n", ret);
-          ets_printf("\nCert: \n %s", &_clientCrt);
+          ets_printf("Cert: \n %s", &_clientCrt);
           stop();
           return 0;
         }
@@ -217,7 +223,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         ret = mbedtls_pk_parse_key(&_clientKey, (const unsigned char *)client_key, strlen(client_key)+1,
                                    NULL, 0);
         if (ret != 0) {
-          ets_printf("Private key not parsed properly: %d\n", ret);
+          ets_printf("ERROR: Private key not parsed properly: %d\n", ret);
           stop();
           return 0;
         }
@@ -225,7 +231,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         ret = mbedtls_ssl_conf_own_cert(&_sslConfig, &_clientCrt, &_clientKey);
         if (ret != 0) {
           if (ret == -0x7f00) {
-            ets_printf("Memory allocation failed, MBEDTLS_ERR_SSL_ALLOC_FAILED");
+            ets_printf("ERROR: Memory allocation failed, MBEDTLS_ERR_SSL_ALLOC_FAILED");
           }
           ets_printf("Private key not parsed properly: %d\n", ret);
           stop();
@@ -233,7 +239,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         }
     }
     else {
-      ets_printf("Client certificate and key not provided.");
+      ets_printf("Client certificate and key not provided.\n");
     }
 
     ets_printf("*** connect conf RNG\n");
@@ -243,8 +249,8 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     if ((ret = mbedtls_ssl_setup(&_sslContext, &_sslConfig)) != 0) {
       if (ret == -0x7f00){
         ets_printf("%s", &_clientCrt);
-        ets_printf("\nMBEDTLS_ERR_SSL_ALLOC_FAILED\n");
-        ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        ets_printf("MBEDTLS_ERR_SSL_ALLOC_FAILED\n");
+        ets_printf("Free internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
       }
       ets_printf("Unable to connect ssl setup %d\n", ret);
       stop();
@@ -262,8 +268,8 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     ets_printf("*** connect set bio\n");
     mbedtls_ssl_set_bio(&_sslContext, &_netContext, mbedtls_net_send, mbedtls_net_recv, NULL);
 
-    ets_printf("*** start SSL/TLS handshake...");
-    ets_printf("Free internal heap after TLS %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    ets_printf("*** start SSL/TLS handshake...\n");
+    ets_printf("Free internal heap after TLS %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     unsigned long start_handshake = millis();
     // ref: https://tls.mbed.org/api/ssl_8h.html#a4a37e497cd08c896870a42b1b618186e
     while ((ret = mbedtls_ssl_handshake(&_sslContext)) !=0) {
@@ -271,7 +277,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         ets_printf("Error performing SSL handshake");
       }
       if((millis() - start_handshake) > handshake_timeout){
-        ets_printf("Handshake timeout");
+        ets_printf("SSL Handshake Timeout\n");
         stop();
         return -1;
       }
@@ -282,16 +288,16 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     {
       ets_printf("Protocol is %s Ciphersuite is %s", mbedtls_ssl_get_version(&_sslContext), mbedtls_ssl_get_ciphersuite(&_sslContext));
     }
-    ets_printf("Verifying peer X.509 certificate");
+    ets_printf("Verifying peer X.509 certificate\n");
     char buf[512];
     if ((flags = mbedtls_ssl_get_verify_result(&_sslContext)) != 0) {
       bzero(buf, sizeof(buf));
       mbedtls_x509_crt_verify_info(buf, sizeof(buf), "  ! ", flags);
-      ets_printf("Failed to verify peer certificate! verification info: %s", buf);
+      ets_printf("Failed to verify peer certificate! verification info: %s\n", buf);
       stop(); // invalid certificate, stop
       return -1;
     } else {
-      ets_printf("Certificate chain verified.");
+      ets_printf("Certificate chain verified.\n");
     }
 
     ets_printf("*** ssl set nonblock\n");
