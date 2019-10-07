@@ -43,19 +43,6 @@ private:
 
 #define synchronized __Guard __guard(_mbedMutex);
 
-WiFiSSLClient::WiFiSSLClient() :
-  _connected(false),
-  _peek(-1)
-{
-  _netContext.fd = -1;
-
-  _mbedMutex = xSemaphoreCreateRecursiveMutex();
-}
-
-int WiFiSSLClient::connect(const char* host, uint16_t port)
-{
-  ets_printf("** Connect Called");
-
   // Hardcode CERT
   const char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
 "MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
@@ -107,6 +94,20 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 "8cD8F7nkbodpQNEXKEEWLTkMq0UQH813Fe2mltgrHPJ94YYIwfK6\n" \
 "-----END RSA PRIVATE KEY-----\n";
 
+WiFiSSLClient::WiFiSSLClient() :
+  _connected(false),
+  _peek(-1)
+{
+  _netContext.fd = -1;
+
+  _mbedMutex = xSemaphoreCreateRecursiveMutex();
+}
+
+int WiFiSSLClient::connect(const char* host, uint16_t port)
+{
+  ets_printf("** Connect Called");
+
+  // set certs AWS_ globals
   _cert = AWS_CERT_CRT;
   _private_key = AWS_CERT_PRIVATE;
 
