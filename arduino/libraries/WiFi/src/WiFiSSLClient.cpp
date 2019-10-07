@@ -44,7 +44,7 @@ private:
 #define synchronized __Guard __guard(_mbedMutex);
 
   // Hardcode CERT
-  const char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
+char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
 "MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
 "BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\n" \
 "SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTE5MDkyNTE2NDA1\n" \
@@ -65,7 +65,7 @@ private:
 "nM12jsbhjrGYVCmQjczqOMqF+LMnXYUSY+o6gsBCM5XRAwOLY4S7Gv53K4+l\n" \
 "-----END CERTIFICATE-----\n";
 
-  const char AWS_CERT_PRIVATE[] =
+char AWS_CERT_PRIVATE[] =
 "-----BEGIN RSA PRIVATE KEY-----\n" \
 "MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
 "Zie5cTBgn6zDpDFJjJn07zKeJl++KCAnYOAZ1MYohtIrsH8LfDpwufA82wpsDbGz\n" \
