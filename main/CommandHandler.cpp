@@ -32,9 +32,11 @@ const char FIRMWARE_VERSION[6] = "1.4.0";
 
 // Optional, user-defined X.509 certificate
 char CERT_BUF[1300];
+bool setCert = 0;
 
 // Optional, user-defined RSA private key
 char PK_BUFF[1700];
+bool setPSK = 0;
 
 /*IPAddress*/uint32_t resolvedHostname;
 
@@ -554,7 +556,6 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
   if (type == 0x00) {
     int result;
 
-    ets_printf("*** Commandhandler L551, .connect init'd\n");
     if (host[0] != '\0') {
       result = tcpClients[socket].connect(host, port);
     } else {
@@ -598,10 +599,17 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
     }
   } else if (type == 0x02) {
     int result;
-    ets_printf("*** Commandhandler 595, .connect init'd\n");
     if (host[0] != '\0') {
+      if (setCert && setPSK) {
+        tlsClients[socket].setCertificate(CERT_BUF);
+        tlsClients[socket].setPrivateKey(PK_BUFF);
+      }
       result = tlsClients[socket].connect(host, port);
     } else {
+      if (setCert && setPSK) {
+        tlsClients[socket].setCertificate(CERT_BUF);
+        tlsClients[socket].setPrivateKey(PK_BUFF);
+      }
       result = tlsClients[socket].connect(ip, port);
     }
 
@@ -1057,41 +1065,30 @@ int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
 
 int setClientCert(const uint8_t command[], uint8_t response[]){
   ets_printf("*** Called setClientCert\n");
-  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   memset(CERT_BUF, 0x00, sizeof(CERT_BUF));
   memcpy(CERT_BUF, &command[4], sizeof(CERT_BUF));
 
-  ets_printf("\nCertificate Data (from CircuitPython): \n %s", CERT_BUF);
-  // TODO: add statement for allocation failing.
-  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-
-  tlsClients[0].setCertificate(CERT_BUF);
-  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-
-  
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
   response[4] = 1;
+
+  setCert = 1;
 
   return 6;
 }
 
 int setCertKey(const uint8_t command[], uint8_t response[]){
   ets_printf("*** Called setCertKey\n");
-  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
-  ets_printf("\nCertificate Data (from CircuitPython): \n %s", PK_BUFF);
   memset(PK_BUFF, 0x00, sizeof(PK_BUFF));
   memcpy(PK_BUFF, &command[4], sizeof(PK_BUFF));
-
-  tlsClients[0].setPrivateKey(PK_BUFF);
-
-  ets_printf("\nFree internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
   response[4] = 1;
+
+  setPSK = 1;
 
   return 6;
 }

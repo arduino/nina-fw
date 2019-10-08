@@ -74,7 +74,6 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     mbedtls_ctr_drbg_init(&_ctrDrbgContext);
     mbedtls_ssl_config_init(&_sslConfig);
 
-
     mbedtls_net_init(&_netContext);
 
     ets_printf("*** connect inited\n");
@@ -113,7 +112,6 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     mbedtls_x509_crt_init(&_caCrt);
     mbedtls_ssl_conf_authmode(&_sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
 
-    ets_printf("\n***Free internal heap before certs_data %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     // setting up CA certificates from partition
     spi_flash_mmap_handle_t handle;
     const unsigned char* certs_data = {};
@@ -142,7 +140,6 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
       stop();
       return 0;
     }
-    ets_printf("***Free internal heap after certs_data %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     ets_printf("*** check for client_cert and client_key\n");
     if (client_cert != NULL && client_key != NULL) {
@@ -150,22 +147,19 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         mbedtls_pk_init(&_clientKey);
 
         ets_printf("*** Loading client certificate.\n");
-        ets_printf("Client Certificate: %s\n", _clientCrt);
         // note: +1 added for line ending
         ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
         if (ret != 0) {
-          ets_printf("ERROR: Client cert not parsed, %d\n", ret);
-          ets_printf("Cert: \n %s", &_clientCrt);
+          ets_printf("ERROR: Client cert not parsed properly(%d)\n", ret);
           stop();
           return 0;
         }
 
         ets_printf("*** Loading private key.\n");
-        ets_printf("Private Key: %s\n", &_clientKey);
         ret = mbedtls_pk_parse_key(&_clientKey, (const unsigned char *)client_key, strlen(client_key)+1,
                                    NULL, 0);
         if (ret != 0) {
-          ets_printf("ERROR: Private key not parsed properly: %d\n", ret);
+          ets_printf("ERROR: Private key not parsed properly:(%d)\n", ret);
           stop();
           return 0;
         }
@@ -175,7 +169,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
           if (ret == -0x7f00) {
             ets_printf("ERROR: Memory allocation failed, MBEDTLS_ERR_SSL_ALLOC_FAILED");
           }
-          ets_printf("Private key not parsed properly: %d\n", ret);
+          ets_printf("Private key not parsed properly(%d)\n", ret);
           stop();
           return 0;
         }
@@ -191,7 +185,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     if ((ret = mbedtls_ssl_setup(&_sslContext, &_sslConfig)) != 0) {
       if (ret == -0x7f00){
         ets_printf("%s", &_clientCrt);
-        ets_printf("MBEDTLS_ERR_SSL_ALLOC_FAILED\n");
+        ets_printf("Memory allocation failed (MBEDTLS_ERR_SSL_ALLOC_FAILED)\n");
         ets_printf("Free internal heap: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
       }
       ets_printf("Unable to connect ssl setup %d\n", ret);
@@ -211,7 +205,6 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     mbedtls_ssl_set_bio(&_sslContext, &_netContext, mbedtls_net_send, mbedtls_net_recv, NULL);
 
     ets_printf("*** start SSL/TLS handshake...\n");
-    ets_printf("Free internal heap after TLS %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     unsigned long start_handshake = millis();
     // ref: https://tls.mbed.org/api/ssl_8h.html#a4a37e497cd08c896870a42b1b618186e
     while ((ret = mbedtls_ssl_handshake(&_sslContext)) !=0) {
@@ -246,7 +239,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     mbedtls_net_set_nonblock(&_netContext);
 
     ets_printf("Free internal heap before cleanup: %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-    // free up the heap
+    // free the heap
     if (certs_data != NULL) {
       mbedtls_x509_crt_free(&_caCrt);
     }
