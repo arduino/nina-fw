@@ -43,31 +43,6 @@ private:
 
 #define synchronized __Guard __guard(_mbedMutex);
 
-
-// TODO: Reduce buffer sizes to be closer to actual expected
-// AWS Device Certificate
-// NOTE: I'm aware this certificate is here :)
-char AWS_CERT_CRT[1300] = "-----BEGIN CERTIFICATE-----\n" \
-"MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
-"BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\n" \
-"SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTE5MDkyNTE2NDA1\n" \
-"NVoXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0\n" \
-"ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMygEW9cO1ZXQY4Fo3PY\n" \
-"vBGV6WHwJYKIOd5iTZ4MQmkYNqn9q2YnuXEwYJ+sw6QxSYyZ9O8yniZfviggJ2Dg\n" \
-"GdTGKIbSK7B/C3w6cLnwPNsKbA2xsxnQU3yoQ99noaue4kG+WL7a5SHJHwzcFpT4\n" \
-"tVffsUlFtI9fTyGg75+0X4OJiKtzPhpVrCDesKDl0wLewqqgfxasgXWk3bLGCcBy\n" \
-"7YPEM2x0lp6644xz0jkJ/3KO09+AuFG54K+zv7UZOi4Tph8eiKnI2/2sM58yC233\n" \
-"pCnB8gtxCegvJJ1ByM5SR3Zw5C1hq6cgN5ePv1fQ7QqOnIHygc0gDp8/nw5gnH8P\n" \
-"3LcCAwEAAaNgMF4wHwYDVR0jBBgwFoAU1YI5dEJDKJgyKP6e/lSezmki1tUwHQYD\n" \
-"VR0OBBYEFDTH23PCBu1Pw4xdOR3rY3Pcueh4MAwGA1UdEwEB/wQCMAAwDgYDVR0P\n" \
-"AQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQA1p78t3Tk+6V5h0SlokRaC5bVm\n" \
-"RoXwXRmmCsZJlwvIG25buBdUAWC/2odreV4anM9HmRnECxZMIV7Q0NiuVcl3Kiok\n" \
-"xtWsdsCyZkH0OMcBuiTEu+o3osTtxAp8dkzcBlh768htDXZCsAzRjFTwtZ78BqFk\n" \
-"rzduv1FDtpbxoD95X8B3MOc+ZrsZ5TTA+dpepeid6K3jmG9LPmFnahCkK31Hp5dv\n" \
-"WKKDKZn51PvOVAvti1QeAYcFabgeXFWb8OuCJcqWEKFJuvQRvKrpyLfpSR4NNq7M\n" \
-"nM12jsbhjrGYVCmQjczqOMqF+LMnXYUSY+o6gsBCM5XRAwOLY4S7Gv53K4+l\n" \
-"-----END CERTIFICATE-----\n";
-
 // AWS Device Private Key
 // NOTE: I'm aware this certificate is here :)
 char AWS_CERT_PRIVATE[1700] =
@@ -114,7 +89,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port)
 
   // TODO: Remove these calls, call from CommandHandler.cpp instead to make user-setable.
   // Set _cert and _private key to globals
-  _cert = AWS_CERT_CRT;
+  //_cert = AWS_CERT_CRT;
   _private_key = AWS_CERT_PRIVATE;
 
   return connect(host, port, _cert, _private_key);
@@ -212,7 +187,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         mbedtls_pk_init(&_clientKey);
 
         ets_printf("*** Loading client certificate.\n");
-        ets_printf("Client Certificate: %s\n", &_clientCrt);
+        ets_printf("Client Certificate: %s\n", _clientCrt);
         // note: +1 added for line ending
         ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
         if (ret != 0) {
@@ -414,7 +389,7 @@ void WiFiSSLClient::setCertificate(const char *client_ca)
 {
   ets_printf("\n*** Setting client certificate...\n");
   _cert = client_ca;
-  ets_printf("%s", client_ca);
+  ets_printf("%s", _cert);
   ets_printf("\n*** Set client certificate\n");
 }
 
