@@ -211,7 +211,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
       if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
         ets_printf("Error performing SSL handshake");
       }
-      if((millis() - start_handshake) > handshake_timeout){
+      if((millis() - start_handshake) > _handshake_timeout){
         ets_printf("SSL Handshake Timeout\n");
         stop();
         return -1;
@@ -358,7 +358,7 @@ void WiFiSSLClient::setPrivateKey(const char *private_key)
 
 void WiFiSSLClient::setHandshakeTimeout(unsigned long timeout)
 {
-  handshake_timeout = timeout * 1000;
+  _handshake_timeout = timeout * 1000;
 }
 
 void WiFiSSLClient::flush()
