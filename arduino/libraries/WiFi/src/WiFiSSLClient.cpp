@@ -43,37 +43,6 @@ private:
 
 #define synchronized __Guard __guard(_mbedMutex);
 
-// AWS Device Private Key
-// NOTE: I'm aware this certificate is here :)
-char AWS_CERT_PRIVATE[1700] =
-"-----BEGIN RSA PRIVATE KEY-----\n" \
-"MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
-"Zie5cTBgn6zDpDFJjJn07zKeJl++KCAnYOAZ1MYohtIrsH8LfDpwufA82wpsDbGz\n" \
-"GdBTfKhD32ehq57iQb5YvtrlIckfDNwWlPi1V9+xSUW0j19PIaDvn7Rfg4mIq3M+\n" \
-"GlWsIN6woOXTAt7CqqB/FqyBdaTdssYJwHLtg8QzbHSWnrrjjHPSOQn/co7T34C4\n" \
-"Ubngr7O/tRk6LhOmHx6Iqcjb/awznzILbfekKcHyC3EJ6C8knUHIzlJHdnDkLWGr\n" \
-"pyA3l4+/V9DtCo6cgfKBzSAOnz+fDmCcfw/ctwIDAQABAoIBAGV+N2eevaezm8ZP\n" \
-"saTyKUYnrxxuuowl+V3+MDVmK0JpSiPCuFLw/R/ROPu5+0fjUnG0ozJJTvwFnRHV\n" \
-"8PIx9V3983f7osPmH9I8QlFXgTe70aBxNT5mgCJia1fR1PSE2AB34xi3BdNeKFJ+\n" \
-"j4zQV1IAl7SaKFa8lUk+w9vY4U8h8kjj2OZWBsYKXz2Gk0WZP0mdP+eQeGtKVmWB\n" \
-"HE+QO+fZIkT/QaZzntFYPfDy5accZRFelZt+opOVQvyi3riUeBlcRi5Xd+cPfKNY\n" \
-"J0MQem2yBUuNiqCiaWAgIcFHHAI2kwB+4ju79aRFGlgP6ocFG/MazMV9GJWjGUGB\n" \
-"1PoQ54ECgYEA/LSKbwpWVYVQhoxlJzet248Mj78dM3r4mYHmqrfxECycOu25pl0B\n" \
-"TcU8g9t1ZxGdBwA4rKFRmYvIWSiwKRd36VsKHihFLxGAE7Vr0/DQgsBPlM88+Ca8\n" \
-"fCEt6/NMr0U+hLZUMgTcG5L5P1cjC6DmM+zJHldkLAsHsDrKLwoqXiECgYEAz0sM\n" \
-"xRc4ROs27POVqSl00FdBApFItYMR8O7FDYhWbX4Nghgd2WuQr4X7qbYsQZtRL8Ip\n" \
-"InbeA/4KMG3Wxu/uMCyltNBhzx0ZfmF5pYv+BkmUPJY6quaQjagW72IgaIDwbg7I\n" \
-"Rohu2L5tZqZ0ryjsokrbzOT31SM9UA1ijlBa79cCgYAbyiLbGTDrULDNSw0opefZ\n" \
-"mD6SZDrq2WATSYS7S2UYGT/I/zGGSP4GtmT0PyMHBZnWFkElQsw9bXDH1UCiFDGc\n" \
-"mOVg8Z7CEVObVz0XXokfh9R4kd2rkF7z65YoN2Y8dAnvADn8Eiq+YYhFXei9s6D9\n" \
-"HtHzIzsh2MisqZpoV97W4QKBgAKaZ6ul8f/zkDoDiRKZwazIG7njhy04WyZSaUkV\n" \
-"ODihx5uln+JWFngNz64+6mlcgPV/k7KqGXmlXA1lo7fV1YDnXqFZqJDIRcSvhq6M\n" \
-"hoEftWvZWx1ATfppbPhOnCeTzvEi4GL6XaH9KjSKzJZShj43gHEfQvl7Os7hjCZL\n" \
-"Xgj7AoGBALaXRmY0vHziaX8A0IpSklxiQm0cO4pxl2S9YQdHmzjEnLE3STJZkIBo\n" \
-"YJwtTj3ZgQ7YDWFwzObX/UVi8Smnwf+qNnPqY9IpOKUKxUjFGCrGdiAITTCZfbMo\n" \
-"8cD8F7nkbodpQNEXKEEWLTkMq0UQH813Fe2mltgrHPJ94YYIwfK6\n" \
-"-----END RSA PRIVATE KEY-----\n";
-
 WiFiSSLClient::WiFiSSLClient() :
   _connected(false),
   _peek(-1)
@@ -86,18 +55,12 @@ WiFiSSLClient::WiFiSSLClient() :
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
   ets_printf("** Connect host/port Called\n");
-
-  // TODO: Remove these calls, call from CommandHandler.cpp instead to make user-setable.
-  // Set _cert and _private key to globals
-  //_cert = AWS_CERT_CRT;
-  _private_key = AWS_CERT_PRIVATE;
-
   return connect(host, port, _cert, _private_key);
 }
 
 int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_cert, const char* client_key)
 {
-  ets_printf("** Main connect called\n");
+  ets_printf("** Connect host/port/cert/key called\n");
   int ret, flags;
   synchronized {
     _netContext.fd = -1;
