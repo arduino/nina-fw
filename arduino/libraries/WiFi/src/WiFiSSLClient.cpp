@@ -54,13 +54,13 @@ WiFiSSLClient::WiFiSSLClient() :
 
 int WiFiSSLClient::connect(const char* host, uint16_t port)
 {
-  ets_printf("** Connect host/port Called\n");
+  ets_printf("** Connect(host/port) Called\n");
   return connect(host, port, _cert, _private_key);
 }
 
 int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_cert, const char* client_key)
 {
-  ets_printf("** Connect host/port/cert/key called\n");
+  ets_printf("** Connect(host/port/cert/key) called\n");
   int ret, flags;
   synchronized {
     _netContext.fd = -1;
