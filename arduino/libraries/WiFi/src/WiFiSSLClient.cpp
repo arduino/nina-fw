@@ -43,9 +43,11 @@ private:
 
 #define synchronized __Guard __guard(_mbedMutex);
 
+
+// TODO: Reduce buffer sizes to be closer to actual expected
 // AWS Device Certificate
 // NOTE: I'm aware this certificate is here :)
-char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
+char AWS_CERT_CRT[2000] = "-----BEGIN CERTIFICATE-----\n" \
 "MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
 "BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\n" \
 "SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTE5MDkyNTE2NDA1\n" \
@@ -68,7 +70,7 @@ char AWS_CERT_CRT[] = "-----BEGIN CERTIFICATE-----\n" \
 
 // AWS Device Private Key
 // NOTE: I'm aware this certificate is here :)
-char AWS_CERT_PRIVATE[] =
+char AWS_CERT_PRIVATE[2000] =
 "-----BEGIN RSA PRIVATE KEY-----\n" \
 "MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
 "Zie5cTBgn6zDpDFJjJn07zKeJl++KCAnYOAZ1MYohtIrsH8LfDpwufA82wpsDbGz\n" \
@@ -209,7 +211,8 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         mbedtls_x509_crt_init(&_clientCrt);
         mbedtls_pk_init(&_clientKey);
 
-        ets_printf("*** Loading client certificate.");
+        ets_printf("*** Loading client certificate.\n");
+        ets_printf("Client Certificate: %s\n", &_clientCrt);
         // note: +1 added for line ending
         ret = mbedtls_x509_crt_parse(&_clientCrt, (const unsigned char *)client_cert, strlen(client_cert) + 1);
         if (ret != 0) {
@@ -220,6 +223,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
         }
 
         ets_printf("*** Loading private key.\n");
+        ets_printf("Private Key: %s\n", &_clientKey);
         ret = mbedtls_pk_parse_key(&_clientKey, (const unsigned char *)client_key, strlen(client_key)+1,
                                    NULL, 0);
         if (ret != 0) {
