@@ -1,14 +1,15 @@
 PROJECT_NAME := nina-fw
 
-# Ports
-M4_PORT := /dev/cu.usbmodem1411201
+# Passthrough Board Port
+M4_PORT := /dev/cu.usbmodem14121301
+UPLOAD_BAUD = 115200
+# ESP32 USB Serial Port
 ESP_PORT := /dev/cu.usbserial-AH03B302
 
 # Directories and Files
 BOOT_VOLUME := /Volumes/FEATHERBOOT/.
-CIRCUITPYTHON_UF2 := adafruit-circuitpython-feather_m4_express-en_US-4.1.0.uf2
+CIRCUITPYTHON_UF2 := circuitpython.uf2
 
-UPLOAD_BAUD = 115200
 EXTRA_COMPONENT_DIRS := $(PWD)/arduino
 
 ifeq ($(RELEASE),1)
