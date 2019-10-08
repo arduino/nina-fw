@@ -47,7 +47,7 @@ private:
 // TODO: Reduce buffer sizes to be closer to actual expected
 // AWS Device Certificate
 // NOTE: I'm aware this certificate is here :)
-char AWS_CERT_CRT[2000] = "-----BEGIN CERTIFICATE-----\n" \
+char AWS_CERT_CRT[1300] = "-----BEGIN CERTIFICATE-----\n" \
 "MIIDWTCCAkGgAwIBAgIUHi7YIHwvdKnUKTKE4MzqaVvVW7QwDQYJKoZIhvcNAQEL\n" \
 "BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g\n" \
 "SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTE5MDkyNTE2NDA1\n" \
@@ -70,7 +70,7 @@ char AWS_CERT_CRT[2000] = "-----BEGIN CERTIFICATE-----\n" \
 
 // AWS Device Private Key
 // NOTE: I'm aware this certificate is here :)
-char AWS_CERT_PRIVATE[2000] =
+char AWS_CERT_PRIVATE[1700] =
 "-----BEGIN RSA PRIVATE KEY-----\n" \
 "MIIEowIBAAKCAQEAzKARb1w7VldBjgWjc9i8EZXpYfAlgog53mJNngxCaRg2qf2r\n" \
 "Zie5cTBgn6zDpDFJjJn07zKeJl++KCAnYOAZ1MYohtIrsH8LfDpwufA82wpsDbGz\n" \
