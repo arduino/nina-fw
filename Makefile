@@ -1,5 +1,15 @@
 PROJECT_NAME := nina-fw
 
+# Passthrough Board Port
+M4_PORT := /dev/cu.usbmodem14121301
+UPLOAD_BAUD = 115200
+# ESP32 USB Serial Port
+ESP_PORT := /dev/cu.usbserial-AH03B302
+
+# Directories and Files
+BOOT_VOLUME := /Volumes/FEATHERBOOT/.
+CIRCUITPYTHON_UF2 := circuitpython.uf2
+
 EXTRA_COMPONENT_DIRS := $(PWD)/arduino
 
 ifeq ($(RELEASE),1)
@@ -14,7 +24,27 @@ endif
 
 include $(IDF_PATH)/make/project.mk
 
+load-passthrough:
+	cp passthrough.UF2  $(BOOT_VOLUME)
+
+load-nina:
+	esptool.py --port $(M4_PORT) --before no_reset --baud $(UPLOAD_BAUD) write_flash 0 NINA_W102-1.3.1.bin
+
+load-circuitpython:
+	cp $(CIRCUITPYTHON_UF2) $(BOOT_VOLUME)
+
+serial:
+	miniterm.py $(ESP_PORT) $(UPLOAD_BAUD)
+
 firmware: all
 	python combine.py
 
 .PHONY: firmware
+
+.PHONY: load-passthrough
+
+.PHONY: load-nina
+
+.PHONY: load-circuitpython
+
+.PHONY: serial

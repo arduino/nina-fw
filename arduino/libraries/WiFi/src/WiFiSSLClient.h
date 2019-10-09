@@ -22,13 +22,14 @@
 
 #include <mbedtls/net.h>
 #include <mbedtls/ssl.h>
+#include <mbedtls/platform.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/error.h>
+#include <mbedtls/debug.h>
 
 #include <Arduino.h>
-// #include <Client.h>
-// #include <IPAddress.h>
+
 
 class WiFiSSLClient /*: public Client*/ {
 
@@ -39,6 +40,7 @@ public:
 
   virtual int connect(/*IPAddress*/uint32_t ip, uint16_t port);
   virtual int connect(const char* host, uint16_t port);
+  virtual int connect(const char* host, uint16_t port, const char* client_cert, const char* client_key);
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);
   virtual int available();
@@ -49,14 +51,20 @@ public:
   virtual void stop();
   virtual uint8_t connected();
   virtual operator bool();
+  virtual void setCertificate(const char *client_ca);
+  virtual void setPrivateKey (const char *private_key);
+  virtual void setHandshakeTimeout(unsigned long timeout);
 
   // using Print::write;
 
   virtual /*IPAddress*/uint32_t remoteIP();
   virtual uint16_t remotePort();
+  const char *pers = "esp32-tls";
 
 private:
   static const char* ROOT_CAs;
+  const char *_cert; // user-provided certificate
+  const char *_private_key; // user-provided private
 
   mbedtls_entropy_context _entropyContext;
   mbedtls_ctr_drbg_context _ctrDrbgContext;
@@ -64,8 +72,11 @@ private:
   mbedtls_ssl_config _sslConfig;
   mbedtls_net_context _netContext;
   mbedtls_x509_crt _caCrt;
+  mbedtls_x509_crt _clientCrt;
+  mbedtls_pk_context _clientKey;
   bool _connected;
   int _peek;
+  unsigned long _handshake_timeout = 120000;
 
   SemaphoreHandle_t _mbedMutex;
 };

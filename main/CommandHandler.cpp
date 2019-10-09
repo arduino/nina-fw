@@ -26,7 +26,17 @@
 
 #include "CommandHandler.h"
 
-const char FIRMWARE_VERSION[6] = "1.3.1";
+#include "Arduino.h"
+
+const char FIRMWARE_VERSION[6] = "1.4.0";
+
+// Optional, user-defined X.509 certificate
+char CERT_BUF[1300];
+bool setCert = 0;
+
+// Optional, user-defined RSA private key
+char PK_BUFF[1700];
+bool setPSK = 0;
 
 /*IPAddress*/uint32_t resolvedHostname;
 
@@ -589,10 +599,17 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
     }
   } else if (type == 0x02) {
     int result;
-
     if (host[0] != '\0') {
+      if (setCert && setPSK) {
+        tlsClients[socket].setCertificate(CERT_BUF);
+        tlsClients[socket].setPrivateKey(PK_BUFF);
+      }
       result = tlsClients[socket].connect(host, port);
     } else {
+      if (setCert && setPSK) {
+        tlsClients[socket].setCertificate(CERT_BUF);
+        tlsClients[socket].setPrivateKey(PK_BUFF);
+      }
       result = tlsClients[socket].connect(ip, port);
     }
 
@@ -1046,6 +1063,36 @@ int wpa2EntEnable(const uint8_t command[], uint8_t response[]) {
   return 6;
 }
 
+int setClientCert(const uint8_t command[], uint8_t response[]){
+  ets_printf("*** Called setClientCert\n");
+
+  memset(CERT_BUF, 0x00, sizeof(CERT_BUF));
+  memcpy(CERT_BUF, &command[4], sizeof(CERT_BUF));
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  setCert = 1;
+
+  return 6;
+}
+
+int setCertKey(const uint8_t command[], uint8_t response[]){
+  ets_printf("*** Called setCertKey\n");
+
+  memset(PK_BUFF, 0x00, sizeof(PK_BUFF));
+  memcpy(PK_BUFF, &command[4], sizeof(PK_BUFF));
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  setPSK = 1;
+
+  return 6;
+}
+
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
 const CommandHandlerType commandHandlers[] = {
@@ -1062,7 +1109,7 @@ const CommandHandlerType commandHandlers[] = {
   disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, NULL, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
 
   // 0x40 -> 0x4f
-  NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, wpa2EntSetIdentity, wpa2EntSetUsername, wpa2EntSetPassword, wpa2EntSetCACert, wpa2EntSetCertKey, wpa2EntEnable,
+  setClientCert, setCertKey, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, wpa2EntSetIdentity, wpa2EntSetUsername, wpa2EntSetPassword, wpa2EntSetCACert, wpa2EntSetCertKey, wpa2EntEnable,
 
   // 0x50 -> 0x5f
   setPinMode, setDigitalWrite, setAnalogWrite,
