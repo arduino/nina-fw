@@ -19,6 +19,7 @@
 
 #include <driver/ledc.h>
 #include <driver/adc.h>
+#include <soc/adc_channel.h>
 
 #include "wiring_analog.h"
 
@@ -47,8 +48,31 @@ void analogWrite(uint32_t pin, uint32_t value)
 
 int analogRead(uint32_t pin)
 {
+  int channel;
+  switch(pin)
+  {
+    case ADC1_CHANNEL_0_GPIO_NUM:
+      channel = ADC1_GPIO36_CHANNEL;
+    case ADC1_CHANNEL_1_GPIO_NUM:
+      channel = ADC1_GPIO37_CHANNEL;
+    case ADC1_CHANNEL_2_GPIO_NUM:
+      channel = ADC1_GPIO38_CHANNEL;
+    case ADC1_CHANNEL_3_GPIO_NUM:
+      channel = ADC1_GPIO39_CHANNEL;
+    case ADC1_CHANNEL_4_GPIO_NUM:
+      channel = ADC1_GPIO32_CHANNEL;
+    case ADC1_CHANNEL_5_GPIO_NUM:
+      channel = ADC1_GPIO33_CHANNEL;
+    case ADC1_CHANNEL_6_GPIO_NUM:
+      channel = ADC1_GPIO34_CHANNEL;
+    case ADC1_CHANNEL_7_GPIO_NUM:
+      channel = ADC1_GPIO35_CHANNEL;
+    default:
+      return -1;
+  }
+
   adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(pin,ADC_ATTEN_DB_11);
-  int val = adc1_get_raw(pin);
+  adc1_config_channel_atten(channel, ADC_ATTEN_DB_11);
+  int val = adc1_get_raw(channel);
   return val;
 }
