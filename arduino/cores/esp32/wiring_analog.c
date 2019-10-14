@@ -18,6 +18,7 @@
 */
 
 #include <driver/ledc.h>
+#include <driver/adc.h>
 
 #include "wiring_analog.h"
 
@@ -42,4 +43,12 @@ void analogWrite(uint32_t pin, uint32_t value)
     .timer_sel = (pin / 7)
   };
   ledc_channel_config(&ledc_conf);
+}
+
+int analogRead(uint32_t pin)
+{
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(pin,ADC_ATTEN_DB_11);
+  int val = adc1_get_raw(pin);
+  return val;
 }
