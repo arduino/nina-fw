@@ -28,7 +28,7 @@
 
 #include "Arduino.h"
 
-const char FIRMWARE_VERSION[6] = "1.4.1";
+const char FIRMWARE_VERSION[6] = "1.5.0";
 
 // Optional, user-defined X.509 certificate
 char CERT_BUF[1300];
