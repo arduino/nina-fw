@@ -1010,11 +1010,13 @@ int setDigitalRead(const uint8_t command[], uint8_t response[])
 int setAnalogRead(const uint8_t command[], uint8_t response[])
 {
   uint8_t pin = command[4];
+  uint8_t atten = command[6];
 
-  int value = digitalRead(pin);
+  int value = analogRead(pin, atten);
 
   response[2] = 1; // number of parameters
   response[3] = sizeof(value); // parameter 1 length
+
   memcpy(&response[4], &value, sizeof(value));
 
   return 5 + sizeof(value);

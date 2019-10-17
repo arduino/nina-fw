@@ -28,7 +28,7 @@ extern "C" {
 
 extern void analogWrite(uint32_t pin, uint32_t value);
 
-extern int analogRead(uint32_t pin);
+extern int analogRead(uint32_t pin, uint32_t atten);
 
 #ifdef __cplusplus
 }
