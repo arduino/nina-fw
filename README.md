@@ -5,6 +5,20 @@ repository is located at https://github.com/arduino/nina-fw
 
 This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
+## Contributing to nina-fw
+
+Please be aware that by contributing to this project
+you are agreeing to the [Code of Conduct](https://github.com/adafruit/nina-fw/code-of-conduct.md).
+Contributors who follow the [Code of Conduct](https://github.com/adafruit/nina-fw/code-of-conduct.md)
+are welcome to submit pull requests and they will be promptly
+reviewed by project admins. Please join the [Discord](https://adafru.it/discord) too.
+
+The NINA firmware version needs to be updated in four places in this repo:
+1. CommandHandler.cpp
+1. combine.py
+1. Makefile
+1. CHANGELOG
+
 ## Building
 
 The firmware shipped in Adafruit's products is compiled following these
@@ -20,7 +34,7 @@ original Arduino firmware repository.
 1. Use appropriate tools (esptool.py, appropriate pass-through firmware etc)
    to load this binary file onto your board.
     a. If you do not know how to do this, [we have an excellent guide on the Adafruit Learning System for upgrading your ESP32's firmware](https://learn.adafruit.com/upgrading-esp32-firmware)
-   
+
 
 ## License
 
