@@ -18,6 +18,9 @@
 */
 
 #include <driver/ledc.h>
+#include <driver/adc.h>
+#include <esp_adc_cal.h>
+#include <soc/adc_channel.h>
 
 #include "wiring_analog.h"
 
@@ -42,4 +45,50 @@ void analogWrite(uint32_t pin, uint32_t value)
     .timer_sel = (pin / 7)
   };
   ledc_channel_config(&ledc_conf);
+}
+
+int analogRead(uint32_t pin, uint32_t atten)
+{
+  #define DEFAULT_VREF 1100
+  static esp_adc_cal_characteristics_t *adc_chars;
+  adc_channel_t channel;
+
+  switch(pin)
+  {
+    case ADC1_CHANNEL_0_GPIO_NUM:
+      channel = ADC1_GPIO36_CHANNEL;
+      break;
+    case ADC1_CHANNEL_1_GPIO_NUM:
+      channel = ADC1_GPIO37_CHANNEL;
+      break;
+    case ADC1_CHANNEL_2_GPIO_NUM:
+      channel = ADC1_GPIO38_CHANNEL;
+      break;
+    case ADC1_CHANNEL_3_GPIO_NUM:
+      channel = ADC1_GPIO39_CHANNEL;
+      break;
+    case ADC1_CHANNEL_4_GPIO_NUM:
+      channel = ADC1_GPIO32_CHANNEL;
+      break;
+    case ADC1_CHANNEL_5_GPIO_NUM:
+      channel = ADC1_GPIO33_CHANNEL;
+      break;
+    case ADC1_CHANNEL_6_GPIO_NUM:
+      channel = ADC1_GPIO34_CHANNEL;
+      break;
+    case ADC1_CHANNEL_7_GPIO_NUM:
+      channel = ADC1_GPIO35_CHANNEL;
+      break;
+    default:
+      return -1;
+  }
+
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(channel, atten);
+
+  adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+  esp_adc_cal_characterize(ADC_UNIT_1, atten, ADC_WIDTH_BIT_12, DEFAULT_VREF, adc_chars);
+
+  int val = adc1_get_raw(channel);
+  return val;
 }

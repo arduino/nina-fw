@@ -7,7 +7,7 @@ partitionData = open("build/partitions.bin", "rb").read()
 appData = open("build/nina-fw.bin", "rb").read()
 certsData = open("data/roots.pem", "rb").read()
 
-# calculate the output binary size, app offset 
+# calculate the output binary size, app offset
 outputSize = 0x30000 + len(appData)
 if (outputSize % 1024):
 	outputSize += 1024 - (outputSize % 1024)
@@ -31,7 +31,7 @@ for i in range(0, len(certsData)):
 # zero terminate the pem file
 outputData[0x10000 + len(certsData)] = 0
 
-outputFilename = "NINA_W102-1.4.0.bin"
+outputFilename = "NINA_W102-1.5.0.bin"
 if (len(sys.argv) > 1):
 	outputFilename = sys.argv[1]
 
