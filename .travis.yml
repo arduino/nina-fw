@@ -36,11 +36,9 @@ script:
   - make firmware
 
 deploy:
-  - provider: releases
-    api_key: "$GITHUB_TOKEN"
-    file_glob: true
-    file: "NINA_W102-*.bin"
-    skip_cleanup: true
-    overwrite: true
-    on:
-      tags: true
+  provider: releases
+  api_key: "$GITHUB_TOKEN"
+  file: "NINA_W102-*.bin"
+  skip_cleanup: true
+  on:
+    tags: true
