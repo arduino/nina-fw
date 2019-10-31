@@ -40,3 +40,5 @@ deploy:
   api_key: "$GITHUB_TOKEN"
   file: "NINA_W102-*.bin"
   skip_cleanup: true
+  on:
+    tags: true
