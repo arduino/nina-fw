@@ -1,0 +1,45 @@
+# .travis.yml for nina-fw
+# adapted from https://github.com/igrr/esp32-cam-demo/blob/master/.travis.yml
+sudo: false
+language: bash
+os:
+  - linux
+
+addons:
+  apt:
+    packages:
+      - python3.5
+      - gperf
+
+before_install:
+  # Save path to the git respository
+  - PROJECT_PATH=$(pwd)
+
+install:
+  - mkdir -p ~/esp
+  - cd ~/esp
+  # Download binary toolchain for the ESP32
+  - wget https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-1.22.0-80-g6c4433a-5.2.0.tar.gz
+  - tar -xzf xtensa-esp32-elf-linux64-1.22.0-80-g6c4433a-5.2.0.tar.gz
+  # Make xtensa-esp32-elf available for all terminal sessions
+  - export PATH=$PATH:$HOME/esp/xtensa-esp32-elf/bin
+  # Get ESP-IDF v3.3
+  - git clone --branch v3.3 --recursive https://github.com/espressif/esp-idf.git
+  # Set the path to ESP-IDF directory
+  - export IDF_PATH=~/esp/esp-idf 
+  # Install Required Python Packages
+  - python -m pip install --user -r $IDF_PATH/requirements.txt
+
+
+script:
+  - cd $PROJECT_PATH
+  - make firmware
+
+deploy:
+  provider: releases
+  api_key: "$GITHUB_TOKEN"
+  file_glob: true
+  file: "NINA_W102-*.bin"
+  skip_cleanup: true
+  on:
+    tags: true
