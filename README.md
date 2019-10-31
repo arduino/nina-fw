@@ -1,5 +1,7 @@
 # Adafruit fork of the Arduino NINA-W102 firmware
 
+[![Build Status](https://travis-ci.com/adafruit/nina-fw.svg?branch=master)](https://travis-ci.com/adafruit/nina-fw)
+
 This is the Adafruit fork of the Arduino NINA-W102 firmware. The original
 repository is located at https://github.com/arduino/nina-fw
 

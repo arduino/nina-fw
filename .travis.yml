@@ -34,7 +34,6 @@ install:
 script:
   - cd $PROJECT_PATH
   - make firmware
-  - ls -la
 
 deploy:
   - provider: releases
