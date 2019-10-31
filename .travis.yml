@@ -8,8 +8,7 @@ os:
 addons:
   apt:
     packages:
-      - gperf
-      - python
+      - python3.6
 
 before_install:
   # Save path to the git respository
@@ -34,3 +33,11 @@ install:
 script:
   - cd $PROJECT_PATH
   - make firmware
+
+deploy:
+  provider: releases
+  api_key: "GITHUB OAUTH TOKEN"
+  file: "FILE TO UPLOAD"
+  skip_cleanup: true
+  on:
+    tags: true
