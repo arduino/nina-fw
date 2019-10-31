@@ -34,11 +34,14 @@ install:
 script:
   - cd $PROJECT_PATH
   - make firmware
+  - ls -la
 
 deploy:
-  provider: releases
-  api_key: "GITHUB OAUTH TOKEN"
-  file: "FILE TO UPLOAD"
-  skip_cleanup: true
-  on:
-    tags: true
+  - provider: releases
+    api_key: "$GITHUB_TOKEN"
+    file_glob: true
+    file: "nina-fw.bin"
+    skip_cleanup: true
+    overwrite: true
+    on:
+      tags: true
