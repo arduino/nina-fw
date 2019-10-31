@@ -8,7 +8,7 @@ os:
 addons:
   apt:
     packages:
-      - python3.6
+      - python3.5
 
 before_install:
   # Save path to the git respository
