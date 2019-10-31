@@ -9,6 +9,7 @@ addons:
   apt:
     packages:
       - python3.5
+      - gperf
 
 before_install:
   # Save path to the git respository
