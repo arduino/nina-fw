@@ -6,7 +6,7 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
 1. [Download the ESP32 toolchain](http://esp-idf.readthedocs.io/en/v3.1/get-started/index.html#setup-toolchain)
 1. Extract it and add it to your `PATH`: `export PATH=$PATH:<path/to/toolchain>/bin`
-1. Clone **v3.1.3** of the IDF: `git clone --branch v3.1.3 --recursive https://github.com/espressif/esp-idf.git`
+1. Clone **v3.3** of the IDF: `git clone --branch v3.3 --recursive https://github.com/espressif/esp-idf.git`
 1. Set the `IDF_PATH` environment variable: `export IDF_PATH=<path/to/idf>`
 1. Run `make` to build the firmware (in the directory of this read me)
 1. Load the `Tools -> SerialNINAPassthrough` example sketch on to the board
@@ -14,7 +14,7 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 
 ## License
 
-Copyright (c) 2018 Arduino SA. All rights reserved.
+Copyright (c) 2018-2019 Arduino SA. All rights reserved.
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
