@@ -990,6 +990,20 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
 }
 
 
+
+#include "wifi_manager.h"
+
+int beginProvision(const uint8_t command[], uint8_t response[]) {
+  /* start the wifi manager task */
+  wifi_manager_start();
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
 const CommandHandlerType commandHandlers[] = {
@@ -997,7 +1011,7 @@ const CommandHandlerType commandHandlers[] = {
   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x10 -> 0x1f
-  setNet, setPassPhrase, setKey, NULL, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, NULL, getReasonCode,
+  setNet, setPassPhrase, setKey, beginProvision, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, NULL, getReasonCode,
 
   // 0x20 -> 0x2f
   getConnStatus, getIPaddr, getMACaddr, getCurrSSID, getCurrBSSID, getCurrRSSI, getCurrEnct, scanNetworks, startServerTcp, getStateTcp, dataSentTcp, availDataTcp, getDataTcp, startClientTcp, stopClientTcp, getClientStateTcp,
