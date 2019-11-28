@@ -32,6 +32,12 @@
 #include <lwip/inet_chksum.h>
 
 #include "WiFi.h"
+#include "mdns.h"
+
+// defines required from mdns service
+#define LWIP_MDNS_RESPONDER             1
+#define LWIP_IGM                        1
+#define LWIP_IPV4                       1
 
 WiFiClass::WiFiClass() :
   _initialized(false),
@@ -697,6 +703,15 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
     case SYSTEM_EVENT_AP_START: {
       struct netif* apNetif;
 
+      mdns_init();
+
+      if (strlen(_hostname) == 0) {
+        uint8_t mac[6];
+        esp_wifi_get_mac(ESP_IF_WIFI_AP, mac);
+        sprintf(_hostname, "arduino-%.2x%.2x", mac[4], mac[5]);
+      }
+      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_AP, _hostname);
+
       if (tcpip_adapter_get_netif(TCPIP_ADAPTER_IF_AP, (void**)&apNetif) == ESP_OK) {
         if (apNetif->input != WiFiClass::apNetifInputHandler) {
           _apNetifInput = apNetif->input;
@@ -704,6 +719,8 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
           apNetif->input = WiFiClass::apNetifInputHandler;
         }
       }
+
+      mdns_hostname_set(_hostname);
 
       wifi_config_t config;
 
@@ -722,7 +739,6 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       } else {
         tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &_ipInfo);
       }
-
       _status = WL_AP_LISTENING;
       xEventGroupSetBits(_eventGroup, BIT1);
       break;
@@ -733,6 +749,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       memset(&_apRecord, 0x00, sizeof(_apRecord));
       memset(&_ipInfo, 0x00, sizeof(_ipInfo));
       xEventGroupClearBits(_eventGroup, BIT1);
+      mdns_free();
       break;
 
     case SYSTEM_EVENT_AP_STACONNECTED:
