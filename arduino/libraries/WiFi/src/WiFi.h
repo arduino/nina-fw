@@ -59,6 +59,8 @@ public:
   uint8_t beginAP(const char *ssid, uint8_t key_idx, const char* key, uint8_t channel);
   uint8_t beginAP(const char *ssid, const char* key, uint8_t channel);
 
+  uint8_t beginEnterprise(const char* ssid, const char* username, const char* password, const char* identity, const char* rootCA);
+  uint8_t beginEnterpriseTLS(const char* ssid, const char* cert, const char* key, const char* identity, const char* rootCA);
 
   void config(/*IPAddress*/uint32_t local_ip, /*IPAddress*/uint32_t gateway, /*IPAddress*/uint32_t subnet);
 
@@ -129,6 +131,10 @@ private:
 
   void (*_onReceiveCallback)(void);
   void (*_onDisconnectCallback)(void);
+
+  char* _wpa2Cert;
+  char* _wpa2Key;
+  char* _wpa2RootCA;
 };
 
 extern WiFiClass WiFi;
