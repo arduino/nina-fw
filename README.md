@@ -10,8 +10,8 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 ## Contributing to nina-fw
 
 Please be aware that by contributing to this project
-you are agreeing to the [Code of Conduct](https://github.com/adafruit/nina-fw/code-of-conduct.md).
-Contributors who follow the [Code of Conduct](https://github.com/adafruit/nina-fw/code-of-conduct.md)
+you are agreeing to the [Code of Conduct](https://github.com/adafruit/nina-fw/blob/master/code-of-conduct.md).
+Contributors who follow the [Code of Conduct](https://github.com/adafruit/nina-fw/blob/master/code-of-conduct.md)
 are welcome to submit pull requests and they will be promptly
 reviewed by project admins. Please join the [Discord](https://adafru.it/discord) too.
 
