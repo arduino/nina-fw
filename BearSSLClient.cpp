@@ -31,14 +31,25 @@
 #include "BearSSLClient.h"
 
 BearSSLClient::BearSSLClient(Client& client) :
-  BearSSLClient(client, TAs, TAs_NUM)
+  BearSSLClient(client, TAs, TAs_NUM, false)
+{
+}
+
+BearSSLClient::BearSSLClient(Client& client, bool noSNI) :
+  BearSSLClient(client, TAs, TAs_NUM, noSNI)
 {
 }
 
 BearSSLClient::BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs) :
+  BearSSLClient(client, TAs, TAs_NUM, false)
+{
+}
+
+BearSSLClient::BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs, bool noSNI) :
   _client(&client),
   _TAs(myTAs),
-  _numTAs(myNumTAs)
+  _numTAs(myNumTAs),
+  _noSNI(noSNI)
 {
   _ecKey.curve = 0;
   _ecKey.x = NULL;
@@ -72,7 +83,7 @@ int BearSSLClient::connect(const char* host, uint16_t port)
     return 0;
   }
 
-  return connectSSL(host);
+  return connectSSL(_noSNI ? NULL : host);
 }
 
 size_t BearSSLClient::write(uint8_t b)
