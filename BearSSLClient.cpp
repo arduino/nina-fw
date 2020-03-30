@@ -41,7 +41,7 @@ BearSSLClient::BearSSLClient(Client& client, bool noSNI) :
 }
 
 BearSSLClient::BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs) :
-  BearSSLClient(client, TAs, TAs_NUM, false)
+  BearSSLClient(client, myTAs, myNumTAs, false)
 {
 }
 
