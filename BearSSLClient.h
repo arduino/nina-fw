@@ -25,8 +25,12 @@
 #ifndef _BEAR_SSL_CLIENT_H_
 #define _BEAR_SSL_CLIENT_H_
 
-#ifndef BEAR_SSL_CLIENT_IOBUF_SIZE
-#define BEAR_SSL_CLIENT_IOBUF_SIZE 8192 + 85 + 325
+#ifndef BEAR_SSL_CLIENT_OBUF_SIZE
+#define BEAR_SSL_CLIENT_OBUF_SIZE 512 + 85
+#endif
+
+#ifndef BEAR_SSL_CLIENT_IBUF_SIZE
+#define BEAR_SSL_CLIENT_IBUF_SIZE 8192 + 85 + 325 - BEAR_SSL_CLIENT_OBUF_SIZE
 #endif
 
 #include <Arduino.h>
@@ -82,7 +86,8 @@ private:
 
   br_ssl_client_context _sc;
   br_x509_minimal_context _xc;
-  unsigned char _iobuf[BEAR_SSL_CLIENT_IOBUF_SIZE];
+  unsigned char _ibuf[BEAR_SSL_CLIENT_IBUF_SIZE];
+  unsigned char _obuf[BEAR_SSL_CLIENT_OBUF_SIZE];
   br_sslio_context _ioc;
 };
 

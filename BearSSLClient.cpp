@@ -259,8 +259,7 @@ int BearSSLClient::connectSSL(const char* host)
   // initialize client context with all algorithms and hardcoded trust anchors
   br_ssl_client_init_full(&_sc, &_xc, _TAs, _numTAs);
 
-  // set the buffer in split mode
-  br_ssl_engine_set_buffer(&_sc.eng, _iobuf, sizeof(_iobuf), 1);
+  br_ssl_engine_set_buffers_bidi(&_sc.eng, _ibuf, sizeof(_ibuf), _obuf, sizeof(_obuf));
 
   // inject entropy in engine
   unsigned char entropy[32];
