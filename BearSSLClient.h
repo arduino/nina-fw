@@ -43,7 +43,12 @@ class BearSSLClient : public Client {
 public:
   BearSSLClient(Client& client);
   BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs);
+  BearSSLClient(Client* client, const br_x509_trust_anchor* myTAs, int myNumTAs);
   virtual ~BearSSLClient();
+
+
+  inline void setClient(Client& client) { _client = &client; }
+
 
   virtual int connect(IPAddress ip, uint16_t port);
   virtual int connect(const char* host, uint16_t port);
