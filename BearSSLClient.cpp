@@ -31,25 +31,15 @@
 #include "BearSSLClient.h"
 
 BearSSLClient::BearSSLClient(Client& client) :
-  BearSSLClient(client, TAs, TAs_NUM, false)
-{
-}
-
-BearSSLClient::BearSSLClient(Client& client, bool noSNI) :
-  BearSSLClient(client, TAs, TAs_NUM, noSNI)
+  BearSSLClient(client, TAs, TAs_NUM)
 {
 }
 
 BearSSLClient::BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs) :
-  BearSSLClient(client, myTAs, myNumTAs, false)
-{
-}
-
-BearSSLClient::BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs, bool noSNI) :
   _client(&client),
   _TAs(myTAs),
   _numTAs(myNumTAs),
-  _noSNI(noSNI)
+  _noSNI(false)
 {
   _ecKey.curve = 0;
   _ecKey.x = NULL;
@@ -187,6 +177,14 @@ uint8_t BearSSLClient::connected()
 BearSSLClient::operator bool()
 {
   return (*_client);  
+}
+
+void BearSSLClient::setInsecure(SNI insecure)
+{
+  switch (insecure) {
+    case SNI::Insecure : _noSNI = true; break;
+    default: _noSNI = false;
+  }
 }
 
 void BearSSLClient::setEccSlot(int ecc508KeySlot, const byte cert[], int certLength)

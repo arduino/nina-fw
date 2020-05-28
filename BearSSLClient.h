@@ -42,9 +42,7 @@ class BearSSLClient : public Client {
 
 public:
   BearSSLClient(Client& client);
-  BearSSLClient(Client& client, bool noSNI);
   BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs);
-  BearSSLClient(Client& client, const br_x509_trust_anchor* myTAs, int myNumTAs, bool noSNI);
   virtual ~BearSSLClient();
 
   virtual int connect(IPAddress ip, uint16_t port);
@@ -61,6 +59,12 @@ public:
   virtual operator bool();
 
   using Print::write;
+
+  enum class SNI {
+    Insecure
+  };
+
+  void setInsecure(SNI insecure) __attribute__((deprecated("INSECURE. DO NOT USE IN PRODUCTION")));
 
   void setEccSlot(int ecc508KeySlot, const byte cert[], int certLength);
   void setEccSlot(int ecc508KeySlot, const char cert[]);
