@@ -27,7 +27,7 @@
 
 #include "CommandHandler.h"
 
-const char FIRMWARE_VERSION[6] = "1.2.4";
+const char FIRMWARE_VERSION[6] = "1.3.0";
 
 /*IPAddress*/uint32_t resolvedHostname;
 
@@ -837,6 +837,126 @@ int getIdxChannel(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int setEnt(const uint8_t command[], uint8_t response[])
+{
+  const uint8_t* commandPtr = &command[3];
+  uint8_t eapType;
+  char ssid[32 + 1];
+
+  memset(ssid, 0x00, sizeof(ssid));
+
+  // EAP Type - length
+  uint16_t eapTypeLen = (commandPtr[0] << 8) | commandPtr[1];
+  commandPtr += sizeof(eapTypeLen);
+
+  // EAP Type - data
+  memcpy(&eapType, commandPtr, sizeof(eapType));
+  commandPtr += sizeof(eapType);
+
+  // SSID - length
+  uint16_t ssidLen = (commandPtr[0] << 8) | commandPtr[1];
+  commandPtr += sizeof(ssidLen);
+
+  // SSID - data
+  memcpy(ssid, commandPtr, ssidLen);
+  commandPtr += ssidLen;
+
+  if (eapType == 0) {
+    // PEAP/MSCHAPv2
+    char username[128 + 1];
+    char password[128 + 1];
+    char identity[128 + 1];
+    const char* rootCA;
+    
+    memset(username, 0x00, sizeof(username));
+    memset(password, 0x00, sizeof(password));
+    memset(identity, 0x00, sizeof(identity));
+
+    // username - length
+    uint16_t usernameLen = (commandPtr[0] << 8) | commandPtr[1];
+    commandPtr += sizeof(usernameLen);
+
+    // username - data
+    memcpy(username, commandPtr, usernameLen);
+    commandPtr += usernameLen;
+
+    // password - length
+    uint16_t passwordLen = (commandPtr[0] << 8) | commandPtr[1];
+    commandPtr += sizeof(passwordLen);
+
+    // password - data
+    memcpy(password, commandPtr, passwordLen);
+    commandPtr += passwordLen;
+
+    // identity - length
+    uint16_t identityLen = (commandPtr[0] << 8) | commandPtr[1];
+    commandPtr += sizeof(identityLen);
+
+    // identity - data
+    memcpy(identity, commandPtr, identityLen);
+    commandPtr += identityLen;
+
+    // rootCA - length
+    uint16_t rootCALen = (commandPtr[0] << 8) | commandPtr[1];
+    memcpy(&rootCALen, commandPtr, sizeof(rootCALen));
+    commandPtr += sizeof(rootCALen);
+
+    // rootCA - data
+    rootCA = (const char*)commandPtr;
+    commandPtr += rootCALen;
+
+    WiFi.beginEnterprise(ssid, username, password, identity, rootCA);
+  } else {
+    // EAP-TLS
+    const char* cert;
+    const char* key;
+    char identity[128 + 1];
+    const char* rootCA;
+
+    memset(identity, 0x00, sizeof(identity));
+
+    // cert - length
+    uint16_t certLen = (commandPtr[0] << 8) | commandPtr[1];
+    commandPtr += sizeof(certLen);
+
+    // cert - data
+    cert = (const char*)commandPtr;
+    commandPtr += certLen;
+
+    // key - length
+    uint16_t keyLen = (commandPtr[0] << 8) | commandPtr[1];
+    commandPtr += sizeof(keyLen);
+
+    // key - data
+    key = (const char*)commandPtr;
+    commandPtr += keyLen;
+
+    // identity - length
+    uint16_t identityLen = (commandPtr[0] << 8) | commandPtr[1];
+    commandPtr += sizeof(identityLen);
+
+    // identity - data
+    memcpy(identity, commandPtr, identityLen);
+    commandPtr += identityLen;
+
+    // rootCA - length
+    uint16_t rootCALen = (commandPtr[0] << 8) | commandPtr[1];
+    commandPtr += sizeof(rootCALen);
+
+    // rootCA - data
+    rootCA = (const char*)commandPtr;
+    commandPtr += rootCALen;
+
+    WiFi.beginEnterpriseTLS(ssid, cert, key, identity, rootCA);
+  }
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
 int sendDataTcp(const uint8_t command[], uint8_t response[])
 {
   uint8_t socket;
@@ -1200,7 +1320,7 @@ const CommandHandlerType commandHandlers[] = {
   disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, NULL, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
 
   // 0x40 -> 0x4f
-  NULL, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x50 -> 0x5f
   setPinMode, setDigitalWrite, setAnalogWrite,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,

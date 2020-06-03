@@ -20,6 +20,7 @@
 #include <time.h>
 
 #include <esp_wifi.h>
+#include <esp_wpa2.h>
 #include <tcpip_adapter.h>
 
 #include <lwip/apps/sntp.h>
@@ -39,7 +40,10 @@ WiFiClass::WiFiClass() :
   _reasonCode(0),
   _interface(ESP_IF_WIFI_STA),
   _onReceiveCallback(NULL),
-  _onDisconnectCallback(NULL)
+  _onDisconnectCallback(NULL),
+  _wpa2Cert(NULL),
+  _wpa2Key(NULL),
+  _wpa2RootCA(NULL)
 {
   _eventGroup = xEventGroupCreate();
   memset(&_apRecord, 0x00, sizeof(_apRecord));
@@ -297,6 +301,82 @@ uint8_t WiFiClass::beginAP(const char *ssid, const char* key, uint8_t channel)
   }
 
   return _status;
+}
+
+uint8_t WiFiClass::beginEnterprise(const char* ssid, const char* username, const char* password, const char* identity, const char* rootCA)
+{
+  esp_wifi_sta_wpa2_ent_clear_username();
+  esp_wifi_sta_wpa2_ent_clear_password();
+  esp_wifi_sta_wpa2_ent_clear_identity();
+  esp_wifi_sta_wpa2_ent_clear_ca_cert();
+  esp_wifi_sta_wpa2_ent_clear_cert_key();
+
+  esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
+
+  esp_wifi_sta_wpa2_ent_enable(&config);
+
+  int usernameLen = strlen(username);
+  if (usernameLen) {
+    esp_wifi_sta_wpa2_ent_set_username((const unsigned char*)username, usernameLen);
+  }
+
+  int passwordLen = strlen(password);
+  if (passwordLen) {
+    esp_wifi_sta_wpa2_ent_set_password((const unsigned char*)password, passwordLen);
+  }
+
+  int identityLen = strlen(identity);
+  if (identityLen) {
+    esp_wifi_sta_wpa2_ent_set_identity((const unsigned char*)identity, identityLen);
+  }
+
+  int rootCALen = strlen(rootCA);
+  if (rootCALen) {
+    _wpa2RootCA = (char*)realloc(_wpa2RootCA, rootCALen + 1);
+    memcpy(_wpa2RootCA, rootCA, rootCALen + 1);
+
+    esp_wifi_sta_wpa2_ent_set_ca_cert((const unsigned char*)_wpa2RootCA, rootCALen + 1);
+  }
+
+  return begin(ssid);
+}
+
+uint8_t WiFiClass::beginEnterpriseTLS(const char* ssid, const char* cert, const char* key, const char* identity, const char* rootCA)
+{
+  esp_wifi_sta_wpa2_ent_clear_username();
+  esp_wifi_sta_wpa2_ent_clear_password();
+  esp_wifi_sta_wpa2_ent_clear_identity();
+  esp_wifi_sta_wpa2_ent_clear_ca_cert();
+  esp_wifi_sta_wpa2_ent_clear_cert_key();
+
+  esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
+
+  esp_wifi_sta_wpa2_ent_enable(&config);
+
+  int certLen = strlen(cert);
+  int keyLen = strlen(key);
+
+  _wpa2Cert = (char*)realloc(_wpa2Cert, certLen + 1);
+  memcpy(_wpa2Cert, cert, certLen + 1);
+  _wpa2Key = (char*)realloc(_wpa2Key, keyLen + 1);
+  memcpy(_wpa2Key, key, keyLen + 1);
+
+  esp_wifi_sta_wpa2_ent_set_cert_key((const unsigned char*)_wpa2Cert, certLen + 1, (const unsigned char*)_wpa2Key, keyLen + 1, NULL, 0);
+
+  int identityLen = strlen(identity);
+  if (identityLen) {
+    esp_wifi_sta_wpa2_ent_set_identity((const unsigned char*)identity, identityLen);
+  }
+
+  int rootCALen = strlen(rootCA);
+  if (rootCALen) {
+    _wpa2RootCA = (char*)realloc(_wpa2RootCA, rootCALen + 1);
+    memcpy(_wpa2RootCA, rootCA, rootCALen + 1);
+
+    esp_wifi_sta_wpa2_ent_set_ca_cert((const unsigned char*)_wpa2RootCA, rootCALen + 1);
+  }
+
+  return begin(ssid);
 }
 
 void WiFiClass::config(/*IPAddress*/uint32_t local_ip, /*IPAddress*/uint32_t gateway, /*IPAddress*/uint32_t subnet)
