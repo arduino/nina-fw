@@ -31,6 +31,7 @@
 #include <lwip/sockets.h>
 #include <lwip/ip_addr.h>
 #include <lwip/inet_chksum.h>
+#include <nvs_flash.h>
 
 #include "WiFi.h"
 
@@ -189,11 +190,25 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
 {
   wifi_config_t wifiConfig;
 
-  memset(&wifiConfig, 0x00, sizeof(wifiConfig));
-  strncpy((char*)wifiConfig.sta.ssid, ssid, sizeof(wifiConfig.sta.ssid));
-  strncpy((char*)wifiConfig.sta.password, key, sizeof(wifiConfig.sta.password));
-  wifiConfig.sta.scan_method = WIFI_FAST_SCAN;
-  _status = WL_NO_SSID_AVAIL;
+  status();
+
+  if (_status == WL_IDLE_STATUS) {
+    esp_wifi_get_config(ESP_IF_WIFI_STA, &wifiConfig_bkp);
+  }
+
+  if (strlen(ssid) == 0 || (_status != WL_IDLE_STATUS && _status != WL_CONNECTED)) {
+    _status = WL_IDLE_STATUS;
+    memset(&wifiConfig, 0x00, sizeof(wifiConfig_bkp));
+    strncpy((char*)wifiConfig.sta.ssid, (char*)wifiConfig_bkp.sta.ssid, sizeof(wifiConfig_bkp.sta.ssid));
+    strncpy((char*)wifiConfig.sta.password, (char*)wifiConfig_bkp.sta.password, sizeof(wifiConfig_bkp.sta.password));
+    wifiConfig.sta.scan_method = WIFI_FAST_SCAN;
+  }
+  else {
+    memset(&wifiConfig, 0x00, sizeof(wifiConfig));
+    strncpy((char*)wifiConfig.sta.ssid, ssid, sizeof(wifiConfig.sta.ssid));
+    strncpy((char*)wifiConfig.sta.password, key, sizeof(wifiConfig.sta.password));
+    wifiConfig.sta.scan_method = WIFI_FAST_SCAN;
+  }
 
   _interface = ESP_IF_WIFI_STA;
 
@@ -203,8 +218,8 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   esp_wifi_start();
   xEventGroupWaitBits(_eventGroup, BIT0, false, true, portMAX_DELAY);
 
-  if (esp_wifi_set_config(ESP_IF_WIFI_STA, &wifiConfig) != ESP_OK) {
-    _status = WL_CONNECT_FAILED;
+  if (sizeof(ssid) > 0) {
+    esp_wifi_set_config(ESP_IF_WIFI_STA, &wifiConfig);
   }
 
   if (_staticIp) {
@@ -673,18 +688,20 @@ err_t WiFiClass::handleApNetifInput(struct pbuf* p, struct netif* inp)
 
 void WiFiClass::init()
 {
+  nvs_flash_init();
   tcpip_adapter_init();
   esp_event_loop_init(WiFiClass::systemEventHandler, this);
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   esp_wifi_init(&cfg);
-  esp_wifi_set_storage(WIFI_STORAGE_RAM);
+  esp_wifi_set_storage(WIFI_STORAGE_FLASH);
 
   sntp_setoperatingmode(SNTP_OPMODE_POLL);
   sntp_setservername(0, (char*)"0.pool.ntp.org");
   sntp_setservername(1, (char*)"1.pool.ntp.org");
   sntp_setservername(2, (char*)"2.pool.ntp.org");
   sntp_init();
+  
   _status = WL_IDLE_STATUS;
 }
 
