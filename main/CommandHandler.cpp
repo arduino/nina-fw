@@ -1140,6 +1140,21 @@ exit:
 #endif
 }
 
+int renameFile(const uint8_t command[], uint8_t response[]) {
+  char old_file_name[64 + 1];
+  char new_file_name[64 + 1];
+
+  memset(old_file_name, 0x00, sizeof(old_file_name));
+  memcpy(old_file_name, "/fs/", strlen("/fs/"));
+  memcpy(&old_file_name[strlen("/fs/")], &command[4], command[3]);
+
+  memset(new_file_name, 0x00, sizeof(new_file_name));
+  memcpy(new_file_name, "/fs/", strlen("/fs/"));
+  memcpy(&new_file_name[strlen("/fs/")], &command[5 + command[3]], command[4 + command[3]]);
+
+  return rename(old_file_name, new_file_name);
+}
+
 int existsFile(const uint8_t command[], uint8_t response[]) {
   char filename[32 + 1];
   size_t len;
@@ -1206,7 +1221,7 @@ const CommandHandlerType commandHandlers[] = {
   setPinMode, setDigitalWrite, setAnalogWrite,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x60 -> 0x6f
-  writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 #define NUM_COMMAND_HANDLERS (sizeof(commandHandlers) / sizeof(commandHandlers[0]))
