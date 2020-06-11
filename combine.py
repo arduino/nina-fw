@@ -31,7 +31,7 @@ for i in range(0, len(certsData)):
 # zero terminate the pem file
 outputData[0x10000 + len(certsData)] = 0
 
-outputFilename = "NINA_W102-1.6.0.bin"
+outputFilename = "NINA_W102-1.6.1.bin"
 if (len(sys.argv) > 1):
 	outputFilename = sys.argv[1]
 
