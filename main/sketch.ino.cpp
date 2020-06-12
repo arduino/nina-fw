@@ -152,6 +152,37 @@ void setupWiFi() {
 
   esp_err_t ret = esp_vfs_spiffs_register(&conf);
 
+  uint8_t counter = 0;
+
+  #define TAG "sketch"
+
+  const char* filename = "/fs/bootcounter.bin";
+  FILE* counterFile;
+  counterFile = fopen("/fs/bootcounter.bin", "r");
+  if (counterFile == NULL) {
+    ESP_EARLY_LOGI(TAG, "Counter file didn't exist. It has been created");
+
+    counterFile = fopen("/fs/bootcounter.bin", "w+");
+    counter = 1;
+    fwrite(&counter, sizeof(uint8_t), 1, counterFile);
+    fclose(counterFile);
+
+    ESP_EARLY_LOGI(TAG, "Counter written in file: %d", counter);
+  }
+  else {
+    int sizef = fread(&counter, 1, 1, counterFile);
+
+    ESP_EARLY_LOGI(TAG, "Counter file already existed -> opened");
+    ESP_EARLY_LOGI(TAG, "Counter read from file: %d", counter);
+
+    counter++;
+    freopen(filename,"w",counterFile);
+    ESP_EARLY_LOGI(TAG, "Counter written in file: %d", counter);
+    ESP_EARLY_LOGI(TAG, "Reboot counter is still in the range. %d more attempts allowed", (4-counter));
+    fwrite(&counter, sizeof(uint8_t), 1, counterFile);
+    fclose(counterFile);
+  }
+
   if (WiFi.status() == WL_NO_SHIELD) {
     while (1); // no shield
   }
