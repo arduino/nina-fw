@@ -24,6 +24,7 @@
 #include <WiFiServer.h>
 #include <WiFiSSLClient.h>
 #include <WiFiUdp.h>
+#include "RGBled.h"
 
 #include "CommandHandler.h"
 
@@ -1109,6 +1110,17 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int setRGBled(const uint8_t command[], uint8_t response[])
+{
+  xTaskCreatePinnedToCore(RGBClass::RGBstop, "RGBstop", 8192, NULL, 1, &RGB.RGBstop_handle, 1);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
 int writeFile(const uint8_t command[], uint8_t response[]) {
   char filename[32 + 1];
   size_t len;
@@ -1323,7 +1335,7 @@ const CommandHandlerType commandHandlers[] = {
   setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x50 -> 0x5f
-  setPinMode, setDigitalWrite, setAnalogWrite,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  setPinMode, setDigitalWrite, setAnalogWrite, setRGBled, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x60 -> 0x6f
   writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,

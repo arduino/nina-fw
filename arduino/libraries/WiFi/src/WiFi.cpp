@@ -32,6 +32,7 @@
 #include <lwip/ip_addr.h>
 #include <lwip/inet_chksum.h>
 #include <nvs_flash.h>
+#include "RGBled.h"
 
 #include "WiFi.h"
 
@@ -701,6 +702,8 @@ void WiFiClass::init()
   sntp_setservername(1, (char*)"1.pool.ntp.org");
   sntp_setservername(2, (char*)"2.pool.ntp.org");
   sntp_init();
+
+  RGB.init();
   
   _status = WL_IDLE_STATUS;
 }
@@ -849,6 +852,8 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
     default:
       break;
   }
+
+  RGB.ledRGBEvent(event);
 }
 
 WiFiClass WiFi;
