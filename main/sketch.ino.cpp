@@ -34,7 +34,7 @@ extern "C" {
 
 #define SPI_BUFFER_LEN SPI_MAX_DMA_LEN
 
-int debug = 1;
+int debug = 0;
 
 uint8_t* commandBuffer;
 uint8_t* responseBuffer;
@@ -123,7 +123,8 @@ void setupBluetooth() {
   // TX GPIO1 & RX GPIO3 on ESP32 'hardware' UART
   // RTS on ESP_BUSY (GPIO33)
   // CTS on GPIO0 (GPIO0)
-  uart_set_pin(UART_NUM_1, 22, 23, 33, 0);
+  // uart_set_pin(UART_NUM_1, 22, 23, 33, 0);
+  uart_set_pin(UART_NUM_1, 1, 3, 33, 0);
 #else
   uart_set_pin(UART_NUM_1, 23, 12, 18, 5);
   uart_set_hw_flow_ctrl(UART_NUM_1, UART_HW_FLOWCTRL_CTS_RTS, 5);
