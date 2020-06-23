@@ -120,6 +120,8 @@ private:
   EventGroupHandle_t _eventGroup;
   esp_interface_t _interface;
 
+  wifi_config_t wifiConfig_bkp;
+
   wifi_ap_record_t _scanResults[MAX_SCAN_RESULTS];
   wifi_ap_record_t _apRecord;
   bool _staticIp;

@@ -4,3 +4,4 @@ nvs,      data, nvs,     0x9000,  0x6000
 phy_init, data, phy,     0xf000,  0x1000
 certs,    data, 0x04,    0x10000, 0x20000
 factory,  app,  factory, 0x30000, 0x180000
+storage,  data, spiffs,  0x1B0000,0x40000

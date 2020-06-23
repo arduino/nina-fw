@@ -24,6 +24,7 @@
 #include <WiFiServer.h>
 #include <WiFiSSLClient.h>
 #include <WiFiUdp.h>
+#include "RGBled.h"
 
 #include "CommandHandler.h"
 
@@ -1109,6 +1110,211 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int setRGBled(const uint8_t command[], uint8_t response[])
+{
+  xTaskCreatePinnedToCore(RGBClass::RGBstop, "RGBstop", 8192, NULL, 1, &RGB.RGBstop_handle, 1);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
+int writeFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  FILE* f = fopen(filename, "ab+");
+  if (f == NULL) {
+    return -1;
+  }
+
+  fseek(f, offset, SEEK_SET);
+  const uint8_t* data = &command[7 + command[3] + command[4 + command[3]] + command[5 + command[3] + command[4 + command[3]]]];
+
+  int ret = fwrite(data, 1, len, f);
+  fclose(f);
+
+  return ret;
+}
+
+int readFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  FILE* f = fopen(filename, "rb");
+  if (f == NULL) {
+    return -1;
+  }
+  fseek(f, offset, SEEK_SET);
+  int ret = fread(&response[4], len, 1, f);
+  fclose(f);
+
+  response[2] = 1; // number of parameters
+  response[3] = len; // parameter 1 length
+
+  return len + 5;
+}
+
+int deleteFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  int ret = -1;
+  struct stat st;
+  if (stat(filename, &st) == 0) {
+    // Delete it if it exists
+    ret = unlink(filename);
+  }
+  return 0;
+}
+
+#include <driver/uart.h>
+
+int applyOTA(const uint8_t command[], uint8_t response[]) {
+#ifdef UNO_WIFI_REV2
+
+  const char* filename = "/fs/UPDATE.BIN";
+  FILE* updateFile = fopen(filename, "rb");
+
+  // init uart and write update to 4809
+  uart_config_t uart_config;
+
+  uart_config.baud_rate = 115200;
+  uart_config.data_bits = UART_DATA_8_BITS;
+  uart_config.parity = UART_PARITY_DISABLE;
+  uart_config.stop_bits = UART_STOP_BITS_1;
+  uart_config.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+  uart_config.rx_flow_ctrl_thresh = 122;
+  uart_config.use_ref_tick = true;
+
+  uart_param_config(UART_NUM_1, &uart_config);
+
+  uart_set_pin(UART_NUM_1,
+                 1, // tx
+                 3, // rx
+                 UART_PIN_NO_CHANGE, // rts
+                 UART_PIN_NO_CHANGE); //cts
+
+  uart_driver_install(UART_NUM_1, 1024, 0, 20, NULL, 0);
+
+  struct stat st;
+  stat(filename, &st);
+
+  int retries = 0;
+
+  size_t remaining =  st.st_size % 1024;
+  for (int i=0; i<st.st_size; i++) {
+    uint8_t c;
+    uint8_t d;
+
+    fread(&c, 1, 1, updateFile);
+    retries = 0;
+    while (retries == 0 || (c != d && retries < 100)) {
+      uart_write_bytes(UART_NUM_1, (const char*)&c, 1);
+      uart_read_bytes(UART_NUM_1, &d, 1, 10);
+      retries++;
+    }
+    if (retries >= 100) {
+      goto exit;
+    }
+  }
+  // send remaining bytes (to reach page size) as 0xFF
+  for (int i=0; i<remaining + 10; i++) {
+    uint8_t c = 0xFF;
+    uint8_t d;
+    retries = 0;
+    while (retries == 0 || (c != d && retries < 100)) {
+      uart_write_bytes(UART_NUM_1, (const char*)&c, 1);
+      uart_read_bytes(UART_NUM_1, &d, 1, 10);
+      retries++;
+    }
+  }
+
+  // delay a bit before restarting, in case the flashing isn't yet over
+  delay(200);
+
+  pinMode(19, OUTPUT);
+  digitalWrite(19, HIGH);
+  delay(200);
+  digitalWrite(19, LOW);
+  pinMode(19, INPUT);
+
+exit:
+  fclose(updateFile);
+  unlink(filename);
+
+  return 0;
+#else
+  return 0;
+#endif
+}
+
+int existsFile(const uint8_t command[], uint8_t response[]) {
+  char filename[32 + 1];
+  size_t len;
+  size_t offset;
+
+  memcpy(&offset, &command[4], command[3]);
+  memcpy(&len, &command[5 + command[3]], command[4 + command[3]]);
+
+  memset(filename, 0x00, sizeof(filename));
+  memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
+
+  int ret = -1;
+
+  struct stat st;
+  ret = stat(filename, &st);
+  if (ret != 0) {
+    st.st_size = -1;
+  }
+  memcpy(&response[4], &(st.st_size), sizeof(st.st_size));
+
+  response[2] = 1; // number of parameters
+  response[3] = sizeof(st.st_size); // parameter 1 length
+
+  return 10;
+}
+
+int downloadFile(const uint8_t command[], uint8_t response[]) {
+  char url[64 + 1];
+  char filename[64 + 1];
+
+  memset(url, 0x00, sizeof(url));
+  memset(filename, 0x00, sizeof(filename));
+
+  memcpy(url, &command[4], command[3]);
+  memcpy(filename, "/fs/", strlen("/fs/"));
+  memcpy(&filename[strlen("/fs/")], &command[5 + command[3]], command[4 + command[3]]);
+
+  FILE* f = fopen(filename, "w");
+  downloadAndSaveFile(url, filename, f);
+  fclose(f);
+
+  return 0;
+}
 
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
@@ -1129,7 +1335,10 @@ const CommandHandlerType commandHandlers[] = {
   setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x50 -> 0x5f
-  setPinMode, setDigitalWrite, setAnalogWrite,
+  setPinMode, setDigitalWrite, setAnalogWrite, setRGBled, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+
+  // 0x60 -> 0x6f
+  writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
 #define NUM_COMMAND_HANDLERS (sizeof(commandHandlers) / sizeof(commandHandlers[0]))
@@ -1153,6 +1362,9 @@ void CommandHandlerClass::begin()
 
   xTaskCreatePinnedToCore(CommandHandlerClass::gpio0Updater, "gpio0Updater", 8192, NULL, 1, NULL, 1);
 }
+
+#define UDIV_UP(a, b) (((a) + (b) - 1) / (b))
+#define ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
 
 int CommandHandlerClass::handle(const uint8_t command[], uint8_t response[])
 {
@@ -1180,7 +1392,7 @@ int CommandHandlerClass::handle(const uint8_t command[], uint8_t response[])
 
   xSemaphoreGive(_updateGpio0PinSemaphore);
 
-  return responseLength;
+  return ALIGN_UP(responseLength, 4);
 }
 
 void CommandHandlerClass::gpio0Updater(void*)

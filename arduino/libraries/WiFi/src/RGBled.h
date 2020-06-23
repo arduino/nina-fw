@@ -17,34 +17,39 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef COMMAND_HANDLER_H
-#define COMMAND_HANDLER_H
+#ifndef RGBLED_H
+#define RGBLED_H
 
-#include <stdint.h>
+#include <esp_event_loop.h>
 
-class CommandHandlerClass {
+#include <freertos/FreeRTOS.h>
+#include <freertos/event_groups.h>
+
+#include <lwip/netif.h>
+
+#include <Arduino.h>
+
+class RGBClass
+{
 public:
-  CommandHandlerClass();
+  RGBClass();
 
-  void begin();
-  int handle(const uint8_t command[], uint8_t response[]);
+  TaskHandle_t RGBtask_handle = NULL;
+  TaskHandle_t RGBstop_handle = NULL;
+  TaskHandle_t RGBrestart_handle = NULL;
 
-private:
-  static void gpio0Updater(void*);
-  void updateGpio0Pin();
+  void init(void);
 
-  static void onWiFiReceive();
-  void handleWiFiReceive();
-
-  static void onWiFiDisconnect();
-  void handleWiFiDisconnect();
-
-private:
-  SemaphoreHandle_t _updateGpio0PinSemaphore;
+  void RGBmode(uint32_t mode);
+  void RGBcolor(uint8_t red, uint8_t green, uint8_t blue);
+  void clearLed(void);
+  void ledRGBEvent(system_event_t* event);
+  static void RGBstop(void*);
+  static void RGBrestart(void*);
+  static void APconnection(void*);
+  static void APdisconnection(void*);
 };
 
-extern CommandHandlerClass CommandHandler;
-
-extern "C" int downloadAndSaveFile(char* url, char* filename, FILE* f);
+static RGBClass RGB;
 
 #endif
