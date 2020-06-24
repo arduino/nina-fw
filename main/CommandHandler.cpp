@@ -1141,18 +1141,24 @@ exit:
 }
 
 int renameFile(const uint8_t command[], uint8_t response[]) {
-  char old_file_name[64 + 1];
-  char new_file_name[64 + 1];
+  char old_file_name[64 + 1] = {0};
+  char new_file_name[64 + 1] = {0};
 
-  memset(old_file_name, 0x00, sizeof(old_file_name));
-  memcpy(old_file_name, "/fs/", strlen("/fs/"));
-  memcpy(&old_file_name[strlen("/fs/")], &command[4], command[3]);
+  strcpy(old_file_name, "/fs/");
+  memcpy(&old_file_name[strlen(old_file_name)], &command[4], command[3]);
 
-  memset(new_file_name, 0x00, sizeof(new_file_name));
-  memcpy(new_file_name, "/fs/", strlen("/fs/"));
-  memcpy(&new_file_name[strlen("/fs/")], &command[5 + command[3]], command[4 + command[3]]);
+  strcpy(new_file_name, "/fs/");
+  memcpy(&new_file_name[strlen(new_file_name)], &command[5 + command[3]], command[4 + command[3]]);
 
-  return rename(old_file_name, new_file_name);
+  errno = 0;
+  rename(old_file_name, new_file_name);
+
+  /* Set up the response packet containing the ERRNO error number */
+  response[2] = 1;      /* Number of parameters */
+  response[3] = 1;      /* Length of parameter 1 */
+  response[4] = errno;  /* The actual payload */
+
+  return 0;
 }
 
 int existsFile(const uint8_t command[], uint8_t response[]) {
