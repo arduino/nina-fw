@@ -32,7 +32,7 @@ extern "C" {
   #include <dirent.h>
   #include "esp_partition.h"
 }
-
+#include "RGBled.h"
 #include <Arduino.h>
 
 #include <SPIS.h>
@@ -91,13 +91,14 @@ void setupWiFi();
 void setupBluetooth();
 
 void setup() {
-  setDebug(debug);
+  //setDebug(debug);
 
   // put SWD and SWCLK pins connected to SAMD as inputs
   pinMode(15, INPUT);
   pinMode(21, INPUT);
 
   pinMode(5, INPUT);
+  rgb_init();
   if (digitalRead(5) == LOW) {
     setupBluetooth();
   } else {

@@ -1,55 +1,38 @@
-/*
-  This file is part of the Arduino NINA firmware.
-  Copyright (c) 2018 Arduino SA. All rights reserved.
+#ifndef RGBLED_H_
+#define RGBLED_H_
 
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or (at your option) any later version.
+#include "esp_event.h"
+#include "esp_event_loop.h"
+#include "esp_timer.h"
 
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+// Declarations for the event source
+#define TASK_ITERATIONS_COUNT        10      // number of times the task iterates
+#define TASK_PERIOD                  500     // period of the task loop in milliseconds
 
-#ifndef RGBLED_H
-#define RGBLED_H
+ESP_EVENT_DECLARE_BASE(RGB_LED_EVENT);         // declaration of the task events family
 
-#include <esp_event_loop.h>
+static const char* TAG = "RGBled";
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/event_groups.h>
-
-#include <lwip/netif.h>
-
-#include <Arduino.h>
-
-class RGBClass
-{
-public:
-  RGBClass();
-
-  TaskHandle_t RGBtask_handle = NULL;
-  TaskHandle_t RGBstop_handle = NULL;
-  TaskHandle_t RGBrestart_handle = NULL;
-
-  void init(void);
-
-  void RGBmode(uint32_t mode);
-  void RGBcolor(uint8_t red, uint8_t green, uint8_t blue);
-  void clearLed(void);
-  void ledRGBEvent(system_event_t* event);
-  static void RGBstop(void*);
-  static void RGBrestart(void*);
-  static void APconnection(void*);
-  static void APdisconnection(void*);
+enum {
+    RGB_EVENT_STA_CONNECTED = SYSTEM_EVENT_STA_CONNECTED,           /* Connected to WiFi */
+    RGB_EVENT_STA_DISCONNECTED = SYSTEM_EVENT_STA_DISCONNECTED,     /* Disconnected from WiFi */
+    RGB_EVENT_AP_START = SYSTEM_EVENT_AP_START,                     /* Access point created */
+    RGB_EVENT_AP_STACONNECTED = SYSTEM_EVENT_AP_STACONNECTED,       /* Device connected to Access Point */
+    RGB_EVENT_AP_STADISCONNECTED = SYSTEM_EVENT_AP_STADISCONNECTED, /* Device disconnected from Access Point */
+    RGB_EVENT_LED_STOP = (SYSTEM_EVENT_MAX + 1),                    /* Stop RGB led */
+    RGB_EVENT_LED_RESTART = (SYSTEM_EVENT_MAX + 2)                  /* Restart RGB led */
 };
 
-static RGBClass RGB;
+void rgb_init(void);
 
+void ledRGBEventSource(int32_t event_id);   //system_event_t* event
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif // #ifndef RGBLED_H_

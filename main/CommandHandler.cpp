@@ -28,6 +28,9 @@
 
 #include "CommandHandler.h"
 
+#include "esp_log.h"
+#define TAG "CommandHandler"
+
 const char FIRMWARE_VERSION[6] = "1.3.0";
 
 /*IPAddress*/uint32_t resolvedHostname;
@@ -1112,7 +1115,12 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
 
 int setRGBled(const uint8_t command[], uint8_t response[])
 {
-  xTaskCreatePinnedToCore(RGBClass::RGBstop, "RGBstop", 8192, NULL, 1, &RGB.RGBstop_handle, 1);
+  if (command[4]==1) {
+    ledRGBEventSource(RGB_EVENT_LED_STOP);
+  }
+  else if (command[4]==2) {
+    ledRGBEventSource(RGB_EVENT_LED_RESTART);
+  }
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length

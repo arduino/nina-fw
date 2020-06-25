@@ -703,8 +703,6 @@ void WiFiClass::init()
   sntp_setservername(2, (char*)"2.pool.ntp.org");
   sntp_init();
 
-  RGB.init();
-  
   _status = WL_IDLE_STATUS;
 }
 
@@ -853,7 +851,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       break;
   }
 
-  RGB.ledRGBEvent(event);
+  ledRGBEventSource(event->event_id);
 }
 
 WiFiClass WiFi;
