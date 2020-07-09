@@ -1260,11 +1260,11 @@ int renameFile(const uint8_t command[], uint8_t response[]) {
   char old_file_name[64 + 1] = {0};
   char new_file_name[64 + 1] = {0};
 
-  strcpy(old_file_name, "/fs/");
-  memcpy(&old_file_name[strlen(old_file_name)], &command[4], command[3]);
+  memset(old_file_name, 0, sizeof(old_file_name));
+  memcpy(old_file_name, &command[4], command[3]);
 
-  strcpy(new_file_name, "/fs/");
-  memcpy(&new_file_name[strlen(new_file_name)], &command[5 + command[3]], command[4 + command[3]]);
+  memset(new_file_name, 0, sizeof(new_file_name));
+  memcpy(new_file_name, &command[5 + command[3]], command[4 + command[3]]);
 
   errno = 0;
   rename(old_file_name, new_file_name);
@@ -1274,7 +1274,7 @@ int renameFile(const uint8_t command[], uint8_t response[]) {
   response[3] = 1;      /* Length of parameter 1 */
   response[4] = errno;  /* The actual payload */
 
-  return 0;
+  return 6;
 }
 
 int existsFile(const uint8_t command[], uint8_t response[]) {
