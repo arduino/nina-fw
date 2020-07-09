@@ -483,10 +483,6 @@ int availDataTcp(const uint8_t command[], uint8_t response[])
     }
   } else if (socketTypes[socket] == 0x01) {
     available = udps[socket].available();
-
-    if (available <= 0) {
-      available = udps[socket].parsePacket();
-    }
   } else if (socketTypes[socket] == 0x02) {
     available = tlsClients[socket].available();
   }
