@@ -1,5 +1,11 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.4.0 - 2020.07.13
+
+* Adding API which allows to utilize the nina file system as an external storage module for the host CPU (#32)
+* Fixing bug leading to packet corruption in situation of high UDP traffic (#49)
+* Fixing bug leading to missing packets and connection drop (#50)
+
 Arduino NINA-W102 firmware 1.3.0 - 2019.12.23
 
 * Fixed channel's assignement for WiFi.beginAP(...)
