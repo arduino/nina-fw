@@ -45,6 +45,6 @@ private:
 
 extern CommandHandlerClass CommandHandler;
 
-extern "C" int downloadAndSaveFile(char* url, char* filename, FILE* f);
+extern "C" int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem);
 
 #endif
