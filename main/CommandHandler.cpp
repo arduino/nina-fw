@@ -1317,7 +1317,7 @@ int downloadFile(const uint8_t command[], uint8_t response[]) {
   memcpy(&filename[strlen("/fs/")], &command[5 + command[3]], command[4 + command[3]]);
 
   FILE* f = fopen(filename, "w");
-  downloadAndSaveFile(url, filename, f);
+  downloadAndSaveFile(url, f, 0);
   fclose(f);
 
   return 0;
@@ -1418,7 +1418,7 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
     response[4] = ERR_OPEN;
     goto ota_cleanup;
   }
-  downloadAndSaveFile(url, 0, f);
+  downloadAndSaveFile(url, f, 0);
 
   /* Determine size of downloaded file. */
   ota_size = ftell(f) - sizeof(ota_header.buf);
