@@ -103,30 +103,50 @@ void setup() {
   }
 }
 
-#define UNO_WIFI_REV2
+#define AIRLIFT 1
 
 void setupBluetooth() {
+  if (debug)  ets_printf("setup periph\n");
+
+  while (1) {
+    vTaskDelay(portMAX_DELAY);
+  }
+
   periph_module_enable(PERIPH_UART1_MODULE);
   periph_module_enable(PERIPH_UHCI0_MODULE);
 
+  if (debug)  ets_printf("setup pins\n");
+
 #ifdef UNO_WIFI_REV2
   uart_set_pin(UART_NUM_1, 1, 3, 33, 0); // TX, RX, RTS, CTS
+#elif defined(AIRLIFT)
+  // TX GPIO1 & RX GPIO3 on ESP32 'hardware' UART
+  // RTS on ESP_BUSY (GPIO33)
+  // CTS on GPIO0 (GPIO0)
+  // uart_set_pin(UART_NUM_1, 22, 23, 33, 0);
+  uart_set_pin(UART_NUM_1, 1, 3, 33, 0);
 #else
   uart_set_pin(UART_NUM_1, 23, 12, 18, 5);
-#endif
   uart_set_hw_flow_ctrl(UART_NUM_1, UART_HW_FLOWCTRL_CTS_RTS, 5);
+#endif
+
+  if (debug)  ets_printf("setup controller\n");
 
   esp_bt_controller_config_t btControllerConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT(); 
 
   btControllerConfig.hci_uart_no = UART_NUM_1;
 #ifdef UNO_WIFI_REV2
   btControllerConfig.hci_uart_baudrate = 115200;
+#elif defined(AIRLIFT)
+  btControllerConfig.hci_uart_baudrate = 115200;
 #else
   btControllerConfig.hci_uart_baudrate = 912600;
 #endif
 
   esp_bt_controller_init(&btControllerConfig);
-  while (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE);
+  while (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE) {
+     if (debug)  ets_printf("idle\n");
+  }
   esp_bt_controller_enable(ESP_BT_MODE_BLE);
   esp_bt_sleep_enable();
 
@@ -134,6 +154,7 @@ void setupBluetooth() {
 
   while (1) {
     vTaskDelay(portMAX_DELAY);
+    if (debug)  ets_printf(".");
   }
 }
 
@@ -146,7 +167,7 @@ void setupWiFi() {
     if (debug)  ets_printf("*** NOSHIELD\n");
     while (1); // no shield
   }
-  
+
   commandBuffer = (uint8_t*)heap_caps_malloc(SPI_BUFFER_LEN, MALLOC_CAP_DMA);
   responseBuffer = (uint8_t*)heap_caps_malloc(SPI_BUFFER_LEN, MALLOC_CAP_DMA);
 
