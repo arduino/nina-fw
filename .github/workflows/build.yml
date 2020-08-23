@@ -1,0 +1,46 @@
+name: Build CI
+
+on: [pull_request, push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+  steps:
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+    - name: Versions
+      run: |
+        python3 --version
+    - name: Checkout Current Repo
+      uses: actions/checkout@v1
+      with:
+        submodules: true
+    - name: Install gperf
+      run: |
+        sudo apt-get install -y gperf
+    - name: Make /esp folder
+      run: |
+        mkdir -p ~/esp
+        cd ~/esp
+    - name: Download ESP Toolchain
+      run: |
+        wget https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-1.22.0-80-g6c4433a-5.2.0.tar.gz
+        tar -xzf xtensa-esp32-elf-linux64-1.22.0-80-g6c4433a-5.2.0.tar.gz
+    - name: Dump Xtensa ESP32 context
+      env:
+        PATH: $PATH:$HOME/esp/xtensa-esp32-elf/bin
+    - name: Clone ESP-IDF
+      run: |
+        git clone --branch v3.3.1 --recursive https://github.com/espressif/esp-idf.git
+    - name: Dump IDF path context
+      env: 
+        IDF_PATH: ~/esp/esp-idf
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --user -r $IDF_PATH/requirements.txt
+    - name: make
+      run: |
+        cd $PROJECT_PATH
+        make firmware
