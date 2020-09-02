@@ -22,7 +22,7 @@
 #include "ECCX08.h"
 
 const uint32_t ECCX08Class::_wakeupFrequency = 100000u;  // 100 kHz
-#ifdef __AVR__
+#if defined(__AVR__) || defined (ESP_PLATFORM)
 const uint32_t ECCX08Class::_normalFrequency = 400000u;  // 400 kHz
 #else
 const uint32_t ECCX08Class::_normalFrequency = 1000000u; // 1 MHz
