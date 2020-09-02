@@ -37,6 +37,7 @@ extern "C" {
 
 #include <SPIS.h>
 #include <WiFi.h>
+#include <ArduinoECCX08.h>
 
 #include "CommandHandler.h"
 
@@ -154,6 +155,10 @@ void setupWiFi() {
 
   if (WiFi.status() == WL_NO_SHIELD) {
     while (1); // no shield
+  }
+
+  if (!ECCX08.begin()) {
+    ESP_LOGE("ECCX08", "%s ECCX08.begin() failed", __FUNCTION__);
   }
   
   commandBuffer = (uint8_t*)heap_caps_malloc(SPI_BUFFER_LEN, MALLOC_CAP_DMA);
