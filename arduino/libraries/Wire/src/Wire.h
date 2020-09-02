@@ -32,8 +32,8 @@ extern "C" {
  // WIRE_HAS_END means Wire has end()
 #define WIRE_HAS_END 1
 
-static const uint8_t SDA = 21;
-static const uint8_t SCL = 22;
+static const uint8_t SDA = 13;
+static const uint8_t SCL = 14;
 
 class TwoWire : public Stream
 {
