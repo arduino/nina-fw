@@ -26,12 +26,14 @@ extern "C" {
 }
 
 #include "Stream.h"
-#include "variant.h"
 
 #include "RingBuffer.h"
 
  // WIRE_HAS_END means Wire has end()
 #define WIRE_HAS_END 1
+
+static const uint8_t SDA = 21;
+static const uint8_t SCL = 22;
 
 class TwoWire : public Stream
 {

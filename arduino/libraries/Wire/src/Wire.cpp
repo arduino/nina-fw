@@ -66,22 +66,22 @@ void TwoWire::begin(void) {
 
   gpioConf.intr_type = GPIO_INTR_DISABLE;
   gpioConf.mode = GPIO_MODE_INPUT_OUTPUT_OD;
-  gpioConf.pin_bit_mask = (1 << g_ADigitalPinMap[_uc_pinSCL]) | (1 << g_ADigitalPinMap[_uc_pinSDA]);
+  gpioConf.pin_bit_mask = (1 << _uc_pinSCL) | (1 << _uc_pinSDA);
   gpioConf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   gpioConf.pull_up_en = GPIO_PULLUP_ENABLE;
 
   gpio_config(&gpioConf);    
 
   if (_peripheral == PERIPH_I2C0_MODULE) {
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_OUT_IDX, 0,  0);
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_OUT_IDX, 0,  0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_IN_IDX, 0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_IN_IDX, 0);
+    gpio_matrix_out(_uc_pinSCL, I2CEXT0_SCL_OUT_IDX, 0,  0);
+    gpio_matrix_out(_uc_pinSDA, I2CEXT0_SDA_OUT_IDX, 0,  0);
+    gpio_matrix_in(_uc_pinSCL, I2CEXT0_SCL_IN_IDX, 0);
+    gpio_matrix_in(_uc_pinSDA, I2CEXT0_SDA_IN_IDX, 0);
   } else if (_peripheral == PERIPH_I2C1_MODULE) {
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_OUT_IDX, 0,  0);
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_OUT_IDX, 0,  0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_IN_IDX, 0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_IN_IDX, 0);
+    gpio_matrix_out(_uc_pinSCL, I2CEXT1_SCL_OUT_IDX, 0,  0);
+    gpio_matrix_out(_uc_pinSDA, I2CEXT1_SDA_OUT_IDX, 0,  0);
+    gpio_matrix_in(_uc_pinSCL, I2CEXT1_SCL_IN_IDX, 0);
+    gpio_matrix_in(_uc_pinSDA, I2CEXT1_SDA_IN_IDX, 0);
   }
 }
 
@@ -111,22 +111,22 @@ void TwoWire::begin(uint8_t address) {
 
   gpioConf.intr_type = GPIO_INTR_DISABLE;
   gpioConf.mode = GPIO_MODE_INPUT_OUTPUT_OD;
-  gpioConf.pin_bit_mask = (1 << g_ADigitalPinMap[_uc_pinSCL]) | (1 << g_ADigitalPinMap[_uc_pinSDA]);
+  gpioConf.pin_bit_mask = (1 << _uc_pinSCL) | (1 << _uc_pinSDA);
   gpioConf.pull_down_en = GPIO_PULLDOWN_DISABLE;
   gpioConf.pull_up_en = GPIO_PULLUP_ENABLE;
 
   gpio_config(&gpioConf);    
 
   if (_peripheral == PERIPH_I2C0_MODULE) {
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_OUT_IDX, 0,  0);
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_OUT_IDX, 0,  0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT0_SCL_IN_IDX, 0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT0_SDA_IN_IDX, 0);
+    gpio_matrix_out(_uc_pinSCL, I2CEXT0_SCL_OUT_IDX, 0,  0);
+    gpio_matrix_out(_uc_pinSDA, I2CEXT0_SDA_OUT_IDX, 0,  0);
+    gpio_matrix_in(_uc_pinSCL, I2CEXT0_SCL_IN_IDX, 0);
+    gpio_matrix_in(_uc_pinSDA, I2CEXT0_SDA_IN_IDX, 0);
   } else if (_peripheral == PERIPH_I2C1_MODULE) {
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_OUT_IDX, 0,  0);
-    gpio_matrix_out(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_OUT_IDX, 0,  0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSCL], I2CEXT1_SCL_IN_IDX, 0);
-    gpio_matrix_in(g_ADigitalPinMap[_uc_pinSDA], I2CEXT1_SDA_IN_IDX, 0);
+    gpio_matrix_out(_uc_pinSCL, I2CEXT1_SCL_OUT_IDX, 0,  0);
+    gpio_matrix_out(_uc_pinSDA, I2CEXT1_SDA_OUT_IDX, 0,  0);
+    gpio_matrix_in(_uc_pinSCL, I2CEXT1_SCL_IN_IDX, 0);
+    gpio_matrix_in(_uc_pinSDA, I2CEXT1_SDA_IN_IDX, 0);
   }
 
   if (_peripheral == PERIPH_I2C0_MODULE) {
@@ -178,11 +178,11 @@ void TwoWire::end() {
     ESP_INTR_DISABLE(ETS_I2C1_INUM);
   }
 
-  gpio_set_direction((gpio_num_t)g_ADigitalPinMap[_uc_pinSCL], GPIO_MODE_INPUT);
-  gpio_set_pull_mode((gpio_num_t)g_ADigitalPinMap[_uc_pinSCL], GPIO_FLOATING);
+  gpio_set_direction((gpio_num_t)_uc_pinSCL, GPIO_MODE_INPUT);
+  gpio_set_pull_mode((gpio_num_t)_uc_pinSCL, GPIO_FLOATING);
 
-  gpio_set_direction((gpio_num_t)g_ADigitalPinMap[_uc_pinSDA], GPIO_MODE_INPUT);
-  gpio_set_pull_mode((gpio_num_t)g_ADigitalPinMap[_uc_pinSDA], GPIO_FLOATING);
+  gpio_set_direction((gpio_num_t)_uc_pinSDA, GPIO_MODE_INPUT);
+  gpio_set_pull_mode((gpio_num_t)_uc_pinSDA, GPIO_FLOATING);
 
   periph_module_disable(_peripheral);
 }
