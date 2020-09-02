@@ -51,7 +51,9 @@ void loop(void);
 #endif
 
 #ifdef __cplusplus
+  #include "Stream.h"
   #include "WMath.h"
+  #include "WString.h"
 #endif
 #include "delay.h"
 
