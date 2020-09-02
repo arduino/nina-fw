@@ -21,12 +21,11 @@
 #define IPAddress_h
 
 #include <stdint.h>
-#include "Printable.h"
 #include "WString.h"
 
 // A class to make it easier to handle and pass around IP addresses
 
-class IPAddress : public Printable {
+class IPAddress {
 private:
     union {
 	uint8_t bytes[4];  // IPv4 address
@@ -63,8 +62,6 @@ public:
     IPAddress& operator=(const uint8_t *address);
     IPAddress& operator=(uint32_t address);
 
-    virtual size_t printTo(Print& p) const;
-
     friend class EthernetClass;
     friend class UDP;
     friend class Client;
@@ -72,7 +69,5 @@ public:
     friend class DhcpClass;
     friend class DNSClient;
 };
-
-const IPAddress INADDR_NONE(0,0,0,0);
 
 #endif
