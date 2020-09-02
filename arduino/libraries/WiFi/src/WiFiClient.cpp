@@ -48,6 +48,11 @@ int WiFiClient::connect(const char* host, uint16_t port)
   return connect(address, port);
 }
 
+int WiFiClient::connect(IPAddress ip, uint16_t port)
+{
+  return 0; /* TODO */
+}
+
 int WiFiClient::connect(/*IPAddress*/uint32_t ip, uint16_t port)
 {
   _socket = lwip_socket(AF_INET, SOCK_STREAM, 0);
