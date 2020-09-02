@@ -156,7 +156,7 @@ void TwoWire::begin(uint8_t address) {
 void TwoWire::setClock(uint32_t baudrate) {
   uint32_t period = (APB_CLK_FREQ / baudrate) / 2;
 
-  _dev->scl_low_period.scl_low_period = period;
+  _dev->scl_low_period.period = period;
   _dev->scl_high_period.period = period;
 
   _dev->scl_start_hold.time = 50;
