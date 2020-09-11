@@ -30,8 +30,12 @@
 
 #include "BearSSLClient.h"
 
+extern "C" {
+  #include "esp_log.h"
+}
+
 BearSSLClient::BearSSLClient(Client& client) :
-  BearSSLClient(&client, TAs, TAs_NUM)
+  BearSSLClient(&client, ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM)
 {
 }
 
@@ -291,6 +295,8 @@ int BearSSLClient::connectSSL(const char* host)
   uint32_t now = ArduinoBearSSL.getTime();
   uint32_t days = now / 86400 + 719528;
   uint32_t sec = now % 86400;
+
+  ESP_LOGI("BearSSLClient::connectSSL", "ArduinoBearSSL.getTime() = %d", now);
 
   br_x509_minimal_set_time(&_xc, days, sec);
 
