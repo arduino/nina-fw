@@ -186,8 +186,6 @@ void setupWiFi() {
     return;
   }
   ESP_LOGI("ECCX08", "device_id = %s", device_id.c_str());
-/*
-  ATTENTION: COMMENTING IN THOSE NEXT 2 LINES CAUSE CONTINOUS RESET ON NINA AND RENDERING MKR WIFI 1010 UNACCESSIBLE VIA USB.
 
   if (!CryptoUtil::reconstructCertificate(eccx08_cert, device_id, ECCX08Slot::Key, ECCX08Slot::CompressedCertificate, ECCX08Slot::SerialNumberAndAuthorityKeyIdentifier)) {
     ESP_LOGE("ECCX08", "Cryptography certificate reconstruction failure.");
@@ -196,7 +194,6 @@ void setupWiFi() {
 
   ssl_client.setEccSlot(static_cast<int>(ECCX08Slot::Key), eccx08_cert.bytes(), eccx08_cert.length());
   ESP_LOGI("ECCX08", "ArduinoBearSSL configured");
-*/
 }
 
 void loop() {
