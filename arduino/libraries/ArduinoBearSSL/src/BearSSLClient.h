@@ -48,6 +48,7 @@ public:
 
 
   inline void setClient(Client& client) { _client = &client; }
+  inline Client* getClient() { return _client; }
 
 
   virtual int connect(IPAddress ip, uint16_t port);

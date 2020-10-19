@@ -27,6 +27,13 @@
 
 #include "CommandHandler.h"
 
+#include <BearSSLClient.h>
+#include <BearSSLTrustAnchors.h>
+#include <ArduinoECCX08.h>
+#include <ArduinoBearSSL.h>
+#include "CryptoUtil.h"
+#include "ECCX08Cert.h"
+
 #include "esp_log.h"
 
 const char FIRMWARE_VERSION[6] = "1.4.1";
@@ -40,6 +47,7 @@ WiFiUDP udps[MAX_SOCKETS];
 WiFiSSLClient tlsClients[MAX_SOCKETS];
 WiFiServer tcpServers[MAX_SOCKETS];
 
+BearSSLClient bearsslClient(tcpClients[MAX_SOCKETS-1], ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM);
 
 int setNet(const uint8_t command[], uint8_t response[])
 {
@@ -487,6 +495,8 @@ int availDataTcp(const uint8_t command[], uint8_t response[])
     available = udps[socket].available();
   } else if (socketTypes[socket] == 0x02) {
     available = tlsClients[socket].available();
+  } else if (socketTypes[socket] == 0x03) {
+    available = bearsslClient.available();
   }
 
   response[2] = 1; // number of parameters
@@ -523,9 +533,41 @@ int getDataTcp(const uint8_t command[], uint8_t response[])
     } else {
       response[4] = tlsClients[socket].read();
     }
+  } else if (socketTypes[socket] == 0x03) {
+    if (peek) {
+      response[4] = bearsslClient.peek();
+    } else {
+      response[4] = bearsslClient.read();
+    }
   }
 
   return 6;
+}
+
+static ECCX08CertClass eccx08_cert;
+unsigned long getTime();
+static void configureECCx08() {
+  if (!ECCX08.begin()) {
+    ESP_LOGE("ECCX08", "ECCX08.begin() failed");
+    return;
+  }
+  ArduinoBearSSL.onGetTime(getTime);
+  ESP_LOGI("ECCX08", "ArduinoBearSSL.getTime() = %lu", ArduinoBearSSL.getTime());
+
+  String device_id;
+  if (!CryptoUtil::readDeviceId(ECCX08, device_id, ECCX08Slot::DeviceId)) {
+    ESP_LOGE("ECCX08", "Cryptography processor read failure.");
+    return;
+  }
+  ESP_LOGI("ECCX08", "device_id = %s", device_id.c_str());
+
+  if (!CryptoUtil::reconstructCertificate(eccx08_cert, device_id, ECCX08Slot::Key, ECCX08Slot::CompressedCertificate, ECCX08Slot::SerialNumberAndAuthorityKeyIdentifier)) {
+    ESP_LOGE("ECCX08", "Cryptography certificate reconstruction failure.");
+    return;
+  }
+
+  bearsslClient.setEccSlot(static_cast<int>(ECCX08Slot::Key), eccx08_cert.bytes(), eccx08_cert.length());
+  ESP_LOGI("ECCX08", "ArduinoBearSSL configured");
 }
 
 int startClientTcp(const uint8_t command[], uint8_t response[])
@@ -619,6 +661,30 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
 
       return 4;
     }
+  } else if (type == 0x03) {
+    int result;
+
+    configureECCx08();
+
+    if (host[0] != '\0') {
+      result = bearsslClient.connect(host, port);
+    } else {
+      result = bearsslClient.connect(ip, port);
+    }
+
+    if (result) {
+      socketTypes[socket] = 0x03;
+
+      response[2] = 1; // number of parameters
+      response[3] = 1; // parameter 1 length
+      response[4] = 1;
+
+      return 6;
+    } else {
+      response[2] = 0; // number of parameters
+
+      return 4;
+    }
   } else {
     response[2] = 0; // number of parameters
 
@@ -632,17 +698,14 @@ int stopClientTcp(const uint8_t command[], uint8_t response[])
 
   if (socketTypes[socket] == 0x00) {
     tcpClients[socket].stop();
-
-    socketTypes[socket] = 255;
   } else if (socketTypes[socket] == 0x01) {
     udps[socket].stop();
-
-    socketTypes[socket] = 255;
   } else if (socketTypes[socket] == 0x02) {
     tlsClients[socket].stop();
-
-    socketTypes[socket] = 255;
+  } else if (socketTypes[socket] == 0x03) {
+    bearsslClient.stop();
   }
+  socketTypes[socket] = 255;
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -661,6 +724,8 @@ int getClientStateTcp(const uint8_t command[], uint8_t response[])
   if ((socketTypes[socket] == 0x00) && tcpClients[socket].connected()) {
     response[4] = 4;
   } else if ((socketTypes[socket] == 0x02) && tlsClients[socket].connected()) {
+    response[4] = 4;
+  } else if ((socketTypes[socket] == 0x03) && bearsslClient.connected()) {
     response[4] = 4;
   } else {
     socketTypes[socket] = 255;
@@ -785,6 +850,9 @@ int getRemoteData(const uint8_t command[], uint8_t response[])
   } else if (socketTypes[socket] == 0x02) {
     ip = tlsClients[socket].remoteIP();
     port = tlsClients[socket].remotePort();
+  } else if (socketTypes[socket] == 0x03) {
+    ip = static_cast<WiFiClient*>(bearsslClient.getClient())->remoteIP();
+    port = static_cast<WiFiClient*>(bearsslClient.getClient())->remotePort();
   }
 
   response[2] = 2; // number of parameters
@@ -971,6 +1039,8 @@ int sendDataTcp(const uint8_t command[], uint8_t response[])
     written = tcpClients[socket].write(&command[8], length);
   } else if (socketTypes[socket] == 0x02) {
     written = tlsClients[socket].write(&command[8], length);
+  } else if (socketTypes[socket] == 0x03) {
+    written = bearsslClient.write(&command[8], length);
   }
 
   response[2] = 1; // number of parameters
@@ -995,6 +1065,8 @@ int getDataBufTcp(const uint8_t command[], uint8_t response[])
     read = udps[socket].read(&response[5], length);
   } else if (socketTypes[socket] == 0x02) {
     read = tlsClients[socket].read(&response[5], length);
+  } else if (socketTypes[socket] == 0x03) {
+    read = bearsslClient.read(&response[5], length);
   }
 
   if (read < 0) {

@@ -37,10 +37,6 @@ extern "C" {
 
 #include <SPIS.h>
 #include <WiFi.h>
-#include <ArduinoECCX08.h>
-#include <ArduinoBearSSL.h>
-#include "CryptoUtil.h"
-#include "ECCX08Cert.h"
 
 #include "CommandHandler.h"
 
@@ -50,10 +46,6 @@ int debug = 0;
 
 uint8_t* commandBuffer;
 uint8_t* responseBuffer;
-
-ECCX08CertClass eccx08_cert;
-extern BearSSLClient ssl_client;
-
 
 void dumpBuffer(const char* label, uint8_t data[], int length) {
   ets_printf("%s: ", label);
@@ -172,28 +164,6 @@ void setupWiFi() {
   responseBuffer = (uint8_t*)heap_caps_malloc(SPI_BUFFER_LEN, MALLOC_CAP_DMA);
 
   CommandHandler.begin();
-
-  if (!ECCX08.begin()) {
-    ESP_LOGE("ECCX08", "ECCX08.begin() failed");
-    return;
-  }
-  ArduinoBearSSL.onGetTime(getTime);
-  ESP_LOGI("ECCX08", "ArduinoBearSSL.getTime() = %lu", ArduinoBearSSL.getTime());
-
-  String device_id;
-  if (!CryptoUtil::readDeviceId(ECCX08, device_id, ECCX08Slot::DeviceId)) {
-    ESP_LOGE("ECCX08", "Cryptography processor read failure.");
-    return;
-  }
-  ESP_LOGI("ECCX08", "device_id = %s", device_id.c_str());
-
-  if (!CryptoUtil::reconstructCertificate(eccx08_cert, device_id, ECCX08Slot::Key, ECCX08Slot::CompressedCertificate, ECCX08Slot::SerialNumberAndAuthorityKeyIdentifier)) {
-    ESP_LOGE("ECCX08", "Cryptography certificate reconstruction failure.");
-    return;
-  }
-
-  ssl_client.setEccSlot(static_cast<int>(ECCX08Slot::Key), eccx08_cert.bytes(), eccx08_cert.length());
-  ESP_LOGI("ECCX08", "ArduinoBearSSL configured");
 }
 
 void loop() {

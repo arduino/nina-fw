@@ -27,6 +27,10 @@
 
 #include <ArduinoECCX08.h>
 
+extern "C" {
+  #include "esp_log.h"
+}
+
 #define BR_MAX_EC_SIZE   528
 #define FIELD_LEN   ((BR_MAX_EC_SIZE + 7) >> 3)
 
@@ -36,6 +40,8 @@ eccX08_vrfy_asn1(const br_ec_impl * /*impl*/,
   const br_ec_public_key *pk,
   const void *sig, size_t sig_len)
 {
+  ESP_LOGI("eccX08_vrfy_asn1", "hash_len = %d, sig_len = %d", hash_len, sig_len);
+
   /*
    * We use a double-sized buffer because a malformed ASN.1 signature
    * may trigger a size expansion when converting to "raw" format.
