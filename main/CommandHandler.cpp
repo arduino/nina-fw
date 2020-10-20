@@ -409,7 +409,7 @@ int startServerTcp(const uint8_t command[], uint8_t response[])
   } else if (type == 0x01 && udps[socket].begin(port)) {
     socketTypes[socket] = 0x01;
     response[4] = 1;
-  } else if (type == 0x04 && udps[socket].beginMulticast(ip, port)) {
+  } else if (type == 0x03 && udps[socket].beginMulticast(ip, port)) {
     socketTypes[socket] = 0x01;
     response[4] = 1;
   } else {
@@ -495,7 +495,7 @@ int availDataTcp(const uint8_t command[], uint8_t response[])
     available = udps[socket].available();
   } else if (socketTypes[socket] == 0x02) {
     available = tlsClients[socket].available();
-  } else if (socketTypes[socket] == 0x03) {
+  } else if (socketTypes[socket] == 0x04) {
     available = bearsslClient.available();
   }
 
@@ -533,7 +533,7 @@ int getDataTcp(const uint8_t command[], uint8_t response[])
     } else {
       response[4] = tlsClients[socket].read();
     }
-  } else if (socketTypes[socket] == 0x03) {
+  } else if (socketTypes[socket] == 0x04) {
     if (peek) {
       response[4] = bearsslClient.peek();
     } else {
@@ -661,7 +661,7 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
 
       return 4;
     }
-  } else if (type == 0x03) {
+  } else if (type == 0x04) {
     int result;
 
     bearsslClient.setClient(tcpClients[socket]);
@@ -674,7 +674,7 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
     }
 
     if (result) {
-      socketTypes[socket] = 0x03;
+      socketTypes[socket] = 0x04;
 
       response[2] = 1; // number of parameters
       response[3] = 1; // parameter 1 length
@@ -703,7 +703,7 @@ int stopClientTcp(const uint8_t command[], uint8_t response[])
     udps[socket].stop();
   } else if (socketTypes[socket] == 0x02) {
     tlsClients[socket].stop();
-  } else if (socketTypes[socket] == 0x03) {
+  } else if (socketTypes[socket] == 0x04) {
     bearsslClient.stop();
   }
   socketTypes[socket] = 255;
@@ -726,7 +726,7 @@ int getClientStateTcp(const uint8_t command[], uint8_t response[])
     response[4] = 4;
   } else if ((socketTypes[socket] == 0x02) && tlsClients[socket].connected()) {
     response[4] = 4;
-  } else if ((socketTypes[socket] == 0x03) && bearsslClient.connected()) {
+  } else if ((socketTypes[socket] == 0x04) && bearsslClient.connected()) {
     response[4] = 4;
   } else {
     socketTypes[socket] = 255;
@@ -851,7 +851,7 @@ int getRemoteData(const uint8_t command[], uint8_t response[])
   } else if (socketTypes[socket] == 0x02) {
     ip = tlsClients[socket].remoteIP();
     port = tlsClients[socket].remotePort();
-  } else if (socketTypes[socket] == 0x03) {
+  } else if (socketTypes[socket] == 0x04) {
     ip = static_cast<WiFiClient*>(bearsslClient.getClient())->remoteIP();
     port = static_cast<WiFiClient*>(bearsslClient.getClient())->remotePort();
   }
@@ -1040,7 +1040,7 @@ int sendDataTcp(const uint8_t command[], uint8_t response[])
     written = tcpClients[socket].write(&command[8], length);
   } else if (socketTypes[socket] == 0x02) {
     written = tlsClients[socket].write(&command[8], length);
-  } else if (socketTypes[socket] == 0x03) {
+  } else if (socketTypes[socket] == 0x04) {
     written = bearsslClient.write(&command[8], length);
   }
 
@@ -1066,7 +1066,7 @@ int getDataBufTcp(const uint8_t command[], uint8_t response[])
     read = udps[socket].read(&response[5], length);
   } else if (socketTypes[socket] == 0x02) {
     read = tlsClients[socket].read(&response[5], length);
-  } else if (socketTypes[socket] == 0x03) {
+  } else if (socketTypes[socket] == 0x04) {
     read = bearsslClient.read(&response[5], length);
   }
 
@@ -1660,7 +1660,7 @@ void CommandHandlerClass::updateGpio0Pin()
       break;
     }
 
-    if (socketTypes[i] == 0x03 && bearsslClient.connected() && bearsslClient.available()) {
+    if (socketTypes[i] == 0x04 && bearsslClient.connected() && bearsslClient.available()) {
       available = 1;
       break;
     }
