@@ -47,7 +47,7 @@ WiFiUDP udps[MAX_SOCKETS];
 WiFiSSLClient tlsClients[MAX_SOCKETS];
 WiFiServer tcpServers[MAX_SOCKETS];
 
-BearSSLClient bearsslClient(tcpClients[MAX_SOCKETS-1], ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM);
+BearSSLClient bearsslClient(tcpClients[0], ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM);
 
 int setNet(const uint8_t command[], uint8_t response[])
 {
@@ -409,7 +409,7 @@ int startServerTcp(const uint8_t command[], uint8_t response[])
   } else if (type == 0x01 && udps[socket].begin(port)) {
     socketTypes[socket] = 0x01;
     response[4] = 1;
-  } else if (type == 0x03 && udps[socket].beginMulticast(ip, port)) {
+  } else if (type == 0x04 && udps[socket].beginMulticast(ip, port)) {
     socketTypes[socket] = 0x01;
     response[4] = 1;
   } else {
@@ -664,6 +664,7 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
   } else if (type == 0x03) {
     int result;
 
+    bearsslClient.setClient(tcpClients[socket]);
     configureECCx08();
 
     if (host[0] != '\0') {
@@ -1655,6 +1656,11 @@ void CommandHandlerClass::updateGpio0Pin()
     }
 
     if (socketTypes[i] == 0x02 && tlsClients[i] && tlsClients[i].connected() && tlsClients[i].available()) {
+      available = 1;
+      break;
+    }
+
+    if (socketTypes[i] == 0x03 && bearsslClient.connected() && bearsslClient.available()) {
       available = 1;
       break;
     }

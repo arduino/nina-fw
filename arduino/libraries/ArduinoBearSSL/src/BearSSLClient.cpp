@@ -136,6 +136,9 @@ int BearSSLClient::read()
 
 int BearSSLClient::read(uint8_t *buf, size_t size)
 {
+  if (!available()) {
+    return 0;
+  }
   return br_sslio_read(&_ioc, buf, size);
 }
 
@@ -270,6 +273,10 @@ int BearSSLClient::connectSSL(const char* host)
 
   // inject entropy in engine
   unsigned char entropy[32];
+
+  if (ECCX08.begin() && ECCX08.locked() && ECCX08.random(entropy, sizeof(entropy))) {
+    ESP_LOGI("BearSSLClient::connectSSL", "init");
+  }
 
   if (ECCX08.begin() && ECCX08.locked() && ECCX08.random(entropy, sizeof(entropy))) {
     // ECC508 random success, add custom ECDSA vfry and EC sign
