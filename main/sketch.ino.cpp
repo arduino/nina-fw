@@ -108,10 +108,6 @@ void setup() {
 void setupBluetooth() {
   if (debug)  ets_printf("setup periph\n");
 
-  while (1) {
-    vTaskDelay(portMAX_DELAY);
-  }
-
   periph_module_enable(PERIPH_UART1_MODULE);
   periph_module_enable(PERIPH_UHCI0_MODULE);
 
@@ -132,7 +128,7 @@ void setupBluetooth() {
 
   if (debug)  ets_printf("setup controller\n");
 
-  esp_bt_controller_config_t btControllerConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT(); 
+  esp_bt_controller_config_t btControllerConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
 
   btControllerConfig.hci_uart_no = UART_NUM_1;
 #ifdef UNO_WIFI_REV2
@@ -152,6 +148,7 @@ void setupBluetooth() {
 
   vTaskSuspend(NULL);
 
+  // Don't exit. We don't need loop() to run.
   while (1) {
     vTaskDelay(portMAX_DELAY);
     if (debug)  ets_printf(".");
