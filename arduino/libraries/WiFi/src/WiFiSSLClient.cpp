@@ -66,7 +66,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     _netContext.fd = -1;
     _connected = false;
 
-    ets_printf("Free internal heap before TLS %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    ets_printf("Free internal heap before TLS %u\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     ets_printf("*** connect init\n");
     // SSL Client Initialization
@@ -130,7 +130,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
       return 0;
     }
 
-    ets_printf("Length of certs_data: %d", strlen((char*)certs_data)+1);
+    ets_printf("Length of certs_data: %d\n", strlen((char*)certs_data)+1);
     ets_printf("*** connect crt parse\n");
     ret = mbedtls_x509_crt_parse(&_caCrt, certs_data, strlen((char*)certs_data) + 1);
     ets_printf("*** connect conf ca chain\n");
@@ -209,7 +209,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, const char* client_c
     // ref: https://tls.mbed.org/api/ssl_8h.html#a4a37e497cd08c896870a42b1b618186e
     while ((ret = mbedtls_ssl_handshake(&_sslContext)) !=0) {
       if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-        ets_printf("Error performing SSL handshake");
+        ets_printf("Error performing SSL handshake\n");
       }
       if((millis() - start_handshake) > _handshake_timeout){
         ets_printf("SSL Handshake Timeout\n");
