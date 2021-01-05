@@ -89,6 +89,10 @@ size_t WiFiClient::write(const uint8_t *buf, size_t size)
 
   int result = lwip_send_r(_socket, (void*)buf, size, MSG_PEEK);
 
+  if (result < 0) {
+    return 0;
+  }
+
   return result;
 
 }
