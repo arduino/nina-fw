@@ -607,7 +607,7 @@ int ECCX08Class::read(int zone, int address, byte buffer[], int length)
     return 0;
   }
 
-  delay(5);
+  delay(15);
 
   if (!receiveResponse(buffer, length)) {
     return 0;
@@ -717,11 +717,13 @@ int ECCX08Class::sendCommand(uint8_t opcode, uint8_t param1, uint16_t param2, co
 
 int ECCX08Class::receiveResponse(void* response, size_t length)
 {
-  int retries = 20;
+  int retries = 40;
   size_t responseSize = length + 3; // 1 for length header, 2 for CRC
   byte responseBuffer[responseSize];
 
-  while (_wire->requestFrom((uint8_t)_address, (size_t)responseSize, (bool)true) != responseSize && retries--);
+  while (_wire->requestFrom((uint8_t)_address, (size_t)responseSize, (bool)true) != responseSize && retries--) {
+    delay(1);
+  }
 
   responseBuffer[0] = _wire->read();
 
