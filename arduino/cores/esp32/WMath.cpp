@@ -31,3 +31,16 @@ extern long random(long howbig)
 
   return esp_random() % howbig;
 }
+
+extern long random( long howsmall, long howbig )
+{
+  if (howsmall >= howbig)
+  {
+    return howsmall;
+  }
+
+  long diff = howbig - howsmall;
+
+  return random(diff) + howsmall;
+}
+

@@ -26,6 +26,15 @@
 #include <string.h>
 #include <math.h>
 
+typedef bool boolean;
+typedef uint8_t byte;
+typedef uint16_t word;
+
+#define min(a,b) ((a)<(b)?(a):(b))
+#define max(a,b) ((a)>(b)?(a):(b))
+#define abs(x) ((x)>0?(x):-(x))
+
+
 #ifdef __cplusplus
 extern "C"{
 #endif // __cplusplus
@@ -42,7 +51,9 @@ void loop(void);
 #endif
 
 #ifdef __cplusplus
+  #include "Stream.h"
   #include "WMath.h"
+  #include "WString.h"
 #endif
 #include "delay.h"
 

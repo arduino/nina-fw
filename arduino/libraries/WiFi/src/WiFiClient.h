@@ -21,19 +21,19 @@
 #define WIFICLIENT_H
 
 #include <Arduino.h>
-// #include <Client.h>
-// #include <IPAddress.h>
+#include <Client.h>
+#include <IPAddress.h>
 
 class WiFiServer;
 
-class WiFiClient /*: public Client*/ {
+class WiFiClient : public Client {
 
 public:
   WiFiClient();
 
   uint8_t status();
 
-  virtual int connect(/*IPAddress*/uint32_t ip, uint16_t port);
+  virtual int connect(IPAddress ip, uint16_t port);
   virtual int connect(const char* host, uint16_t port);
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);

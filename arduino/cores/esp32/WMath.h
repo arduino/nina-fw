@@ -20,14 +20,7 @@
 #ifndef _WIRING_MATH_
 #define _WIRING_MATH_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern long random(long);
-
-#ifdef __cplusplus
-}
-#endif
+extern long random(long, long);
 
 #endif /* _WIRING_MATH_ */

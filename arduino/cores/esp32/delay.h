@@ -30,6 +30,8 @@ extern unsigned long millis();
 
 extern void delay(uint32_t ms);
 
+extern void delayMicroseconds(uint32_t usec) ;
+
 #ifdef __cplusplus
 }
 #endif
