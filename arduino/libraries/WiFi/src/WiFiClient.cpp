@@ -87,15 +87,14 @@ size_t WiFiClient::write(const uint8_t *buf, size_t size)
     return 0;
   }
 
-  int result = lwip_send_r(_socket, (void*)buf, size, MSG_DONTWAIT);
+  int result = lwip_send_r(_socket, (void*)buf, size, MSG_PEEK);
 
   if (result < 0) {
-    lwip_close_r(_socket);
-    _socket = -1;
     return 0;
   }
 
   return result;
+
 }
 
 int WiFiClient::available()
