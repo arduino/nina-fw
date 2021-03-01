@@ -97,6 +97,13 @@ void setup() {
   pinMode(15, INPUT);
   pinMode(21, INPUT);
 
+#if defined(NANO_RP2040_CONNECT)
+  pinMode(26, OUTPUT);
+  pinMode(27, OUTPUT);
+  digitalWrite(26, HIGH);
+  digitalWrite(27, HIGH);
+#endif
+
   pinMode(5, INPUT);
   if (digitalRead(5) == LOW) {
     setupBluetooth();
@@ -121,7 +128,7 @@ void setupBluetooth() {
   esp_bt_controller_config_t btControllerConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT(); 
 
   btControllerConfig.hci_uart_no = UART_NUM_1;
-#ifdef UNO_WIFI_REV2
+#if defined(UNO_WIFI_REV2) || defined(NANO_RP2040_CONNECT)
   btControllerConfig.hci_uart_baudrate = 115200;
 #else
   btControllerConfig.hci_uart_baudrate = 912600;
