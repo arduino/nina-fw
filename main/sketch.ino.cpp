@@ -111,7 +111,7 @@ void setupBluetooth() {
   periph_module_enable(PERIPH_UART1_MODULE);
   periph_module_enable(PERIPH_UHCI0_MODULE);
 
-#ifdef UNO_WIFI_REV2
+#if defined(UNO_WIFI_REV2) || defined(NANO_RP2040_CONNECT)
   uart_set_pin(UART_NUM_1, 1, 3, 33, 0); // TX, RX, RTS, CTS
 #else
   uart_set_pin(UART_NUM_1, 23, 12, 18, 5);

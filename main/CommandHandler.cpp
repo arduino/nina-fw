@@ -1578,9 +1578,15 @@ CommandHandlerClass::CommandHandlerClass()
 {
 }
 
+#if defined(NANO_RP2040_CONNECT)
+static const int GPIO_IRQ = 26;
+#else
+static const int GPIO_IRQ = 0;
+#endif
+
 void CommandHandlerClass::begin()
 {
-  pinMode(0, OUTPUT);
+  pinMode(GPIO_IRQ, OUTPUT);
 
   for (int i = 0; i < MAX_SOCKETS; i++) {
     socketTypes[i] = 255;
@@ -1667,9 +1673,9 @@ void CommandHandlerClass::updateGpio0Pin()
   }
 
   if (available) {
-    digitalWrite(0, HIGH);
+    digitalWrite(GPIO_IRQ, HIGH);
   } else {
-    digitalWrite(0, LOW);
+    digitalWrite(GPIO_IRQ, LOW);
   }
 
   vTaskDelay(1);
