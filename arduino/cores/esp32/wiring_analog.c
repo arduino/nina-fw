@@ -38,7 +38,7 @@ void analogWrite(uint32_t pin, uint32_t value)
 
   ledc_channel_config_t ledc_conf = {
     .channel = (pin % 7),
-    .duty = (value << 2),
+    .duty = (value << 2) | ((value & 0xC0) >> 6),
     .gpio_num = pin,
     .intr_type = LEDC_INTR_DISABLE,
     .speed_mode = LEDC_HIGH_SPEED_MODE,
