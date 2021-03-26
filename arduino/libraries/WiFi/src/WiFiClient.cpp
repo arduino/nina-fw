@@ -177,8 +177,7 @@ void WiFiClient::stop()
 uint8_t WiFiClient::connected()
 {
   if (_socket != -1) {
-    // use peek to update socket state
-    peek();
+    available();
   }
 
   return (_socket != -1);
