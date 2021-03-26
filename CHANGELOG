@@ -1,4 +1,4 @@
-Adafruit's Arduino NINA-W102 firmware 1.7.2 - 2021.03.22
+Adafruit's Arduino NINA-W102 firmware 1.7.3 - 2021.03.26
 
 * Changed Analog Write to use full PWM range.
 * Added support to Pin Mode for INPUT_PULLUP.
