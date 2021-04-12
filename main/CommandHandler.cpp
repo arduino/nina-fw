@@ -1180,6 +1180,19 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int getDigitalRead(const uint8_t command[], uint8_t response[])
+{
+  uint8_t pin = command[4];
+
+  int const pin_status = digitalRead(pin);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (uint8_t)pin_status;
+
+  return 6;
+}
+
 int writeFile(const uint8_t command[], uint8_t response[]) {
   char filename[32 + 1];
   size_t len;
@@ -1566,7 +1579,7 @@ const CommandHandlerType commandHandlers[] = {
   setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x50 -> 0x5f
-  setPinMode, setDigitalWrite, setAnalogWrite,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x60 -> 0x6f
   writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
