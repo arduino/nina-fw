@@ -1193,6 +1193,34 @@ int getDigitalRead(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+extern "C" {
+#include <driver/adc.h>
+}
+
+int getAnalogRead(const uint8_t command[], uint8_t response[])
+{
+  uint8_t pin = command[4];
+
+  /* Power up the ADC. */
+  adc_power_on();
+  /* Initialize the ADC. */
+  adc_gpio_init(ADC_UNIT_1, (adc_channel_t)pin);
+  /* Set maximum analog bit-width = 12 bit. */
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  /* Configure channel attenuation. */
+  adc1_config_channel_atten((adc1_channel_t)pin, ADC_ATTEN_DB_0);
+  /* Read the analog value from the pin. */
+  uint16_t const adc_raw = adc1_get_raw((adc1_channel_t)pin);
+  /* Power down the ADC. */
+  adc_power_off();
+
+  response[2] = 1; // number of parameters
+  response[3] = sizeof(adc_raw); // parameter 1 length = 2 bytes
+  memcpy(&response[4], &adc_raw, sizeof(adc_raw));
+
+  return 7;
+}
+
 int writeFile(const uint8_t command[], uint8_t response[]) {
   char filename[32 + 1];
   size_t len;
@@ -1579,7 +1607,7 @@ const CommandHandlerType commandHandlers[] = {
   setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x50 -> 0x5f
-  setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, getAnalogRead, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x60 -> 0x6f
   writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
