@@ -1199,20 +1199,16 @@ extern "C" {
 
 int getAnalogRead(const uint8_t command[], uint8_t response[])
 {
-  uint8_t pin = command[4];
+  uint8_t adc_channel = command[4];
 
-  /* Power up the ADC. */
-  adc_power_on();
   /* Initialize the ADC. */
-  adc_gpio_init(ADC_UNIT_1, (adc_channel_t)pin);
+  adc_gpio_init(ADC_UNIT_1, (adc_channel_t)adc_channel);
   /* Set maximum analog bit-width = 12 bit. */
   adc1_config_width(ADC_WIDTH_BIT_12);
   /* Configure channel attenuation. */
-  adc1_config_channel_atten((adc1_channel_t)pin, ADC_ATTEN_DB_0);
+  adc1_config_channel_atten((adc1_channel_t)adc_channel, ADC_ATTEN_DB_0);
   /* Read the analog value from the pin. */
-  uint16_t const adc_raw = adc1_get_raw((adc1_channel_t)pin);
-  /* Power down the ADC. */
-  adc_power_off();
+  uint16_t const adc_raw = adc1_get_raw((adc1_channel_t)adc_channel);
 
   response[2] = 1; // number of parameters
   response[3] = sizeof(adc_raw); // parameter 1 length = 2 bytes
