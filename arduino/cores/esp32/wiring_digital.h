@@ -29,8 +29,9 @@ extern "C" {
 #define LOW  0x00
 #define HIGH 0x01
 
-#define INPUT  0x00
-#define OUTPUT 0x01
+#define INPUT        0x00
+#define OUTPUT       0x01
+#define INPUT_PULLUP 0x02
 
 extern void pinMode(uint32_t pin, uint32_t mode);
 
