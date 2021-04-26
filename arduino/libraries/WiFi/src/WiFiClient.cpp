@@ -150,7 +150,7 @@ int WiFiClient::peek()
 {
   uint8_t b;
 
-  if (recv(_socket, &b, sizeof(b), MSG_PEEK | MSG_DONTWAIT) <= 0) {
+  if (lwip_recv_r(_socket, &b, sizeof(b), MSG_PEEK | MSG_DONTWAIT) <= 0) {
     if (errno != EWOULDBLOCK) {
       lwip_close_r(_socket);
       _socket = -1;
