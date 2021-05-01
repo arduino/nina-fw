@@ -1615,11 +1615,7 @@ CommandHandlerClass::CommandHandlerClass()
 {
 }
 
-#if defined(NANO_RP2040_CONNECT)
-static const int GPIO_IRQ = 26;
-#else
 static const int GPIO_IRQ = 0;
-#endif
 
 void CommandHandlerClass::begin()
 {
