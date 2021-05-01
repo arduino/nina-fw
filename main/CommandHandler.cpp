@@ -47,7 +47,8 @@ WiFiUDP udps[MAX_SOCKETS];
 WiFiSSLClient tlsClients[MAX_SOCKETS];
 WiFiServer tcpServers[MAX_SOCKETS];
 
-BearSSLClient bearsslClient(tcpClients[0], ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM);
+WiFiClient bearssl_tcp_client;
+BearSSLClient bearsslClient(bearssl_tcp_client, ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM);
 
 int setNet(const uint8_t command[], uint8_t response[])
 {
@@ -664,7 +665,6 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
   } else if (type == 0x04) {
     int result;
 
-    bearsslClient.setClient(tcpClients[socket]);
     configureECCx08();
 
     if (host[0] != '\0') {
