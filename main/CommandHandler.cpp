@@ -36,7 +36,7 @@
 
 #include "esp_log.h"
 
-const char FIRMWARE_VERSION[6] = "1.4.4";
+const char FIRMWARE_VERSION[6] = "1.4.5";
 
 /*IPAddress*/uint32_t resolvedHostname;
 
@@ -1180,6 +1180,43 @@ int setAnalogWrite(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int getDigitalRead(const uint8_t command[], uint8_t response[])
+{
+  uint8_t pin = command[4];
+
+  int const pin_status = digitalRead(pin);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (uint8_t)pin_status;
+
+  return 6;
+}
+
+extern "C" {
+#include <driver/adc.h>
+}
+
+int getAnalogRead(const uint8_t command[], uint8_t response[])
+{
+  uint8_t adc_channel = command[4];
+
+  /* Initialize the ADC. */
+  adc_gpio_init(ADC_UNIT_1, (adc_channel_t)adc_channel);
+  /* Set maximum analog bit-width = 12 bit. */
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  /* Configure channel attenuation. */
+  adc1_config_channel_atten((adc1_channel_t)adc_channel, ADC_ATTEN_DB_0);
+  /* Read the analog value from the pin. */
+  uint16_t const adc_raw = adc1_get_raw((adc1_channel_t)adc_channel);
+
+  response[2] = 1; // number of parameters
+  response[3] = sizeof(adc_raw); // parameter 1 length = 2 bytes
+  memcpy(&response[4], &adc_raw, sizeof(adc_raw));
+
+  return 7;
+}
+
 int writeFile(const uint8_t command[], uint8_t response[]) {
   char filename[32 + 1];
   size_t len;
@@ -1566,7 +1603,7 @@ const CommandHandlerType commandHandlers[] = {
   setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x50 -> 0x5f
-  setPinMode, setDigitalWrite, setAnalogWrite,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, getAnalogRead, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x60 -> 0x6f
   writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -1578,9 +1615,11 @@ CommandHandlerClass::CommandHandlerClass()
 {
 }
 
+static const int GPIO_IRQ = 0;
+
 void CommandHandlerClass::begin()
 {
-  pinMode(0, OUTPUT);
+  pinMode(GPIO_IRQ, OUTPUT);
 
   for (int i = 0; i < MAX_SOCKETS; i++) {
     socketTypes[i] = 255;
@@ -1667,9 +1706,9 @@ void CommandHandlerClass::updateGpio0Pin()
   }
 
   if (available) {
-    digitalWrite(0, HIGH);
+    digitalWrite(GPIO_IRQ, HIGH);
   } else {
-    digitalWrite(0, LOW);
+    digitalWrite(GPIO_IRQ, LOW);
   }
 
   vTaskDelay(1);

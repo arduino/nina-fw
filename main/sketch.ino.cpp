@@ -97,6 +97,13 @@ void setup() {
   pinMode(15, INPUT);
   pinMode(21, INPUT);
 
+#if defined(NANO_RP2040_CONNECT)
+  pinMode(26, OUTPUT);
+  pinMode(27, OUTPUT);
+  digitalWrite(26, HIGH);
+  digitalWrite(27, HIGH);
+#endif
+
   pinMode(5, INPUT);
   if (digitalRead(5) == LOW) {
     setupBluetooth();
@@ -111,8 +118,10 @@ void setupBluetooth() {
   periph_module_enable(PERIPH_UART1_MODULE);
   periph_module_enable(PERIPH_UHCI0_MODULE);
 
-#ifdef UNO_WIFI_REV2
+#if defined(UNO_WIFI_REV2)
   uart_set_pin(UART_NUM_1, 1, 3, 33, 0); // TX, RX, RTS, CTS
+#elif defined(NANO_RP2040_CONNECT)
+  uart_set_pin(UART_NUM_1, 1, 3, 33, 12); // TX, RX, RTS, CTS
 #else
   uart_set_pin(UART_NUM_1, 23, 12, 18, 5);
 #endif
@@ -121,7 +130,7 @@ void setupBluetooth() {
   esp_bt_controller_config_t btControllerConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT(); 
 
   btControllerConfig.hci_uart_no = UART_NUM_1;
-#ifdef UNO_WIFI_REV2
+#if defined(UNO_WIFI_REV2) || defined(NANO_RP2040_CONNECT)
   btControllerConfig.hci_uart_baudrate = 115200;
 #else
   btControllerConfig.hci_uart_baudrate = 912600;

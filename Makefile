@@ -14,6 +14,11 @@ CFLAGS += -DUNO_WIFI_REV2
 CPPFLAGS += -DUNO_WIFI_REV2
 endif
 
+ifeq ($(NANO_RP2040_CONNECT),1)
+CFLAGS += -DNANO_RP2040_CONNECT
+CPPFLAGS += -DNANO_RP2040_CONNECT
+endif
+
 include $(IDF_PATH)/make/project.mk
 
 firmware: all

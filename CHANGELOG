@@ -1,5 +1,17 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.4.4 - 2021.04.13
+
+* Adding support for Arduino RP2040 Nano Connect (#64)
+
+Arduino NINA-W102 firmware 1.4.3 - 2021.01.29
+
+* Do not immediately close connection after 1 failed write (#62)
+
+Arduino NINA-W102 firmware 1.4.2 - 2021.01.28
+
+Port BearSSL + crypto integration to NINA (#57). This allows to offload BearSSL for Arduino IoT Cloud applications to the nina module, drastically saving on flash/RAM.
+
 Arduino NINA-W102 firmware 1.4.1 - 2020.08.17
 
 * Direct download of OTA binary to Nina storage and verifying both CRC and length (#53)
