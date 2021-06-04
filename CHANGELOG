@@ -1,3 +1,7 @@
+Adafruit's Arduino NINA-W102 firmware 1.7.4 - 2021.06.03
+
+* Fixed support for custom hostname in WiFi client mode
+
 Adafruit's Arduino NINA-W102 firmware 1.7.3 - 2021.03.26
 
 * Changed Analog Write to use full PWM range.

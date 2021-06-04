@@ -44,6 +44,7 @@ WiFiClass::WiFiClass() :
   memset(&_apRecord, 0x00, sizeof(_apRecord));
   memset(&_ipInfo, 0x00, sizeof(_ipInfo));
   memset(&_dnsServers, 0x00, sizeof(_dnsServers));
+  memset(&_hostname, 0x00, sizeof(_hostname));
 }
 
 uint8_t WiFiClass::status()
@@ -320,7 +321,7 @@ void WiFiClass::setDNS(/*IPAddress*/uint32_t dns_server1, /*IPAddress*/uint32_t 
 
 void WiFiClass::hostname(const char* name)
 {
-  tcpip_adapter_set_hostname(_interface == ESP_IF_WIFI_AP ? TCPIP_ADAPTER_IF_AP : TCPIP_ADAPTER_IF_STA, name);
+  strncpy(_hostname, name, HOSTNAME_MAX_LENGTH);
 }
 
 void WiFiClass::disconnect()
@@ -604,7 +605,12 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
       esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
       sprintf(defaultHostname, "arduino-%.2x%.2x", mac[4], mac[5]);
-      tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, defaultHostname);
+      //tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, defaultHostname);
+      if (strlen(_hostname) == 0) {
+        sprintf(_hostname, "%s", defaultHostname);
+      }
+      tcpip_adapter_set_hostname(_interface == ESP_IF_WIFI_AP ? TCPIP_ADAPTER_IF_AP : TCPIP_ADAPTER_IF_STA, _hostname);
+
 
       if (tcpip_adapter_get_netif(TCPIP_ADAPTER_IF_STA, (void**)&staNetif) == ESP_OK) {
         if (staNetif->input != WiFiClass::staNetifInputHandler) {
