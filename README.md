@@ -22,7 +22,7 @@ If updating **Arduino UNO WiFi Rev. 2** NINA firmware via [SerialNINAPassthrough
 ## Build a new certificate list (based on the Google Android root CA list)
 ```bash
 git clone https://android.googlesource.com/platform/system/ca-certificates
-cp nina-fw/data/nina-fw-create-roots.sh ca-certificates/files
+cp nina-fw/tools/nina-fw-create-roots.sh ca-certificates/files
 cd ca-certificates/files
 ./nina-fw-create-roots.sh
 cp roots.pem ../../nina-fw/data/roots.pem
