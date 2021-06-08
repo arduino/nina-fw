@@ -1,5 +1,4 @@
 #!/bin/bash
-#touch roots.pem
 echo '' > roots.pem
 
 for filename in *.0
