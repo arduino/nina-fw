@@ -16,7 +16,6 @@ do
   is_globalsign=$(openssl x509 -in $filename -text -nocert | grep "O = GlobalSign")
   is_starfield=$(openssl x509 -in $filename -text -nocert | grep "O = \"Starfield Technologies, Inc.\"")
   is_dst=$(openssl x509 -in $filename -text -nocert | grep "O = Digital Signature Trust Co.")
-#  is_geotrust=$(openssl x509 -in $filename -text -nocert | grep "O = GeoTrust Inc.")
   is_cybertrust=$(openssl x509 -in $filename -text -nocert | grep "O = \"Cybertrust, Inc\"")
   is_usertrust=$(openssl x509 -in $filename -text -nocert | grep "O = The USERTRUST Network")
 
@@ -85,12 +84,6 @@ do
     echo $is_dst
     openssl x509 -in $filename -text -certopt no_header,no_pubkey,no_subject,no_issuer,no_signame,no_version,no_serial,no_validity,no_extensions,no_sigdump,no_aux,no_extensions >> roots.pem
   fi
-
-#  if [ ! -z "$is_geotrust" ]
-#  then
-#    echo $is_geotrust
-#    openssl x509 -in $filename -text -certopt no_header,no_pubkey,no_subject,no_issuer,no_signame,no_version,no_serial,no_validity,no_extensions,no_sigdump,no_aux,no_extensions >> roots.pem
-#  fi
 
   if [ ! -z "$is_cybertrust" ]
   then
