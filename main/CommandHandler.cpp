@@ -36,7 +36,7 @@
 
 #include "esp_log.h"
 
-const char FIRMWARE_VERSION[6] = "1.4.5";
+const char FIRMWARE_VERSION[6] = "1.4.6";
 
 /*IPAddress*/uint32_t resolvedHostname;
 

@@ -19,6 +19,21 @@ If updating **Arduino UNO WiFi Rev. 2** NINA firmware via [SerialNINAPassthrough
 +  --baud 115200 --before no_reset
 ```
 
+## Build a new certificate list (based on the Google Android root CA list)
+```bash
+git clone https://android.googlesource.com/platform/system/ca-certificates
+cp nina-fw/tools/nina-fw-create-roots.sh ca-certificates/files
+cd ca-certificates/files
+./nina-fw-create-roots.sh
+cp roots.pem ../../nina-fw/data/roots.pem
+```
+
+## Check certificate list against URL list
+```bash
+cd tools
+./sslcheck.sh -c ../data/roots.pem -l url_lists/url_list_moz.com.txt -e
+```
+
 ## License
 
 Copyright (c) 2018-2019 Arduino SA. All rights reserved.

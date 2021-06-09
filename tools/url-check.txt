@@ -1,0 +1,503 @@
+
+SHOW_ERR=1
+
+https://google.com [32m PASS [39m
+https://apple.co [32m PASS [39m
+https://youtube.co [32m PASS [39m
+https://play.google.com [32m PASS [39m
+https://support.google.com [32m PASS [39m
+https://cloudflare.com [32m PASS [39m
+https://blogger.com [32m PASS [39m
+https://microsoft.com [32m PASS [39m
+https://linkedin.com [32m PASS [39m
+https://docs.google.com [32m PASS [39m
+https://youtu.be [32m PASS [39m
+https://wordpress.org [32m PASS [39m
+https://maps.google.com [32m PASS [39m
+https://en.wikipedia.org [32m PASS [39m
+https://mozilla.org [32m PASS [39m
+https://accounts.google.com [32m PASS [39m
+https://googleusercontent.com [31m FAIL [39mcurl: (6) Could not resolve host: googleusercontent.com
+https://europa.eu [32m PASS [39m
+https://sites.google.com [32m PASS [39m
+https://drive.google.com [32m PASS [39m
+https://vimeo.com [32m PASS [39m
+https://adobe.com [32m PASS [39m
+https://plus.google.com [32m PASS [39m
+https://es.wikipedia.org [32m PASS [39m
+https://pt.wikipedia.org [32m PASS [39m
+https://uol.com.br [32m PASS [39m
+https://bbc.co.uk [32m PASS [39m
+https://amazon.com [32m PASS [39m
+https://cnn.com [32m PASS [39m
+https://bp.blogspot.com [31m FAIL [39mcurl: (6) Could not resolve host: bp.blogspot.com
+https://facebook.com [32m PASS [39m
+https://vk.com [32m PASS [39m
+https://istockphoto.com [32m PASS [39m
+https://github.com [32m PASS [39m
+https://line.me [32m PASS [39m
+https://www.yahoo.com [32m PASS [39m
+https://wikimedia.org [32m PASS [39m
+https://forbes.com [32m PASS [39m
+https://opera.com [32m PASS [39m
+https://creativecommons.org [32m PASS [39m
+https://brandbucket.com [32m PASS [39m
+https://imdb.com [32m PASS [39m
+https://google.de [32m PASS [39m
+https://dropbox.com [32m PASS [39m
+https://google.co.jp [32m PASS [39m
+https://live.com [32m PASS [39m
+https://bbc.com [32m PASS [39m
+https://myspace.com [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://mail.ru [32m PASS [39m
+https://reuters.com [32m PASS [39m
+https://jimdofree.com [32m PASS [39m
+https://theguardian.com [32m PASS [39m
+https://google.es [32m PASS [39m
+https://medium.com [32m PASS [39m
+https://news.google.com [32m PASS [39m
+https://dailymotion.com [32m PASS [39m
+https://mail.google.com [32m PASS [39m
+https://www.weebly.com [32m PASS [39m
+https://w3.org [32m PASS [39m
+https://t.me [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://feedburner.com [32m PASS [39m
+https://whatsapp.com [32m PASS [39m
+https://issuu.com [32m PASS [39m
+https://fr.wikipedia.org [32m PASS [39m
+https://policies.google.com [32m PASS [39m
+https://hugedomains.com [32m PASS [39m
+https://abril.com.br [32m PASS [39m
+https://developers.google.com [32m PASS [39m
+https://globo.com [32m PASS [39m
+https://google.com.br [32m PASS [39m
+https://nih.gov [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://slideshare.net [32m PASS [39m
+https://nytimes.com [32m PASS [39m
+https://gstatic.com [32m PASS [39m
+https://msn.com [32m PASS [39m
+https://paypal.com [32m PASS [39m
+https://get.google.com [32m PASS [39m
+https://www.gov.uk [32m PASS [39m
+https://who.int [32m PASS [39m
+https://latimes.com [32m PASS [39m
+https://steampowered.com [32m PASS [39m
+https://bit.ly [32m PASS [39m
+https://cdc.gov [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://news.yahoo.com [32m PASS [39m
+https://wikia.com [32m PASS [39m
+https://apache.org [32m PASS [39m
+https://nasa.gov [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://twitter.com [32m PASS [39m
+https://un.org [32m PASS [39m
+https://books.google.com [32m PASS [39m
+https://aboutads.info [32m PASS [39m
+https://time.com [32m PASS [39m
+https://draft.blogger.com [32m PASS [39m
+https://change.org [32m PASS [39m
+https://fandom.com [32m PASS [39m
+https://google.it [32m PASS [39m
+https://rakuten.co.jp [32m PASS [39m
+https://tools.google.com [32m PASS [39m
+https://buydomains.com [32m PASS [39m
+https://webmd.com [32m PASS [39m
+https://myaccount.google.com [32m PASS [39m
+https://dailymail.co.uk [32m PASS [39m
+https://translate.google.com [32m PASS [39m
+https://independent.co.uk [32m PASS [39m
+https://google.co.uk [32m PASS [39m
+https://networkadvertising.org [32m PASS [39m
+https://booking.com [32m PASS [39m
+https://thesun.co.uk [32m PASS [39m
+https://hatena.ne.jp [32m PASS [39m
+https://cpanel.com [32m PASS [39m
+https://pinterest.com [32m PASS [39m
+https://ebay.com [32m PASS [39m
+https://cpanel.net [32m PASS [39m
+https://archive.org [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://telegraph.co.uk [32m PASS [39m
+https://gravatar.com [32m PASS [39m
+https://marketingplatform.google.com [32m PASS [39m
+https://washingtonpost.com [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://de.wikipedia.org [32m PASS [39m
+https://plesk.com [32m PASS [39m
+https://wired.com [32m PASS [39m
+https://namecheap.com [32m PASS [39m
+https://search.google.com [32m PASS [39m
+https://fb.com [32m PASS [39m
+https://files.wordpress.com [32m PASS [39m
+https://mediafire.com [32m PASS [39m
+https://dan.com [32m PASS [39m
+https://google.pl [32m PASS [39m
+https://android.com [32m PASS [39m
+https://aol.com [32m PASS [39m
+https://telegram.me [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://picasaweb.google.com [32m PASS [39m
+https://abcnews.go.com [32m PASS [39m
+https://wsj.com [32m PASS [39m
+https://it.wikipedia.org [32m PASS [39m
+https://scribd.com [32m PASS [39m
+https://usatoday.com [32m PASS [39m
+https://google.fr [32m PASS [39m
+https://youronlinechoices.com [32m PASS [39m
+https://lefigaro.fr [32m PASS [39m
+https://goo.gl [32m PASS [39m
+https://samsung.com [32m PASS [39m
+https://terra.com.br [32m PASS [39m
+https://amazon.co.jp [32m PASS [39m
+https://id.wikipedia.org [32m PASS [39m
+https://huffingtonpost.com [32m PASS [39m
+https://cnet.com [32m PASS [39m
+https://huffpost.com [32m PASS [39m
+https://ig.com.br [31m FAIL [39mcurl: (7) Failed to connect to ig.com.br port 443: Connection timed out
+https://office.com [32m PASS [39m
+https://businessinsider.com [32m PASS [39m
+https://4shared.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://wa.me [32m PASS [39m
+https://amazon.co.uk [32m PASS [39m
+https://bloomberg.com [32m PASS [39m
+https://ok.ru [32m PASS [39m
+https://amazon.de [32m PASS [39m
+https://harvard.edu [32m PASS [39m
+https://foxnews.com [32m PASS [39m
+https://photos.google.com [32m PASS [39m
+https://aliexpress.com [32m PASS [39m
+https://elpais.com [32m PASS [39m
+https://google.ru [32m PASS [39m
+https://tinyurl.com [32m PASS [39m
+https://academia.edu [32m PASS [39m
+https://twitch.tv [32m PASS [39m
+https://surveymonkey.com [32m PASS [39m
+https://rambler.ru [32m PASS [39m
+https://stanford.edu [32m PASS [39m
+https://wikihow.com [32m PASS [39m
+https://eventbrite.com [32m PASS [39m
+https://disney.com [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://wiley.com [32m PASS [39m
+https://welt.de [32m PASS [39m
+https://indiatimes.com [32m PASS [39m
+https://pl.wikipedia.org [32m PASS [39m
+https://nginx.com [32m PASS [39m
+https://cbc.ca [32m PASS [39m
+https://spotify.com [32m PASS [39m
+https://xbox.com [32m PASS [39m
+https://icann.org [32m PASS [39m
+https://repubblica.it [32m PASS [39m
+https://arxiv.org [32m PASS [39m
+https://alibaba.com [32m PASS [39m
+https://mega.nz [32m PASS [39m
+https://usnews.com [31m FAIL [39mcurl: (28) Operation timed out after 60001 milliseconds with 0 bytes received
+https://enable-javascript.com [32m PASS [39m
+https://ziddu.com [32m PASS [39m
+https://picasa.google.com [32m PASS [39m
+https://lemonde.fr [32m PASS [39m
+https://themeforest.net [32m PASS [39m
+https://imageshack.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://sedo.com [32m PASS [39m
+https://sciencedaily.com [32m PASS [39m
+https://sputniknews.com [32m PASS [39m
+https://netflix.com [32m PASS [39m
+https://storage.googleapis.com [32m PASS [39m
+https://theatlantic.com [32m PASS [39m
+https://imageshack.us [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://goodreads.com [32m PASS [39m
+https://php.net [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://loc.gov [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://disqus.com [32m PASS [39m
+https://news.com.au [32m PASS [39m
+https://photobucket.com [32m PASS [39m
+https://lycos.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://qq.com [32m PASS [39m
+https://forms.gle [32m PASS [39m
+https://ikea.com [31m FAIL [39mcurl: (28) Connection timed out after 60001 milliseconds
+https://ea.com [32m PASS [39m
+https://cambridge.org [31m FAIL [39mcurl: (28) Connection timed out after 60000 milliseconds
+https://trustpilot.com [32m PASS [39m
+https://biglobe.ne.jp [32m PASS [39m
+https://clickbank.net [31m FAIL [39mcurl: (6) Could not resolve host: clickbank.net
+https://allaboutcookies.org [32m PASS [39m
+https://mirror.co.uk [32m PASS [39m
+https://nikkei.com [32m PASS [39m
+https://abc.net.au [32m PASS [39m
+https://ign.com [32m PASS [39m
+https://walmart.com [32m PASS [39m
+https://ipv4.google.com [32m PASS [39m
+https://bandcamp.com [32m PASS [39m
+https://m.wikipedia.org [32m PASS [39m
+https://metro.co.uk [32m PASS [39m
+https://depositfiles.com [32m PASS [39m
+https://wp.com [32m PASS [39m
+https://stackoverflow.com [32m PASS [39m
+https://oup.com [32m PASS [39m
+https://amazon.es [32m PASS [39m
+https://ietf.org [32m PASS [39m
+https://hp.com [32m PASS [39m
+https://bund.de [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://secureserver.net [32m PASS [39m
+https://cornell.edu [32m PASS [39m
+https://techcrunch.com [32m PASS [39m
+https://buzzfeed.com [32m PASS [39m
+https://britannica.com [32m PASS [39m
+https://yahoo.co.jp [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://gofundme.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://ft.com [32m PASS [39m
+https://alexa.com [32m PASS [39m
+https://ytimg.com [31m FAIL [39mcurl: (6) Could not resolve host: ytimg.com
+https://abc.es [32m PASS [39m
+https://npr.org [32m PASS [39m
+https://kickstarter.com [32m PASS [39m
+https://shutterstock.com [32m PASS [39m
+https://columbia.edu [32m PASS [39m
+https://google.nl [32m PASS [39m
+https://unesco.org [31m FAIL [39mcurl: (28) Connection timed out after 60001 milliseconds
+https://instagram.com [32m PASS [39m
+https://my.yahoo.com [32m PASS [39m
+https://researchgate.net [32m PASS [39m
+https://urbandictionary.com [32m PASS [39m
+https://bloglovin.com [32m PASS [39m
+https://google.com.tw [32m PASS [39m
+https://umich.edu [32m PASS [39m
+https://chicagotribune.com [31m FAIL [39mcurl: (51) SSL: no alternative certificate subject name matches target host name 'chicagotribune.com'
+https://list-manage.com [31m FAIL [39mcurl: (51) SSL: no alternative certificate subject name matches target host name 'list-manage.com'
+https://ted.com [32m PASS [39m
+https://playstation.com [32m PASS [39m
+https://psychologytoday.com [32m PASS [39m
+https://ovh.com [32m PASS [39m
+https://privacyshield.gov [31m FAIL [39mcurl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to privacyshield.gov:443
+https://ggpht.com [31m FAIL [39mcurl: (6) Could not resolve host: ggpht.com
+https://groups.google.com [32m PASS [39m
+https://pixabay.com [32m PASS [39m
+https://yandex.ru [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://dw.com [32m PASS [39m
+https://addtoany.com [32m PASS [39m
+https://code.google.com [32m PASS [39m
+https://instructables.com [32m PASS [39m
+https://quora.com [32m PASS [39m
+https://gizmodo.com [32m PASS [39m
+https://huawei.com [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://weibo.com [32m PASS [39m
+https://nypost.com [32m PASS [39m
+https://discord.com [32m PASS [39m
+https://rottentomatoes.com [32m PASS [39m
+https://netvibes.com [32m PASS [39m
+https://mozilla.com [32m PASS [39m
+https://noaa.gov [32m PASS [39m
+https://economist.com [32m PASS [39m
+https://google.co.in [32m PASS [39m
+https://ovh.net [31m FAIL [39mcurl: (60) SSL certificate problem: certificate has expired More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://newsweek.com [32m PASS [39m
+https://nydailynews.com [31m FAIL [39mcurl: (35) error:14094438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error
+https://sapo.pt [32m PASS [39m
+https://ibm.com [32m PASS [39m
+https://fda.gov [31m FAIL [39mcurl: (6) Could not resolve host: fda.gov
+https://hm.com [32m PASS [39m
+https://addthis.com [31m FAIL [39mcurl: (35) error:14094438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error
+https://nginx.org [32m PASS [39m
+https://ovh.co.uk [32m PASS [39m
+https://guardian.co.uk [32m PASS [39m
+https://ria.ru [32m PASS [39m
+https://gnu.org [32m PASS [39m
+https://cbsnews.com [32m PASS [39m
+https://www.wix.com [32m PASS [39m
+https://yelp.com [32m PASS [39m
+https://asus.com [31m FAIL [39mcurl: (7) Failed to connect to asus.com port 443: Connection refused
+https://amazon.fr [32m PASS [39m
+https://search.yahoo.com [32m PASS [39m
+https://20minutos.es [32m PASS [39m
+https://discord.gg [32m PASS [39m
+https://ja.wikipedia.org [32m PASS [39m
+https://express.co.uk [32m PASS [39m
+https://espn.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://doubleclick.net [32m PASS [39m
+https://naver.com [32m PASS [39m
+https://google.co.id [32m PASS [39m
+https://shopify.com [32m PASS [39m
+https://digg.com [32m PASS [39m
+https://bitly.com [32m PASS [39m
+https://pbs.org [32m PASS [39m
+https://mit.edu [32m PASS [39m
+https://t.co [32m PASS [39m
+https://sciencemag.org [32m PASS [39m
+https://sciencedirect.com [32m PASS [39m
+https://soundcloud.com [32m PASS [39m
+https://engadget.com [32m PASS [39m
+https://tripadvisor.com [32m PASS [39m
+https://oracle.com [32m PASS [39m
+https://blackberry.com [32m PASS [39m
+https://nbcnews.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://mashable.com [32m PASS [39m
+https://smh.com.au [32m PASS [39m
+https://gmail.com [32m PASS [39m
+https://bing.com [32m PASS [39m
+https://thetimes.co.uk [32m PASS [39m
+https://www.wikipedia.org [32m PASS [39m
+https://sfgate.com [32m PASS [39m
+https://berkeley.edu [32m PASS [39m
+https://ca.gov [32m PASS [39m
+https://adssettings.google.com [32m PASS [39m
+https://washington.edu [32m PASS [39m
+https://afternic.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://nationalgeographic.com [32m PASS [39m
+https://akamaihd.net [31m FAIL [39mcurl: (6) Could not resolve host: akamaihd.net
+https://whitehouse.gov [32m PASS [39m
+https://spiegel.de [32m PASS [39m
+https://rapidshare.com [31m FAIL [39mcurl: (7) Failed to connect to rapidshare.com port 443: Connection refused
+https://e-monsite.com [32m PASS [39m
+https://finance.yahoo.com [32m PASS [39m
+https://detik.com [32m PASS [39m
+https://box.com [32m PASS [39m
+https://elmundo.es [32m PASS [39m
+https://rt.com [32m PASS [39m
+https://mysql.com [32m PASS [39m
+https://nature.com [32m PASS [39m
+https://cnbc.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://godaddy.com [31m FAIL [39mcurl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to godaddy.com:443
+https://sendspace.com [32m PASS [39m
+https://theverge.com [32m PASS [39m
+https://about.com [32m PASS [39m
+https://ru.wikipedia.org [32m PASS [39m
+https://variety.com [32m PASS [39m
+https://www.over-blog.com [32m PASS [39m
+https://googleblog.com [32m PASS [39m
+https://yadi.sk [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://zendesk.com [32m PASS [39m
+https://google.ca [32m PASS [39m
+https://deezer.com [32m PASS [39m
+https://utexas.edu [32m PASS [39m
+https://standard.co.uk [32m PASS [39m
+https://princeton.edu [32m PASS [39m
+https://merriam-webster.com [32m PASS [39m
+https://sina.com.cn [32m PASS [39m
+https://techradar.com [32m PASS [39m
+https://corriere.it [32m PASS [39m
+https://axs.com [32m PASS [39m
+https://wiktionary.org [32m PASS [39m
+https://airbnb.com [32m PASS [39m
+https://xinhuanet.com [31m FAIL [39mcurl: (7) Failed to connect to xinhuanet.com port 443: Connection timed out
+https://feedburner.google.com [32m PASS [39m
+https://wisc.edu [32m PASS [39m
+https://prnewswire.com [32m PASS [39m
+https://ed.gov [32m PASS [39m
+https://worldbank.org [32m PASS [39m
+https://investopedia.com [32m PASS [39m
+https://imgur.com [32m PASS [39m
+https://orange.fr [32m PASS [39m
+https://nvidia.com [32m PASS [39m
+https://wn.com [32m PASS [39m
+https://megaupload.com [31m FAIL [39mcurl: (6) Could not resolve host: megaupload.com
+https://ameblo.jp [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://politico.com [32m PASS [39m
+https://foursquare.com [32m PASS [39m
+https://www.canalblog.com [32m PASS [39m
+https://bp1.blogger.com [32m PASS [39m
+https://dribbble.com [32m PASS [39m
+https://cia.gov [32m PASS [39m
+https://irs.gov [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://fortune.com [32m PASS [39m
+https://epa.gov [32m PASS [39m
+https://statista.com [32m PASS [39m
+https://groups.yahoo.com [32m PASS [39m
+https://undeveloped.com [32m PASS [39m
+https://springer.com [32m PASS [39m
+https://elsevier.com [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://prezi.com [32m PASS [39m
+https://mixcloud.com [32m PASS [39m
+https://vkontakte.ru [32m PASS [39m
+https://skype.com [32m PASS [39m
+https://viglink.com [32m PASS [39m
+https://marketwatch.com [32m PASS [39m
+https://dreniq.com [32m PASS [39m
+https://amazon.in [32m PASS [39m
+https://storage.canalblog.com [32m PASS [39m
+https://dot.tk [31m FAIL [39mcurl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to dot.tk:443
+https://eff.org [32m PASS [39m
+https://plos.org [32m PASS [39m
+https://home.neustar [32m PASS [39m
+https://theglobeandmail.com [32m PASS [39m
+https://thefreedictionary.com [32m PASS [39m
+https://histats.com [32m PASS [39m
+https://zeit.de [32m PASS [39m
+https://narod.ru [32m PASS [39m
+https://sports.yahoo.com [32m PASS [39m
+https://yale.edu [32m PASS [39m
+https://daum.net [32m PASS [39m
+https://jstor.org [32m PASS [39m
+https://ucoz.ru [32m PASS [39m
+https://gooyaabitemplates.com [32m PASS [39m
+https://hbr.org [32m PASS [39m
+https://slate.com [32m PASS [39m
+https://com.com [32m PASS [39m
+https://howstuffworks.com [32m PASS [39m
+https://pcmag.com [32m PASS [39m
+https://so-net.ne.jp [32m PASS [39m
+https://billboard.com [32m PASS [39m
+https://cmu.edu [32m PASS [39m
+https://goo.ne.jp [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://freepik.com [32m PASS [39m
+https://thoughtco.com [32m PASS [39m
+https://feedproxy.google.com [32m PASS [39m
+https://pexels.com [32m PASS [39m
+https://espn.go.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://fb.me [32m PASS [39m
+https://ubuntu.com [32m PASS [39m
+https://thenextweb.com [32m PASS [39m
+https://over-blog-kiwi.com [32m PASS [39m
+https://weather.com [32m PASS [39m
+https://lonelyplanet.com [32m PASS [39m
+https://en.wordpress.com [32m PASS [39m
+https://ebay.co.uk [32m PASS [39m
+https://iso.org [32m PASS [39m
+https://thestar.com [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://businessinsider.com.au [32m PASS [39m
+https://usgs.gov [32m PASS [39m
+https://jhu.edu [32m PASS [39m
+https://answers.yahoo.com [32m PASS [39m
+https://google.com.au [32m PASS [39m
+https://orkut.com.br [31m FAIL [39mcurl: (28) Connection timed out after 60001 milliseconds
+https://amazon.ca [32m PASS [39m
+https://kotaku.com [32m PASS [39m
+https://softonic.com [32m PASS [39m
+https://prestashop.com [31m FAIL [39mcurl: (60) SSL certificate problem: self signed certificate in certificate chain More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://target.com [32m PASS [39m
+https://timeout.com [32m PASS [39m
+https://canada.ca [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://000webhost.com [32m PASS [39m
+https://fifa.com [32m PASS [39m
+https://parallels.com [32m PASS [39m
+https://reverbnation.com [32m PASS [39m
+https://oecd.org [32m PASS [39m
+https://si.edu [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://sky.com [32m PASS [39m
+https://insider.com [32m PASS [39m
+https://canva.com [32m PASS [39m
+https://soratemplates.com [32m PASS [39m
+https://iubenda.com [32m PASS [39m
+https://offset.com [32m PASS [39m
+https://snapchat.com [32m PASS [39m
+https://evernote.com [32m PASS [39m
+https://scientificamerican.com [32m PASS [39m
+https://psu.edu [32m PASS [39m
+https://rollingstone.com [32m PASS [39m
+https://cam.ac.uk [31m FAIL [39mcurl: (60) SSL certificate problem: unable to get local issuer certificate More details here: https://curl.haxx.se/docs/sslcerts.html curl failed to verify the legitimacy of the server and therefore could not establish a secure connection to it. To learn more about this situation and how to fix it, please visit the web page mentioned above.
+https://doi.org [32m PASS [39m
+https://etsy.com [32m PASS [39m
+https://inc.com [32m PASS [39m
+https://nicovideo.jp [32m PASS [39m
+https://ap.org [32m PASS [39m
+https://adweek.com [32m PASS [39m
+https://dictionary.com [32m PASS [39m
+https://newyorker.com [32m PASS [39m
+https://channel4.com [32m PASS [39m
+https://steamcommunity.com [32m PASS [39m
+https://about.me [32m PASS [39m
+https://nokia.com [32m PASS [39m
+https://coursera.org [32m PASS [39m
+https://rediff.com [32m PASS [39m
+https://venturebeat.com [32m PASS [39m
+https://www.livejournal.com [32m PASS [39m
+https://biblegateway.com [32m PASS [39m
+https://mystrikingly.com [32m PASS [39m
+https://softpedia.com [32m PASS [39m
+https://unicef.org [32m PASS [39m
+https://debian.org [32m PASS [39m
+https://fastcompany.com [32m PASS [39m
