@@ -1,5 +1,23 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.4.7 - 2021.06.18
+
+Functionally identical with 1.4.6, except version number.
+
+This release was made necessary because bad arguments were used with the FirmwareUploader tool
+on Arduino Cloud for updating NINA-FWs (effectively deleting all certificates except the one
+fetched by the tool). Now all Cloud-Connected NINA-FWs need to be updated once more which is
+only possible by incrementing the firmware version number.
+
+Arduino NINA-W102 firmware 1.4.6 - 2021.06.09
+
+* Add a new root certificate list including detailed instructions how to update it (#71)
+
+Arduino NINA-W102 firmware 1.4.5 - 2021.05.05
+
+* Adding support for Arduino RP2040 Nano Connect (#67)
+* Added ISRG Root X1 for LetsEncrypt (#68)
+
 Arduino NINA-W102 firmware 1.4.4 - 2021.04.13
 
 * Adding support for Arduino RP2040 Nano Connect (#64)
