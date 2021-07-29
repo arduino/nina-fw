@@ -1,5 +1,9 @@
 Arduino NINA-W102 firmware ?.?.? - ????.??.??
 
+Arduino NINA-W102 firmware 1.4.8 - 2021.07.29
+
+* Fix issue due to repeated status()/connected() call (#73)
+
 Arduino NINA-W102 firmware 1.4.7 - 2021.06.18
 
 Functionally identical with 1.4.6, except version number.
