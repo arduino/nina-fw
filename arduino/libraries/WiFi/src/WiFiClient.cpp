@@ -105,6 +105,7 @@ int WiFiClient::available()
 
   int result = 0;
 
+  //This function returns the number of bytes of pending data already received in the socket’s network.
   if (lwip_ioctl_r(_socket, FIONREAD, &result) < 0) {
     lwip_close_r(_socket);
     _socket = -1;
@@ -150,6 +151,7 @@ int WiFiClient::peek()
 {
   uint8_t b;
 
+  //This function tries to receive data from the network and can return an error if the connection when down.
   if (lwip_recv_r(_socket, &b, sizeof(b), MSG_PEEK | MSG_DONTWAIT) <= 0) {
     if (errno != EWOULDBLOCK) {
       lwip_close_r(_socket);
@@ -177,7 +179,10 @@ void WiFiClient::stop()
 uint8_t WiFiClient::connected()
 {
   if (_socket != -1) {
-    peek();
+    //Check if there are already available data and, if not, try to read new ones from the network.
+    if (!available()) {
+      peek();
+    }
   }
 
   return (_socket != -1);
