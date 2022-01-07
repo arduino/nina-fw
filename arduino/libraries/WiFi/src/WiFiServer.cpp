@@ -74,7 +74,13 @@ void WiFiServer::begin()
 
 WiFiClient WiFiServer::available(uint8_t* status)
 {
-  int result = lwip_accept(_socket, NULL, 0);
+  int result = -1;
+  if (_accepted_sock >= 0) {
+    result = _accepted_sock;
+    _accepted_sock = -1;
+  } else {
+    result = lwip_accept(_socket, NULL, 0);
+  }
 
   if (status) {
     *status = (result != -1);
@@ -109,6 +115,25 @@ WiFiClient WiFiServer::available(uint8_t* status)
   }
 
   return WiFiClient(result);
+}
+
+WiFiClient WiFiServer::accept()
+{
+  int result = -1;
+  if (_accepted_sock >= 0) {
+    result = _accepted_sock;
+    _accepted_sock = -1;
+  } else {
+    result = lwip_accept(_socket, NULL, 0);
+  }
+  return WiFiClient(result);
+}
+
+bool WiFiServer::hasClient() {
+  if (_accepted_sock != -1) 
+    return true;
+  _accepted_sock = lwip_accept(_socket, NULL, 0);
+  return (_accepted_sock != -1);
 }
 
 uint8_t WiFiServer::status() {

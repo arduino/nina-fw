@@ -32,6 +32,8 @@ public:
   WiFiServer();
   WiFiServer(uint16_t);
   WiFiClient available(uint8_t* status = NULL);
+  WiFiClient accept();
+  bool hasClient();
   void begin();
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);
@@ -45,6 +47,7 @@ private:
   uint16_t _port;
   int _socket;
   int _spawnedSockets[CONFIG_LWIP_MAX_SOCKETS];
+  int _accepted_sock = -1;
 };
 
 #endif // WIFISERVER_H
