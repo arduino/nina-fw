@@ -400,11 +400,7 @@ int startServerTcp(const uint8_t command[], uint8_t response[])
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
 
-  if (type == 0x00) {
-    tcpServers[socket] = WiFiServer(port);
-
-    tcpServers[socket].begin();
-
+  if (type == 0x00 && tcpServers[socket].begin(port)) {
     socketTypes[socket] = 0x00;
     response[4] = 1;
   } else if (type == 0x01 && udps[socket].begin(port)) {
