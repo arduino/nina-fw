@@ -18,6 +18,7 @@
 */
 
 #include <lwip/sockets.h>
+#include <driver/spi_common.h>
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -36,11 +37,16 @@
 
 #include "esp_log.h"
 
-const char FIRMWARE_VERSION[6] = "1.4.8";
+#ifdef LWIP_PROVIDE_ERRNO
+int errno;
+#endif
+
+const char FIRMWARE_VERSION[6] = "1.5.0";
 
 /*IPAddress*/uint32_t resolvedHostname;
 
 #define MAX_SOCKETS CONFIG_LWIP_MAX_SOCKETS
+
 uint8_t socketTypes[MAX_SOCKETS];
 WiFiClient tcpClients[MAX_SOCKETS];
 WiFiUDP udps[MAX_SOCKETS];
@@ -400,11 +406,7 @@ int startServerTcp(const uint8_t command[], uint8_t response[])
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
 
-  if (type == 0x00) {
-    tcpServers[socket] = WiFiServer(port);
-
-    tcpServers[socket].begin();
-
+  if (type == 0x00 && tcpServers[socket].begin(port)) {
     socketTypes[socket] = 0x00;
     response[4] = 1;
   } else if (type == 0x01 && udps[socket].begin(port)) {
@@ -1206,7 +1208,7 @@ int getAnalogRead(const uint8_t command[], uint8_t response[])
   /* Set maximum analog bit-width = 12 bit. */
   adc1_config_width(ADC_WIDTH_BIT_12);
   /* Configure channel attenuation. */
-  adc1_config_channel_atten((adc1_channel_t)adc_channel, ADC_ATTEN_DB_0);
+  adc1_config_channel_atten((adc1_channel_t)adc_channel, ADC_ATTEN_DB_11);
   /* Read the analog value from the pin. */
   uint16_t const adc_raw = adc1_get_raw((adc1_channel_t)adc_channel);
 
@@ -1258,7 +1260,7 @@ int readFile(const uint8_t command[], uint8_t response[]) {
     return -1;
   }
   fseek(f, offset, SEEK_SET);
-  int ret = fread(&response[4], len, 1, f);
+  fread(&response[4], len, 1, f);
   fclose(f);
 
   response[2] = 1; // number of parameters
@@ -1278,11 +1280,10 @@ int deleteFile(const uint8_t command[], uint8_t response[]) {
   memset(filename, 0x00, sizeof(filename));
   memcpy(filename, &command[6 + command[3] + command[4 + command[3]]], command[5 + command[3] + command[4 + command[3]]]);
 
-  int ret = -1;
   struct stat st;
   if (stat(filename, &st) == 0) {
     // Delete it if it exists
-    ret = unlink(filename);
+    unlink(filename);
   }
   return 0;
 }
@@ -1491,7 +1492,7 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
   static const char * OTA_FILE = "/fs/UPDATE.BIN.LZSS";
   static const char * OTA_TEMP_FILE = "/fs/UPDATE.BIN.LZSS.TMP";
 
-  typedef enum OTA_Error {
+  enum OTA_Error {
     ERR_NO_ERROR = 0,
     ERR_OPEN     = 1,
     ERR_LENGTH   = 2,
@@ -1584,6 +1585,460 @@ ota_cleanup:
   return 6;
 }
 
+//
+// Low-level BSD-like sockets functions
+//
+int socket_socket(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START   < 0xE0   >
+  //[1]     Command     < 1 byte >
+  //[2]     N args      < 1 byte >
+  //[3]     type size   < 1 byte >
+  //[4]     type        < 1 byte >
+  //[5]     proto size  < 1 byte >
+  //[6]     proto       < 1 byte >
+
+  uint8_t type = command[4];
+  uint8_t proto = command[6];
+
+  errno = 0;
+  int8_t ret = lwip_socket(AF_INET, type, proto);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 255 : ret;
+  return 6;
+}
+
+int socket_close(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START   < 0xE0   >
+  //[1]     Command     < 1 byte >
+  //[2]     N args      < 1 byte >
+  //[3]     sock size   < 1 byte >
+  //[4]     sock        < 1 byte >
+  uint8_t sock = command[4];
+
+  errno = 0;
+  int ret = lwip_close_r(sock);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 0 : 1;
+  return 6;
+}
+
+int socket_errno(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START   < 0xE0   >
+  //[1]     Command     < 1 byte >
+  //[2]     N args      < 1 byte >
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = errno;
+  return 6;
+}
+
+int socket_bind(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START   < 0xE0    >
+  //[1]     Command     < 1 byte  >
+  //[2]     N args      < 1 byte  >
+  //[3]     sock size   < 1 byte  >
+  //[4]     sock        < 1 byte  >
+  //[5]     port size   < 1 byte  >
+  //[6..7]  port        < 2 bytes >
+  uint8_t sock = command[4];
+  uint16_t port = *((uint16_t *) &command[6]);
+
+  struct sockaddr_in addr;
+  memset(&addr, 0x00, sizeof(addr));
+
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = (uint32_t) 0;
+  addr.sin_port = port;
+
+  errno = 0;
+  int ret = lwip_bind_r(sock, (struct sockaddr*) &addr, sizeof(addr));
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 0 : 1;
+  return 6;
+}
+
+int socket_listen(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START    < 0xE0   >
+  //[1]     Command      < 1 byte >
+  //[2]     N args       < 1 byte >
+  //[3]     sock size    < 1 byte >
+  //[4]     sock value   < 1 byte >
+  //[5]     backlog size < 1 byte >
+  //[6]     backlog      < 1 byte >
+  uint8_t sock = command[4];
+  uint8_t backlog = command[6];
+
+  errno = 0;
+  int ret = lwip_listen_r(sock, backlog);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 0 : 1;
+  return 6;
+}
+
+int socket_accept(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START   < 0xE0   >
+  //[1]     Command     < 1 byte >
+  //[2]     N args      < 1 byte >
+  //[3]     sock size   < 1 byte >
+  //[4]     sock        < 1 byte >
+  uint8_t sock = command[4];
+
+  struct sockaddr_in addr;
+  socklen_t addr_len = sizeof(addr);
+
+  errno = 0;
+  int8_t ret = lwip_accept_r(sock, (struct sockaddr *) &addr, &addr_len);
+
+  response[2] = 3; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 255 : ret;
+
+  // Remote addr
+  response[5] = 4; // parameter 2 length
+  memcpy(&response[6], &addr.sin_addr.s_addr, 4);
+
+  // Remote port
+  response[10] = 2; // parameter 3 length
+  response[11] = (addr.sin_port >> 8) & 0xff;
+  response[12] = (addr.sin_port >> 0) & 0xff;
+
+  return 14;
+}
+
+int socket_connect(const uint8_t command[], uint8_t response[])
+{
+  //[0]      CMD_START  < 0xE0    >
+  //[1]      Command    < 1 byte  >
+  //[2]      N args     < 1 byte  >
+  //[3]      sock size  < 1 byte  >
+  //[4]      sock       < 1 byte  >
+  //[5]      ip size    < 1 byte  >
+  //[6..9]   ip         < 4 bytes >
+  //[10]     port size  < 1 byte  >
+  //[11..12] port       < 2 bytes >
+  uint8_t sock = command[4];
+  uint32_t ip = *((uint32_t *) &command[6]);
+  uint16_t port = *((uint16_t *) &command[11]);
+
+  struct sockaddr_in addr;
+  memset(&addr, 0x00, sizeof(addr));
+
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = ip;
+  addr.sin_port = port;
+
+  errno = 0;
+  int ret = lwip_connect_r(sock, (struct sockaddr*)&addr, sizeof(addr));
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 0 : 1;
+  return 6;
+}
+
+int socket_send(const uint8_t command[], uint8_t response[])
+{
+  //[0]      CMD_START  < 0xE0    >
+  //[1]      Command    < 1 byte  >
+  //[2]      N args     < 1 byte  >
+  //[3..4]   sock size  < 2 bytes >
+  //[5]      sock       < 1 byte  >
+  //[6..7]   buff size  < 2 bytes >
+  //[8]      buff       < n bytes >
+  uint8_t sock = command[5];
+  uint16_t size = lwip_ntohs(*((uint16_t *) &command[6]));
+
+  errno = 0;
+  int16_t ret = lwip_send_r(sock, &command[8], size, 0);
+  ret = (ret < 0) ? 0 : ret;
+
+  response[2] = 1; // number of parameters
+  response[3] = 2;
+  response[4] = (ret >> 8) & 0xff; // parameter 1 length
+  response[5] = (ret >> 0) & 0xff;
+  return 7;
+}
+
+int socket_recv(const uint8_t command[], uint8_t response[])
+{
+  //[0]      CMD_START  < 0xE0    >
+  //[1]      Command    < 1 byte  >
+  //[2]      N args     < 1 byte  >
+  //[3]      sock size  < 1 byte  >
+  //[4]      sock       < 1 byte  >
+  //[5]      recv size  < 1 byte  >
+  //[6..7]   recv       < 2 bytes >
+  uint8_t sock = command[4];
+  uint16_t size = *((uint16_t *) &command[6]);
+  size = LWIP_MIN(size, (SPI_MAX_DMA_LEN-16));
+
+  errno = 0;
+  int16_t ret = lwip_recv_r(sock, &response[5], size, 0);
+  ret = (ret < 0) ? 0 : ret;
+
+  response[2] = 1; // number of parameters
+  response[3] = (ret >> 8) & 0xff; // parameter 1 length
+  response[4] = (ret >> 0) & 0xff;
+  return 6 + ret;
+}
+
+int socket_sendto(const uint8_t command[], uint8_t response[])
+{
+  //[0]      CMD_START  < 0xE0    >
+  //[1]      Command    < 1 byte  >
+  //[2]      N args     < 1 byte  >
+  //[3..4]   sock size  < 2 bytes >
+  //[5]      sock       < 1 byte  >
+  //[6..7]   ip size    < 2 bytes >
+  //[8..11]  ip         < 4 bytes >
+  //[12..13] port size  < 2 bytes >
+  //[14..15] port       < 2 bytes >
+  //[16..17] buff size  < 2 bytes >
+  //[18]     buff       < n bytes >
+  uint8_t sock = command[5];
+  uint32_t ip = *((uint32_t *) &command[8]);
+  uint16_t port = *((uint16_t *) &command[14]);
+  uint16_t size = lwip_ntohs(*((uint16_t *) &command[16]));
+
+  struct sockaddr_in addr;
+  memset(&addr, 0x00, sizeof(addr));
+
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = ip;
+  addr.sin_port = port;
+
+  errno = 0;
+  int16_t ret = lwip_sendto_r(sock, &command[18], size, 0, (struct sockaddr*)&addr, sizeof(addr));
+  ret = (ret < 0) ? 0 : ret;
+
+  response[2] = 1; // number of parameters
+  response[3] = 2;
+  response[4] = (ret >> 8) & 0xff; // parameter 1 length
+  response[5] = (ret >> 0) & 0xff;
+  return 7;
+}
+
+int socket_recvfrom(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START   < 0xE0   >
+  //[1]     Command     < 1 byte >
+  //[2]     N args      < 1 byte >
+  //[3]     sock size   < 1 byte >
+  //[4]     sock        < 1 byte >
+  //[5]     recv size   < 1 byte >
+  //[6..7]  recv        < 2 bytes >
+  uint8_t sock = command[4];
+  uint16_t size = *((uint16_t *) &command[6]);
+
+  struct sockaddr_in addr;
+  socklen_t addr_len = sizeof(addr);
+
+  errno = 0;
+  int16_t ret = lwip_recvfrom_r(sock, &response[15], size, 0, (struct sockaddr *) &addr, &addr_len);
+  ret = (ret < 0) ? 0 : ret;
+
+  response[2] = 3; // number of parameters
+
+  // Remote addr
+  response[3] = 0; // parameter 1 length
+  response[4] = 4; // parameter 1 length
+  memcpy(&response[5], &addr.sin_addr.s_addr, 4);
+
+  // Remote port
+  response[9]  = 0; // parameter 3 length
+  response[10] = 2; // parameter 3 length
+  response[11] = (addr.sin_port >> 8) & 0xff;
+  response[12] = (addr.sin_port >> 0) & 0xff;
+
+  // Received buffer
+  response[13] = (ret >> 8) & 0xff; // parameter 4 length
+  response[14] = (ret >> 0) & 0xff;
+  return 16 + ret;
+}
+
+int socket_ioctl(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START    < 0xE0    >
+  //[1]     Command      < 1 byte  >
+  //[2]     N args       < 1 byte  >
+  //[3]     sock size    < 1 byte  >
+  //[4]     sock         < 1 byte  >
+  //[5]     cmd size     < 1 byte  >
+  //[6-9]   cmd          < 4 bytes >
+  //[10]    arg size     < 1 byte  >
+  //[11]    arg          < n bytes >
+  uint8_t sock = command[4];
+  uint32_t cmd = *((uint32_t *) &command[6]);
+  uint8_t size = LWIP_MIN(command[10], IOCPARM_MASK);
+
+  uint8_t argval[IOCPARM_MASK];
+  memcpy(argval, &command[11], size);
+
+  errno = 0;
+  int ret = lwip_ioctl_r(sock, cmd, argval);
+  if (ret == -1) {
+      size = 0;
+  }
+
+  response[2] = 1; // number of parameters
+  response[3] = size; // parameter 1 length
+  // Note: in/out command, always return something.
+  memcpy(&response[4], argval, size);
+  return 5 + size;
+}
+
+#define SOCKET_POLL_RD       (0x01)
+#define SOCKET_POLL_WR       (0x02)
+#define SOCKET_POLL_ERR      (0x04)
+#define SOCKET_POLL_FAIL     (0x80)
+
+int socket_poll(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START    < 0xE0   >
+  //[1]     Command      < 1 byte >
+  //[2]     N args       < 1 byte >
+  //[3]     sock size    < 1 byte >
+  //[4]     sock         < 1 byte >
+  uint8_t sock = command[4];
+
+  fd_set rset, wset, xset;
+  FD_ZERO(&rset);
+  FD_ZERO(&wset);
+  FD_ZERO(&wset);
+
+  FD_SET(sock, &rset);
+  FD_SET(sock, &wset);
+  FD_SET(sock, &xset);
+
+  struct timeval tv = {
+    .tv_sec  = 0,
+    .tv_usec = 0,
+  };
+
+  errno = 0;
+  int ret = lwip_select(sock + 1, &rset, &wset, &xset, &tv);
+
+  uint8_t flags = 0;
+  if (FD_ISSET(sock, &rset)) {
+    flags |= SOCKET_POLL_RD;
+  }
+
+  if (FD_ISSET(sock, &wset)) {
+    flags |= SOCKET_POLL_WR;
+  }
+
+  if (FD_ISSET(sock, &xset)) {
+    flags |= SOCKET_POLL_ERR;
+  }
+
+  if (ret == -1) {
+    flags |= SOCKET_POLL_FAIL;
+  }
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = flags;
+  return 6;
+}
+
+int socket_setsockopt(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START    < 0xE0    >
+  //[1]     Command      < 1 byte  >
+  //[2]     N args       < 1 byte  >
+  //[3]     sock size    < 1 byte  >
+  //[4]     sock         < 1 byte  >
+  //[5]     optname size < 1 byte  >
+  //[6-9]   optname      < 4 bytes >
+  //[10]    optlen       < 1 byte  >
+  //[11]    optval       < n bytes >
+  uint8_t sock = command[4];
+  uint32_t optname = *((uint32_t *) &command[6]);
+  uint8_t optlen = LWIP_MIN(command[10], LWIP_SETGETSOCKOPT_MAXOPTLEN);
+  uint8_t optval[LWIP_SETGETSOCKOPT_MAXOPTLEN];
+  memcpy(&optval, &command[11], optlen);
+
+  errno = 0;
+  int ret = lwip_setsockopt_r(sock, SOL_SOCKET, optname, optval, optlen);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 0 : 1;
+  return 6;
+}
+
+int socket_getsockopt(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START    < 0xE0    >
+  //[1]     Command      < 1 byte  >
+  //[2]     N args       < 1 byte  >
+  //[3]     sock size    < 1 byte  >
+  //[4]     sock         < 1 byte  >
+  //[5]     optname size < 1 byte  >
+  //[6-9]   optname      < 4 bytes >
+  //[10]    optlen  size < 1 byte  >
+  //[11]    optlen       < 1 byte  >
+  uint8_t sock = command[4];
+  uint32_t optname = *((uint32_t *) &command[6]);
+  socklen_t optlen = LWIP_MIN(command[11], LWIP_SETGETSOCKOPT_MAXOPTLEN);
+  uint8_t optval[LWIP_SETGETSOCKOPT_MAXOPTLEN];
+
+  errno = 0;
+  int ret = lwip_getsockopt_r(sock, SOL_SOCKET, optname, optval, &optlen);
+  if (ret == -1) {
+      optlen = 0;
+  }
+  response[2] = 1; // number of parameters
+  response[3] = optlen; // parameter 1 length
+  memcpy(&response[4], optval, optlen);
+  return 5 + optlen;
+}
+
+int socket_getpeername(const uint8_t command[], uint8_t response[])
+{
+  //[0]     CMD_START   < 0xE0   >
+  //[1]     Command     < 1 byte >
+  //[2]     N args      < 1 byte >
+  //[3]     sock size   < 1 byte >
+  //[4]     sock        < 1 byte >
+  uint8_t sock = command[4];
+
+  struct sockaddr_in addr;
+  socklen_t addr_len = sizeof(addr);
+
+  errno = 0;
+  int ret = lwip_getpeername(sock, (struct sockaddr *) &addr, &addr_len);
+
+  response[2] = 3; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = (ret == -1) ? 0 : 1;
+
+  // Remote addr
+  response[5] = 4; // parameter 2 length
+  memcpy(&response[6], &addr.sin_addr.s_addr, 4);
+
+  // Remote port
+  response[10] = 2; // parameter 3 length
+  response[11] = (addr.sin_port >> 8) & 0xff;
+  response[12] = (addr.sin_port >> 0) & 0xff;
+
+  return 14;
+}
+
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
 const CommandHandlerType commandHandlers[] = {
@@ -1607,8 +2062,26 @@ const CommandHandlerType commandHandlers[] = {
 
   // 0x60 -> 0x6f
   writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-};
 
+  // Low-level BSD-like sockets functions.
+  // 0x70 -> 0x7f
+  socket_socket,        // 0x70
+  socket_close,         // 0x71
+  socket_errno,         // 0x72
+  socket_bind,          // 0x73
+  socket_listen,        // 0x74
+  socket_accept,        // 0x75
+  socket_connect,       // 0x76
+  socket_send,          // 0x77
+  socket_recv,          // 0x78
+  socket_sendto,        // 0x79
+  socket_recvfrom,      // 0x7A
+  socket_ioctl,         // 0x7B
+  socket_poll,          // 0x7C
+  socket_setsockopt,    // 0x7D
+  socket_getsockopt,    // 0x7E
+  socket_getpeername,   // 0x7F
+};
 #define NUM_COMMAND_HANDLERS (sizeof(commandHandlers) / sizeof(commandHandlers[0]))
 
 CommandHandlerClass::CommandHandlerClass()
