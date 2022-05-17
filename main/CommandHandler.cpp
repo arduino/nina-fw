@@ -1202,7 +1202,7 @@ int getAnalogRead(const uint8_t command[], uint8_t response[])
   /* Set maximum analog bit-width = 12 bit. */
   adc1_config_width(ADC_WIDTH_BIT_12);
   /* Configure channel attenuation. */
-  adc1_config_channel_atten((adc1_channel_t)adc_channel, ADC_ATTEN_DB_0);
+  adc1_config_channel_atten((adc1_channel_t)adc_channel, ADC_ATTEN_DB_11);
   /* Read the analog value from the pin. */
   uint16_t const adc_raw = adc1_get_raw((adc1_channel_t)adc_channel);
 
