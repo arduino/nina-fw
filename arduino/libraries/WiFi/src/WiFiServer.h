@@ -31,6 +31,8 @@ class WiFiServer /*: public Server*/ {
 public:
   WiFiServer();
   WiFiClient available(uint8_t* status = NULL);
+  WiFiClient accept();
+  bool hasClient();
   uint8_t begin(uint16_t port);
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);
@@ -44,6 +46,7 @@ private:
   uint16_t _port;
   int _socket;
   int _spawnedSockets[CONFIG_LWIP_MAX_SOCKETS];
+  int _accepted_sock = -1;
 };
 
 #endif // WIFISERVER_H

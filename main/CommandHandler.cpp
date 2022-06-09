@@ -456,10 +456,24 @@ int availDataTcp(const uint8_t command[], uint8_t response[])
 
   if (socketTypes[socket] == 0x00) {
     if (tcpServers[socket]) {
-      WiFiClient client = tcpServers[socket].available();
 
+      uint8_t accept = command[6];
       available = 255;
 
+      if (accept) {
+        for (int i = 0; i < MAX_SOCKETS; i++) {
+          if (socketTypes[i] == 255) {
+            WiFiClient client = tcpServers[socket].accept();
+            if (client) {
+              socketTypes[i] = 0x00;
+              tcpClients[i] = client;
+              available = i;
+            }
+            break;
+          }
+        }
+     } else {
+      WiFiClient client = tcpServers[socket].available();
       if (client) {
         // try to find existing socket slot
         for (int i = 0; i < MAX_SOCKETS; i++) {
@@ -491,6 +505,7 @@ int availDataTcp(const uint8_t command[], uint8_t response[])
           }
         }
       }
+     }
     } else {
       available = tcpClients[socket].available();
     }
@@ -2153,7 +2168,7 @@ void CommandHandlerClass::updateGpio0Pin()
 
   for (int i = 0; i < MAX_SOCKETS; i++) {
     if (socketTypes[i] == 0x00) {
-      if (tcpServers[i] && tcpServers[i].available()) {
+      if (tcpServers[i] && (tcpServers[i].hasClient() || tcpServers[i].available())) {
         available = 1;
         break;
       } else if (tcpClients[i] && tcpClients[i].connected() && tcpClients[i].available()) {
