@@ -19,6 +19,15 @@ If updating the NINA firmware for an **Arduino UNO WiFi Rev. 2** or **Arduino Na
 +  --baud 115200 --before no_reset
 ```
 
+## Packaging
+The `make` command produces a bunch of binary files that must be flashed at very precise locations, making `esptool` commandline quite complicated.
+Instead, once the firmware has been compiled, you can invoke `combine.py` script to produce a monolithic binary that can be flashed at 0x0.
+```
+make
+python combine.py
+```
+This produces `NINA_W102.bin` file (a different name can be specified as parameter). To flash this file you can use https://arduino.github.io/arduino-fwuploader/2.2/usage/#firmware-flashing
+
 ## Build a new certificate list (based on the Google Android root CA list)
 ```bash
 git clone https://android.googlesource.com/platform/system/ca-certificates
