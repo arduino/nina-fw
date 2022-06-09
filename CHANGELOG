@@ -1,4 +1,7 @@
-Arduino NINA-W102 firmware ?.?.? - ????.??.??
+Arduino NINA-W102 firmware 1.5.0 - 2022.07.09
+
+* Add BSD-like sockets APIs (on command range 0x70 -> 0x7f)
+* Fix ADC readings range (fuill scale range is now ~2.7V)
 
 Arduino NINA-W102 firmware 1.4.8 - 2021.07.29
 
