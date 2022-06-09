@@ -30,11 +30,10 @@ class WiFiClient;
 class WiFiServer /*: public Server*/ {
 public:
   WiFiServer();
-  WiFiServer(uint16_t);
   WiFiClient available(uint8_t* status = NULL);
   WiFiClient accept();
   bool hasClient();
-  void begin();
+  uint8_t begin(uint16_t port);
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);
   uint8_t status();

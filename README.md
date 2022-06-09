@@ -13,11 +13,20 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 1. Use `esptool` to flash the compiled firmware
 
 ## Notes
-If updating **Arduino UNO WiFi Rev. 2** NINA firmware via [SerialNINAPassthrough](https://github.com/arduino-libraries/WiFiNINA/blob/master/examples/Tools/SerialNINAPassthrough/SerialNINAPassthrough.ino) sketch then the `esptool` invocation needs to be changed slightly:
+If updating the NINA firmware for an **Arduino UNO WiFi Rev. 2** or **Arduino Nano RP2040** board via [SerialNINAPassthrough](https://github.com/arduino-libraries/WiFiNINA/blob/master/examples/Tools/SerialNINAPassthrough/SerialNINAPassthrough.ino) sketch, then the `esptool` invocation needs to be changed slightly:
 ```diff
 -  --baud 115200 --before default_reset
 +  --baud 115200 --before no_reset
 ```
+
+## Packaging
+The `make` command produces a bunch of binary files that must be flashed at very precise locations, making `esptool` commandline quite complicated.
+Instead, once the firmware has been compiled, you can invoke `combine.py` script to produce a monolithic binary that can be flashed at 0x0.
+```
+make
+python combine.py
+```
+This produces `NINA_W102.bin` file (a different name can be specified as parameter). To flash this file you can use https://arduino.github.io/arduino-fwuploader/2.2/usage/#firmware-flashing
 
 ## Build a new certificate list (based on the Google Android root CA list)
 ```bash
