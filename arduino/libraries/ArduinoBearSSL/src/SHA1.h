@@ -47,6 +47,4 @@ private:
   br_sha1_context _ctx;
 };
 
-extern SHA1Class SHA1;
-
 #endif

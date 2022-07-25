@@ -23,11 +23,6 @@
 extern "C" {
 #endif
 
-extern char* utoa( unsigned long value, char *string, int radix )
-{
-  return ultoa( value, string, radix ) ;
-}
-
 extern char* ultoa( unsigned long value, char *string, int radix )
 {
   char tmp[33];
