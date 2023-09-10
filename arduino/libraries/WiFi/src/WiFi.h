@@ -76,6 +76,7 @@ public:
   uint32_t localIP();
   uint32_t subnetMask();
   uint32_t gatewayIP();
+  uint32_t dnsIP(int n = 0);
   char* SSID();
   int32_t RSSI();
   uint8_t encryptionType();
