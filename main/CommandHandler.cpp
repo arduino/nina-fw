@@ -457,7 +457,7 @@ int availDataTcp(const uint8_t command[], uint8_t response[])
   if (socketTypes[socket] == 0x00) {
     if (tcpServers[socket]) {
 
-      uint8_t accept = command[6];
+      uint8_t accept = command[2] == 2 ? command[6] : 0; // updated library sends a second parameter
       available = 255;
 
       if (accept) {
