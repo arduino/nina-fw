@@ -464,6 +464,11 @@ uint32_t WiFiClass::gatewayIP()
   return _ipInfo.gw.addr;
 }
 
+uint32_t WiFiClass::dnsIP(int n)
+{
+  return dns_getserver(n).u_addr.ip4.addr;
+}
+
 char* WiFiClass::SSID()
 {
   return (char*)_apRecord.ssid;

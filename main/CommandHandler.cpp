@@ -256,6 +256,22 @@ int getTemperature(const uint8_t command[], uint8_t response[])
   return 9;
 }
 
+int getDNSconfig(const uint8_t command[], uint8_t response[])
+{
+  uint32_t dnsip0 = WiFi.dnsIP();
+  uint32_t dnsip1 = WiFi.dnsIP(1);
+
+  response[2] = 2; // number of parameters
+
+  response[3] = 4; // parameter 1 length
+  memcpy(&response[4], &dnsip0, sizeof(dnsip0));
+
+  response[8] = 4; // parameter 2 length
+  memcpy(&response[9], &dnsip1, sizeof(dnsip1));
+
+  return 14;
+}
+
 int getReasonCode(const uint8_t command[], uint8_t response[])
 {
   uint8_t reasonCode = WiFi.reasonCode();
@@ -2061,7 +2077,7 @@ const CommandHandlerType commandHandlers[] = {
   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x10 -> 0x1f
-  setNet, setPassPhrase, setKey, NULL, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, NULL, getReasonCode,
+  setNet, setPassPhrase, setKey, NULL, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, getDNSconfig, getReasonCode,
 
   // 0x20 -> 0x2f
   getConnStatus, getIPaddr, getMACaddr, getCurrSSID, getCurrBSSID, getCurrRSSI, getCurrEnct, scanNetworks, startServerTcp, getStateTcp, dataSentTcp, availDataTcp, getDataTcp, startClientTcp, stopClientTcp, getClientStateTcp,
