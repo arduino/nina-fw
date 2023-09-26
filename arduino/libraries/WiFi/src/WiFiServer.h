@@ -34,6 +34,7 @@ public:
   WiFiClient accept();
   bool hasClient();
   uint8_t begin(uint16_t port);
+  void end();
   virtual size_t write(uint8_t);
   virtual size_t write(const uint8_t *buf, size_t size);
   uint8_t status();
@@ -47,6 +48,11 @@ private:
   int _socket;
   int _spawnedSockets[CONFIG_LWIP_MAX_SOCKETS];
   int _accepted_sock = -1;
+
+public:
+  WiFiClient getSpawnedClient(int i) {
+    return WiFiClient(_spawnedSockets[i]);
+  }
 };
 
 #endif // WIFISERVER_H

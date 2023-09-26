@@ -41,6 +41,8 @@ uint8_t WiFiServer::begin(uint16_t port)
   if (_socket < 0) {
     return 0;
   }
+  int enable = 1;
+  setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int));
 
   struct sockaddr_in addr;
   memset(&addr, 0x00, sizeof(addr));
@@ -68,6 +70,22 @@ uint8_t WiFiServer::begin(uint16_t port)
   _port = port;
 
   return 1;
+}
+
+
+void WiFiServer::end()
+{
+  if (_socket != -1) {
+    for (int i = 0; i < CONFIG_LWIP_MAX_SOCKETS; i++) {
+      if (_spawnedSockets[i] != -1) {
+        lwip_close_r(_spawnedSockets[i]);
+        _spawnedSockets[i] = -1;
+      }
+    }
+    lwip_close_r(_socket);
+    _socket = -1;
+  }
+  _accepted_sock = -1;
 }
 
 WiFiClient WiFiServer::available(uint8_t* status)
