@@ -210,6 +210,8 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   if (_staticIp) {
     tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
     tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &_ipInfo);
+  } else {
+    tcpip_adapter_dhcpc_start(TCPIP_ADAPTER_IF_STA);
   }
 
   esp_wifi_connect();
@@ -383,7 +385,7 @@ void WiFiClass::config(/*IPAddress*/uint32_t local_ip, /*IPAddress*/uint32_t gat
 {
   dns_clear_servers(true);
 
-  _staticIp = true;
+  _staticIp = (local_ip != 0);
   _ipInfo.ip.addr = local_ip;
   _ipInfo.gw.addr = gateway;
   _ipInfo.netmask.addr = subnet;
