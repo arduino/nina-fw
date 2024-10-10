@@ -967,7 +967,7 @@ int setEnt(const uint8_t command[], uint8_t response[])
     char password[128 + 1];
     char identity[128 + 1];
     const char* rootCA;
-    
+
     memset(username, 0x00, sizeof(username));
     memset(password, 0x00, sizeof(password));
     memset(identity, 0x00, sizeof(identity));
@@ -2239,7 +2239,7 @@ void CommandHandlerClass::handleWiFiDisconnect()
   // close all non-listening sockets
 
   for (int i = 0; i < CONFIG_LWIP_MAX_SOCKETS; i++) {
-    struct sockaddr_in addr; 
+    struct sockaddr_in addr;
     size_t addrLen = sizeof(addr);
     int socket = LWIP_SOCKET_OFFSET + i;
 
