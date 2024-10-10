@@ -2070,6 +2070,440 @@ int socket_getpeername(const uint8_t command[], uint8_t response[])
   return 14;
 }
 
+/*
+ * Preferences API
+ */
+#include "Preferences.h"
+
+Preferences preferences;
+const char PREF_TAG[] = "preferences";
+
+int pref_begin(const uint8_t command[], uint8_t response[])
+{
+
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         store_name size             < 1 byte >
+  //[4..n]      store_name                  < n byte >
+  //[n+1]       readonly                    < 1 byte >
+  //[n+2]       partition label size        < 1 byte >
+  //[n+3..n+m]  partition label             < m byte >
+
+  uint8_t nargs = command[2];
+  char store_name[32];
+  char partition_label[32];
+  const uint8_t* partition_label_ptr = nullptr;
+  bool readonly=false;
+
+  // command_ptr points to the next argument, in this case
+  // it points to the length of store_name string
+  const uint8_t* command_ptr = &command[3];
+
+  if(nargs < 1 && nargs > 3) {
+    ESP_LOGE(PREF_TAG, "Prefrences begin wrong number of arguments");
+    response[4] = 255;
+    goto error;
+  }
+
+  memset(store_name, 0x00, sizeof(store_name));
+  memcpy(store_name, command_ptr+1, *command_ptr);
+  store_name[*command_ptr] = '\0';
+
+  // move the pointer to the next argument, by adding the length
+  // of store_name string
+  command_ptr += *command_ptr + 1;
+
+  if(nargs > 1) {
+    command_ptr++; // the first byte contains the length (that is 1) of the next byte
+    readonly = *command_ptr;
+    command_ptr++;
+  }
+
+  if(nargs > 2) {
+    memset(partition_label, 0x00, sizeof(partition_label));
+    memcpy(partition_label, command_ptr+1, *command_ptr);
+    partition_label[*command_ptr] = '\0';
+
+    partition_label_ptr = command_ptr;
+  }
+
+  response[4] = preferences.begin(store_name, readonly, (char*)partition_label_ptr) ? 0 : 1;
+
+error:
+  response[2] = 1;          // number of parameters
+  response[3] = 1;          // length of first parameter
+
+  return 6;
+}
+
+int pref_end(const uint8_t command[], uint8_t response[])
+{
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+
+  preferences.end();
+
+  response[2] = 1;          // number of parameters
+  response[3] = 1;          // length of first parameter
+  response[4] = 1;
+
+  return 6;
+}
+
+int pref_clear(const uint8_t command[], uint8_t response[])
+{
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+
+  response[2] = 1;                   // number of parameters
+  response[3] = 1;                   // length of first parameter
+  response[4] = preferences.clear() ? 0 : 1; // result of Preferences clear operation
+
+  // response has to start ad position 2, and has to take into account
+  // 0xee that is put after the function being called
+  return 6;
+}
+
+int pref_remove(const uint8_t command[], uint8_t response[])
+{
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         key size                    < 1 byte >
+  //[4..n]      key                         < n byte >
+
+  uint8_t nargs = command[2];
+  char key[16];
+
+  // command_ptr points to the next argument, in this case
+  // it points to the length of key string
+  const uint8_t* command_ptr = &command[3];
+
+  if(nargs != 1) {
+    ESP_LOGE(PREF_TAG, "Prefrences remove wrong number of arguments");
+    response[4] = 255;
+    goto error;
+  }
+
+  memset(key, 0x00, sizeof(key));
+  memcpy(key, command_ptr+1, *command_ptr);
+  key[*command_ptr] = '\0';
+
+  response[4] = preferences.remove(key) ? 0 : 1; // result of Preferences end operation
+error:
+  response[2] = 1;                 // number of parameters
+  response[3] = 1;                 // length of first parameter
+
+  // response has to start ad position 2, and has to take into account
+  // 0xee that is put after the function being called
+  return 6;
+}
+
+int pref_len(const uint8_t command[], uint8_t response[])
+{
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         key size                    < 1 byte >
+  //[4..n]      key                         < n byte >
+
+  uint8_t nargs = command[2];
+  char key[16];
+
+  // command_ptr points to the next argument, in this case
+  // it points to the length of key string
+  const uint8_t* command_ptr = &command[3];
+
+  // restricting the return as 32 bit integer as it is enough
+  uint32_t len = 0;
+
+  if(nargs != 1) {
+    ESP_LOGE(PREF_TAG, "Prefrences length wrong number of arguments");
+    response[2] = 1;
+    response[3] = 1;
+    response[4] = 255;
+    return 6;
+  }
+
+  memset(key, 0x00, sizeof(key));
+  memcpy(key, command_ptr+1, *command_ptr);
+  key[*command_ptr] = '\0';
+
+  len = preferences.getBytesLength(key);
+
+  response[2] = 1;          // number of parameters
+  response[3] = 4;          // length of first parameter
+
+  // write the result in big endian into the response buffer
+  response[4] = (len >> 0)  & 0xff;
+  response[5] = (len >> 8)  & 0xff;
+  response[6] = (len >> 16) & 0xff;
+  response[7] = (len >> 24) & 0xff;
+
+  return 9;
+}
+
+int pref_stat(const uint8_t command[], uint8_t response[])
+{
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+
+  // restricting the return as 32 bit integer as it is enough
+  uint32_t res = 0;
+
+  res = preferences.freeEntries();
+
+  response[2] = 1;          // number of parameters
+  response[3] = 4;          // length of first parameter
+
+  // write the result in big endian into the response buffer
+  response[4] = (res >> 0)  & 0xff;
+  response[5] = (res >> 8)  & 0xff;
+  response[6] = (res >> 16) & 0xff;
+  response[7] = (res >> 24) & 0xff;
+
+  return 9;
+}
+
+int pref_put(const uint8_t command[], uint8_t response[])
+{
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         key size                    < 1 byte >
+  //[4..n]      key                         < n byte >
+  //[n]         type                        < 1 byte >
+  //[n+1]       len                         < 1 byte >
+  //[n+2..sizeof(type)]                     < sizeof(type)
+  //            value                         or len byte >
+
+  uint8_t nargs = command[2];
+  char key[16];
+  uint16_t len;
+
+  // we are going to store the value (if not array type) in a 64 bit integer, because it is easier to handle
+  uint64_t value=0;
+
+  // command_ptr points to the next argument, in this case
+  // it points to the length of key string
+  const uint8_t* command_ptr = &command[3];
+
+  // restricting the return as 32 bit integer as it is enough
+  size_t res = 0;
+
+  if(nargs != 3) {
+    ESP_LOGE(PREF_TAG, "Prefrences put wrong number of arguments");
+    response[2] = 1;
+    response[3] = 1;
+    response[4] = 255;
+    return 6;
+  }
+
+  memset(key, 0x00, sizeof(key));
+  memcpy(key, command_ptr+1, *command_ptr);
+  key[*command_ptr] = '\0';
+
+  // next argument
+  command_ptr += *command_ptr + 1;
+
+  command_ptr++; // The first byte contains the length of the parameter, which is 1
+  PreferenceType type = (PreferenceType)*command_ptr;
+  command_ptr++;
+
+  // extract length
+  len = command_ptr[0]<<8 | command_ptr[1];
+  command_ptr+=2;
+
+  // extract value convert from bigendian, TODO not forr array types
+  for(uint8_t i=0; i<len && type != PT_BLOB && type != PT_STR; i++) {
+    value |= (((uint64_t)command_ptr[i]) << (i << 3));
+  }
+
+  switch(type) {
+    case PT_I8:
+      res = preferences.putChar(key, static_cast<int8_t>(value));
+      break;
+    case PT_U8:
+      res = preferences.putUChar(key, static_cast<uint8_t>(value));
+      break;
+    case PT_I16:
+      res = preferences.putShort(key, static_cast<int16_t>(value));
+      break;
+    case PT_U16:
+      res = preferences.putUShort(key, static_cast<uint16_t>(value));
+      break;
+    case PT_I32:
+      res = preferences.putInt(key, static_cast<int32_t>(value));
+      break;
+    case PT_U32:
+      res = preferences.putUInt(key, static_cast<uint32_t>(value));
+      break;
+    case PT_I64:
+      res = preferences.putLong64(key, static_cast<int64_t>(value));
+      break;
+    case PT_U64:
+      res = preferences.putULong64(key, static_cast<uint64_t>(value));
+      break;
+    case PT_STR:
+      // for simplicity we send the string null terminated from the client side
+      res = preferences.putString(key, (const char*)command_ptr);
+      break;
+    case PT_BLOB:
+      ets_printf("put bytes \n");
+      res = preferences.putBytes(key, command_ptr, len);
+      break;
+    case PT_INVALID:
+    default:
+      ESP_LOGE(PREF_TAG, "Prefrences put invalid type");
+      response[2] = 1;
+      response[3] = 1;
+      response[4] = 254;
+      return 6;
+  }
+
+  response[2] = 1; // response nargs
+  response[3] = 4;          // length of first parameter
+
+  response[4] = (res >> 0)  & 0xff;
+  response[5] = (res >> 8)  & 0xff;
+  response[6] = (res >> 16) & 0xff;
+  response[7] = (res >> 24) & 0xff;
+
+  return 9;
+}
+
+int pref_get(const uint8_t command[], uint8_t response[])
+{
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         key size                    < 1 byte >
+  //[4..n]      key                         < n byte >
+  //[n]         type                        < 1 byte >
+
+  uint8_t nargs = command[2];
+  char key[16];
+
+  // command_ptr points to the next argument, in this case
+  // it points to the length of key string
+  const uint8_t* command_ptr = &command[3];
+
+  // restricting the return as 32 bit integer as it is enough
+  uint32_t res_size = 0;
+
+  // all the kind of values can fit in a 64 bit integer
+  uint32_t res=0;
+
+  if(nargs != 2) {
+    ESP_LOGE(PREF_TAG, "Prefrences put wrong number of arguments");
+    response[2] = 1;
+    response[3] = 0;
+    return 5;
+  }
+
+  memset(key, 0x00, sizeof(key));
+  memcpy(key, command_ptr+1, *command_ptr);
+  key[*command_ptr] = '\0';
+
+  // next argument
+  command_ptr += *command_ptr + 1;
+
+  command_ptr++; // The first byte contains the length of the parameter, which is 1
+  PreferenceType type = static_cast<PreferenceType>(*command_ptr);
+
+  command_ptr++;
+
+  switch(type) {
+    case PT_I8:
+      res = static_cast<int8_t>(preferences.getChar(key));
+      res_size = 1;
+      break;
+    case PT_U8:
+      res = static_cast<uint8_t>(preferences.getUChar(key));
+      res_size = 1;
+      break;
+    case PT_I16:
+      res = static_cast<int16_t>(preferences.getShort(key));
+      res_size = 2;
+      break;
+    case PT_U16:
+      res_size = 2;
+      res = static_cast<uint16_t>(preferences.getUShort(key));
+      break;
+    case PT_I32:
+      res_size = 4;
+      res = static_cast<int32_t>(preferences.getInt(key));
+      break;
+    case PT_U32:
+      res_size = 4;
+      res = static_cast<uint32_t>(preferences.getUInt(key));
+      break;
+    case PT_I64:
+      res_size = 8;
+      res = static_cast<int64_t>(preferences.getLong64(key));
+      break;
+    case PT_U64:
+      res_size = 8;
+      res = static_cast<uint64_t>(preferences.getULong64(key));
+      break;
+    case PT_STR:
+      res_size = preferences.getString(key, (char*) &response[5], SPI_MAX_DMA_LEN - 8);
+      goto array_return;
+    case PT_BLOB:
+      res_size = preferences.getBytes(key, &response[5], SPI_MAX_DMA_LEN - 8);
+      goto array_return;
+    case PT_INVALID:
+    default:
+      ESP_LOGE(PREF_TAG, "Prefrences put invalid type");
+      response[2] = 1;
+      response[3] = 0;
+      return 5;
+  }
+
+  // fill the response buffer
+  for(uint8_t i=0; i<res_size; i++) {
+    response[5+i] = (res >> ((res_size-i-1) << 3)) & 0xff;
+  }
+
+array_return:
+
+  response[2] = 1; // the number of parameters
+
+  // the next 2 bytes are the size of the returned value. Since the client api support length with only 2 bytes
+  // we can return string and blobs up to that size
+  response[3] = (res_size >> 8)  & 0xff; // readParamLen16 wants little endian length
+  response[4] = (res_size >> 0)  & 0xff;
+
+  return 6 + res_size;
+}
+
+int pref_getType(const uint8_t command[], uint8_t response[]) {
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         key size                    < 1 byte >
+  //[4..n]      key                         < n byte >
+
+  uint8_t nargs = command[2];
+  char key[16];
+
+  // command_ptr points to the next argument, in this case
+  // it points to the length of key string
+  const uint8_t* command_ptr = &command[3];
+
+  memset(key, 0x00, sizeof(key));
+  memcpy(key, command_ptr+1, *command_ptr);
+  key[*command_ptr] = '\0';
+
+
+  response[2] = 1; // response nargs
+  response[3] = 1; // response nargs
+  response[4] = preferences.getType(key);
+
+  return 6;
+}
+
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
 const CommandHandlerType commandHandlers[] = {
@@ -2088,8 +2522,20 @@ const CommandHandlerType commandHandlers[] = {
   // 0x40 -> 0x4f
   setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
-  // 0x50 -> 0x5f
-  setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, getAnalogRead, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  // 0x50 -> 0x54
+  setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, getAnalogRead,
+
+  // KVStore functions 0x55 -> 0x87
+  pref_begin,       // 0x55
+  pref_end,         // 0x56
+  pref_clear,       // 0x57
+  pref_remove,      // 0x58
+  pref_len,         // 0x59
+  pref_stat,        // 0x5A
+  pref_put,         // 0x5B
+  pref_get,         // 0x5C
+  pref_getType,     // 0x5D
+  NULL, NULL,
 
   // 0x60 -> 0x6f
   writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
