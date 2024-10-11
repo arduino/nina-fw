@@ -12,6 +12,21 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 1. Load the `Tools -> SerialNINAPassthrough` example sketch on to the board
 1. Use `esptool` to flash the compiled firmware
 
+### Building with docker
+
+As an alternative for building we can use the docker image from espressif idf, we can do that as follows:
+
+```
+docker run -v $PWD:/data espressif/idf:v3.3.1 -- sh -c 'cd /data && make'
+```
+
+You can also flash the firmware with the following snippet:
+
+```
+DEVICE=/dev/ttyACM0
+docker run --device=$DEVICE -v $PWD:/data espressif/idf:v3.3.1 -- sh -c 'cd /data && make flash ESPPORT=$DEVICE'
+```
+
 ## Notes
 If updating the NINA firmware for an **Arduino UNO WiFi Rev. 2** or **Arduino Nano RP2040** board via [SerialNINAPassthrough](https://github.com/arduino-libraries/WiFiNINA/blob/master/examples/Tools/SerialNINAPassthrough/SerialNINAPassthrough.ino) sketch, then the `esptool` invocation needs to be changed slightly:
 ```diff
