@@ -21,7 +21,7 @@
 
 #include <esp_wifi.h>
 #include <esp_wpa2.h>
-#include <tcpip_adapter.h>
+#include <esp_netif.h>
 
 #include <lwip/apps/sntp.h>
 #include <lwip/dns.h>
@@ -462,7 +462,7 @@ uint32_t WiFiClass::gatewayIP()
 
 uint32_t WiFiClass::dnsIP(int n)
 {
-  return dns_getserver(n).u_addr.ip4.addr;
+  return dns_getserver(n)->u_addr.ip4.addr;
 }
 
 char* WiFiClass::SSID()
