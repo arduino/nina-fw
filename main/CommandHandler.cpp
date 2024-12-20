@@ -41,7 +41,7 @@
 int errno;
 #endif
 
-const char FIRMWARE_VERSION[6] = "1.5.0";
+const char FIRMWARE_VERSION[6] = "1.6.0";
 
 /*IPAddress*/uint32_t resolvedHostname;
 
