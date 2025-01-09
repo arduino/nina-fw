@@ -2509,10 +2509,9 @@ int pref_getType(const uint8_t command[], uint8_t response[]) {
  */
 #include "esp_bt.h"
 
-#define TO_HOST_BUF_SIZE           256 // bytes
-static RingbufHandle_t buf_handle = NULL;
-// static QueueHandle_t buf_handle;
-static SemaphoreHandle_t vhci_send_sem;
+#define TO_HOST_BUF_SIZE                256 // bytes
+static RingbufHandle_t buf_handle       = NULL;
+static SemaphoreHandle_t vhci_send_sem  = NULL;
 
 static void controller_rcv_pkt_ready() {
 	if (vhci_send_sem) {
@@ -2530,7 +2529,7 @@ static int host_rcv_pkt(uint8_t *data, uint16_t len) {
     return ESP_FAIL;
   }
 
-  UBaseType_t res = xRingbufferSend(buf_handle, data, len, pdMS_TO_TICKS(100)); // TODO verify xTicksToWait value
+  UBaseType_t res = xRingbufferSend(buf_handle, data, len, pdMS_TO_TICKS(2000)); // TODO verify xTicksToWait value
 
   if (res != pdTRUE) {
     ets_printf("unable to send data to ring buffer\n");
@@ -2604,7 +2603,7 @@ int ble_end(const uint8_t command[], uint8_t response[]) {
 
   if (vhci_send_sem != NULL) {
 		/* Dummy take and give sema before deleting it */
-		xSemaphoreTake(vhci_send_sem, pdMS_TO_TICKS(100));
+		xSemaphoreTake(vhci_send_sem, pdMS_TO_TICKS(2000));
 		xSemaphoreGive(vhci_send_sem);
 		vSemaphoreDelete(vhci_send_sem);
 		vhci_send_sem = NULL;
@@ -2623,13 +2622,12 @@ int ble_available(const uint8_t command[], uint8_t response[]) {
   uint16_t available = 0;
   if(buf_handle != NULL) {
     available = TO_HOST_BUF_SIZE - xRingbufferGetCurFreeSize(buf_handle);
-    // available = TO_HOST_BUF_SIZE - xQueueSpacesAvailable(buf_handle);
   }
 
   response[2] = 1;          // number of parameters
   response[3] = 2;          // length of first parameter
-  response[4] = (available >> 0)  & 0xff;
-  response[5] = (available >> 8)  & 0xff;
+  response[4] = (available >> 8)  & 0xff;
+  response[5] = (available >> 0)  & 0xff;
 
   return 7;
 }
@@ -2653,14 +2651,14 @@ int ble_peek(const uint8_t command[], uint8_t response[]) {
     goto exit;
   }
 
-  received = (uint8_t*)xRingbufferReceiveUpTo(buf_handle, &res, pdMS_TO_TICKS(100), size);
+  received = (uint8_t*)xRingbufferReceiveUpTo(buf_handle, &res, pdMS_TO_TICKS(2000), size);
 
   memcpy(&response[5], received, res);
 
 exit:
   response[2] = 1;          // number of parameters
-  response[4] = (size >> 0)  & 0xff;
   response[3] = (size >> 8)  & 0xff;
+  response[4] = (size >> 0)  & 0xff;
 
   return 6 + res;
 }
@@ -2683,16 +2681,16 @@ int ble_read(const uint8_t command[], uint8_t response[]) {
     goto exit;
   }
 
-  received = (uint8_t*)xRingbufferReceiveUpTo(buf_handle, &res, pdMS_TO_TICKS(100), size);
-
-  vRingbufferReturnItem(buf_handle, received);
+  received = (uint8_t*)xRingbufferReceiveUpTo(buf_handle, &res, pdMS_TO_TICKS(2000), size);
 
   memcpy(&response[5], received, res);
 
+  vRingbufferReturnItem(buf_handle, received);
+
 exit:
   response[2] = 1;          // number of parameters
-  response[4] = (size >> 0)  & 0xff;
   response[3] = (size >> 8)  & 0xff;
+  response[4] = (size >> 0)  & 0xff;
 
   return 6 + res;
 }
@@ -2707,26 +2705,21 @@ int ble_write(const uint8_t command[], uint8_t response[]) {
   uint8_t nargs = command[2];
   // if nargs != 1 -> error
 
-  // uint16_t size = ntohs(*((uint16_t *) &command[3]));
   uint16_t size = ntohs(*((uint16_t *) &command[3]));
 
   while(!esp_vhci_host_check_send_available()) { // TODO add timeout
     // TODO delay
   }
 
-  if (vhci_send_sem) {
-    if (xSemaphoreTake(vhci_send_sem, pdMS_TO_TICKS(100)) == pdTRUE) {
-      esp_vhci_host_send_packet((uint8_t*)&command[5], size);
-		} else {
-			ets_printf("VHCI sem timeout\n");
-		}
+  if (vhci_send_sem && xSemaphoreTake(vhci_send_sem, pdMS_TO_TICKS(2000)) == pdTRUE) {
+    esp_vhci_host_send_packet((uint8_t*)&command[5], size);
 	}
-  esp_vhci_host_send_packet((uint8_t*)&command[5], size);
 
   response[2] = 1;          // number of parameters
   response[3] = 2;          // length of first parameter
   response[4] = (size >> 0)  & 0xff;
   response[5] = (size >> 8)  & 0xff;
+
   return 7;
 }
 
