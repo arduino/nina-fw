@@ -8,7 +8,11 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 1. Extract it and add it to your `PATH`: `export PATH=$PATH:<path/to/toolchain>/bin`
 1. Clone **v3.3.1** of the IDF: `git clone --branch v3.3.1 --recursive https://github.com/espressif/esp-idf.git`
 1. Set the `IDF_PATH` environment variable: `export IDF_PATH=<path/to/idf>`
-1. Run `make` to build the firmware (in the directory of this read me)
+1. Run `make` to build the firmware (in the directory of this read me). You may want to add different depending on the target board.
+    1. `RELEASE=1 make` for MKR WiFi 1010 and Nano 33 IoT
+    1. `RELEASE=1 NANO_RP2040_CONNECT=1 make` for Nano RP2040 connect
+    1. `RELEASE=1 UNO_WIFI_REV2=1 make` for UNO WiFi Rev2
+
 1. Load the `Tools -> SerialNINAPassthrough` example sketch on to the board
 1. Use `esptool` to flash the compiled firmware
 
