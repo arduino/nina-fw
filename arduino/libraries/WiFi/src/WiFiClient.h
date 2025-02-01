@@ -50,6 +50,8 @@ public:
   virtual /*IPAddress*/uint32_t remoteIP();
   virtual uint16_t remotePort();
 
+  void setConnectionTimeout(uint16_t timeout) {_connTimeout = timeout;}
+
   // using Print::write;
 
 protected:
@@ -59,6 +61,7 @@ protected:
 
 private:
   int _socket;
+  uint16_t _connTimeout = 0;
 };
 
 #endif // WIFICLIENT_H

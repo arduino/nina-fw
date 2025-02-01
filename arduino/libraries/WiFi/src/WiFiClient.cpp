@@ -26,6 +26,9 @@
 
 #include "WiFiClient.h"
 
+extern "C" {
+  #include "esp_log.h"
+}
 
 WiFiClient::WiFiClient() :
   WiFiClient(-1)
@@ -64,15 +67,59 @@ int WiFiClient::connect(IPAddress ip, uint16_t port)
   addr.sin_addr.s_addr = (uint32_t)ip;
   addr.sin_port = htons(port);
 
+  if (_connTimeout == 0) {
   if (lwip_connect_r(_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
     lwip_close_r(_socket);
     _socket = -1;
     return 0;
   }
+  }
 
   int nonBlocking = 1;
   lwip_ioctl_r(_socket, FIONBIO, &nonBlocking);
 
+  if (_connTimeout > 0) {
+    int res = lwip_connect_r(_socket, (struct sockaddr*)&addr, sizeof(addr));
+    if (res < 0 && errno != EINPROGRESS) {
+      ESP_LOGW("WiFiClient", "connect on socket %d, errno: %d, \"%s\"", _socket, errno, strerror(errno));
+      lwip_close_r(_socket);
+      _socket = -1;
+      return 0;
+    }
+
+    struct timeval tv;
+    tv.tv_sec = _connTimeout / 1000;
+    tv.tv_usec = (_connTimeout  % 1000) * 1000;
+  
+    fd_set fdset;
+    FD_ZERO(&fdset);
+    FD_SET(_socket, &fdset);
+
+    res = select(_socket + 1, nullptr, &fdset, nullptr, &tv);
+    if (res < 0) {
+      ESP_LOGW("WiFiClient", "select on socket %d, errno: %d, \"%s\"", _socket, errno, strerror(errno));
+      lwip_close_r(_socket);
+      return 0;
+    }
+    if (res == 0) {
+      ESP_LOGW("WiFiClient", "select returned due to timeout %d ms for socket %d", _connTimeout,  _socket);
+      lwip_close_r(_socket);
+      return 0;
+    }
+    int sockerr;
+    socklen_t len = (socklen_t) sizeof(int);
+    res = lwip_getsockopt(_socket, SOL_SOCKET, SO_ERROR, &sockerr, &len);
+    if (res < 0) {
+      ESP_LOGW("WiFiClient", "getsockopt on socket %d, errno: %d, \"%s\"", _socket, errno, strerror(errno));
+      lwip_close_r(_socket);
+      return 0;
+    }
+    if (sockerr != 0) {
+      ESP_LOGW("WiFiClient", "socket error on socket %d, errno: %d, \"%s\"", _socket, sockerr, strerror(sockerr));
+      lwip_close_r(_socket);
+      return 0;
+    }
+  }
   return 1;
 }
 

@@ -611,6 +611,7 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
   uint16_t port;
   uint8_t socket;
   uint8_t type;
+  uint16_t timeout = 0;
 
   memset(host, 0x00, sizeof(host));
 
@@ -627,10 +628,15 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
     port = ntohs(port);
     socket = command[13 + command[3]];
     type = command[15 + command[3]];
+    if (command[2] == 6) { // optional sixth parameter
+      timeout = (uint16_t) command[17 + command[3]] << 8 | command[18 + command[3]];
+    }
   }
 
   if (type == 0x00) {
     int result;
+
+    tcpClients[socket].setConnectionTimeout(timeout);
 
     if (host[0] != '\0') {
       result = tcpClients[socket].connect(host, port);
@@ -676,6 +682,8 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
   } else if (type == 0x02) {
     int result;
 
+    tlsClients[socket].setConnectionTimeout(timeout);
+
     if (host[0] != '\0') {
       result = tlsClients[socket].connect(host, port);
     } else {
@@ -699,6 +707,8 @@ int startClientTcp(const uint8_t command[], uint8_t response[])
     int result;
 
     configureECCx08();
+
+    static_cast<WiFiClient*>(bearsslClient.getClient())->setConnectionTimeout(timeout);
 
     if (host[0] != '\0') {
       result = bearsslClient.connect(host, port);
