@@ -20,6 +20,7 @@
 #include <driver/gpio.h>
 
 #include "wiring_digital.h"
+#include "soc/gpio_periph.h"
 
 void pinMode(uint32_t pin, uint32_t mode)
 {

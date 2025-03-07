@@ -21,9 +21,10 @@ extern "C" {
 #include <string.h>
 
 #include <driver/gpio.h>
-#include <esp_intr.h>
-#include <rom/ets_sys.h>
+#include <esp_intr_alloc.h>
+#include <esp32/rom/ets_sys.h>
 #include <soc/gpio_sig_map.h>
+#include <freertos/xtensa_api.h>
 }
 
 #include <Arduino.h>
