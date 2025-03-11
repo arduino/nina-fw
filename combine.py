@@ -7,6 +7,7 @@ partitionData = open("build/partitions.bin", "rb").read()
 phyData = open("data/phy.bin", "rb").read()
 certsData = open("data/roots.pem", "rb").read()
 appData = open("build/nina-fw.bin", "rb").read()
+spiffsData = open("data/spiffs.bin", "rb").read()
 
 # Offset   Size     Name
 # 0x001000 0x007000 bootloader
@@ -17,15 +18,15 @@ appData = open("build/nina-fw.bin", "rb").read()
 # 0x1B0000 0x040000 spiffs
 # 0x1F0000 0x010000 nvs
 
-# calculate the output binary size, app offset 
+# calculate the output binary size, app offset
 outputSize = 0x30000 + len(appData)
 if (outputSize % 1024):
 	outputSize += 1024 - (outputSize % 1024)
 
 # allocate and init to 0xff
-outputData = bytearray(b'\xff') * outputSize
+outputData = bytearray(b'\xff') * 0x200000
 
-# copy data: bootloader, partitions, app
+# copy data: bootloader, partitions, phy, certs, app
 for i in range(0, len(booloaderData)):
 	outputData[0x1000 + i] = booloaderData[i]
 
@@ -44,11 +45,34 @@ outputData[0xA000 + len(certsData)] = 0
 for i in range(0, len(appData)):
 	outputData[0x30000 + i] = appData[i]
 
+# add empty spiffs
+for i in range(0, len(spiffsData)):
+    outputData[0x1B0000 + i] = spiffsData[i]
 
-outputFilename = "NINA_W102.bin"
+
+baseFilename = "NINA_W102"
 if (len(sys.argv) > 1):
-	outputFilename = sys.argv[1]
+	baseFilename = sys.argv[1]
 
+outputFilename = baseFilename + ".bin"
+# write out
+with open(outputFilename,"w+b") as f:
+	f.seek(0)
+	f.write(outputData[:outputSize])
+
+outputFilename = baseFilename + "_BOOT_APP.bin"
+# write out
+with open(outputFilename,"w+b") as f:
+	f.seek(0)
+	f.write(outputData[:outputSize])
+
+outputFilename = baseFilename + "_APP.bin"
+# write out
+with open(outputFilename,"w+b") as f:
+	f.seek(0)
+	f.write(outputData[0x30000:outputSize])
+
+outputFilename = baseFilename + "_ALL.bin"
 # write out
 with open(outputFilename,"w+b") as f:
 	f.seek(0)
