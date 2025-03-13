@@ -20,6 +20,7 @@
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
 #include "esp_partition.h"
+#include "esp_crt_bundle.h"
 
 #include "WiFiSSLClient.h"
 
@@ -90,13 +91,8 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
       return 0;
     }
 
-    ret = mbedtls_x509_crt_parse(&_caCrt, certs_data, strlen((char*)certs_data) + 1);
-    if (ret < 0) {
-      stop();
-      return 0;
-    }
-
-    mbedtls_ssl_conf_ca_chain(&_sslConfig, &_caCrt, NULL);
+    esp_crt_bundle_attach(&_sslConfig);
+    esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
 
     mbedtls_ssl_conf_rng(&_sslConfig, mbedtls_ctr_drbg_random, &_ctrDrbgContext);
 
