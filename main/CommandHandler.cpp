@@ -36,6 +36,8 @@
 #include "ECCX08Cert.h"
 
 #include "esp_log.h"
+#include "driver/adc_deprecated.h"
+#include <lwip/priv/sockets_priv.h>
 
 #ifdef LWIP_PROVIDE_ERRNO
 int errno;
@@ -1651,7 +1653,7 @@ int socket_close(const uint8_t command[], uint8_t response[])
   uint8_t sock = command[4];
 
   errno = 0;
-  int ret = lwip_close_r(sock);
+  int ret = lwip_close(sock);
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1690,7 +1692,7 @@ int socket_bind(const uint8_t command[], uint8_t response[])
   addr.sin_port = port;
 
   errno = 0;
-  int ret = lwip_bind_r(sock, (struct sockaddr*) &addr, sizeof(addr));
+  int ret = lwip_bind(sock, (struct sockaddr*) &addr, sizeof(addr));
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1711,7 +1713,7 @@ int socket_listen(const uint8_t command[], uint8_t response[])
   uint8_t backlog = command[6];
 
   errno = 0;
-  int ret = lwip_listen_r(sock, backlog);
+  int ret = lwip_listen(sock, backlog);
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1732,7 +1734,7 @@ int socket_accept(const uint8_t command[], uint8_t response[])
   socklen_t addr_len = sizeof(addr);
 
   errno = 0;
-  int8_t ret = lwip_accept_r(sock, (struct sockaddr *) &addr, &addr_len);
+  int8_t ret = lwip_accept(sock, (struct sockaddr *) &addr, &addr_len);
 
   response[2] = 3; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1773,7 +1775,7 @@ int socket_connect(const uint8_t command[], uint8_t response[])
   addr.sin_port = port;
 
   errno = 0;
-  int ret = lwip_connect_r(sock, (struct sockaddr*)&addr, sizeof(addr));
+  int ret = lwip_connect(sock, (struct sockaddr*)&addr, sizeof(addr));
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -1794,7 +1796,7 @@ int socket_send(const uint8_t command[], uint8_t response[])
   uint16_t size = lwip_ntohs(*((uint16_t *) &command[6]));
 
   errno = 0;
-  int16_t ret = lwip_send_r(sock, &command[8], size, 0);
+  int16_t ret = lwip_send(sock, &command[8], size, 0);
   ret = (ret < 0) ? 0 : ret;
 
   response[2] = 1; // number of parameters
@@ -1818,7 +1820,7 @@ int socket_recv(const uint8_t command[], uint8_t response[])
   size = LWIP_MIN(size, (SPI_MAX_DMA_LEN-16));
 
   errno = 0;
-  int16_t ret = lwip_recv_r(sock, &response[5], size, 0);
+  int16_t ret = lwip_recv(sock, &response[5], size, 0);
   ret = (ret < 0) ? 0 : ret;
 
   response[2] = 1; // number of parameters
@@ -1853,7 +1855,7 @@ int socket_sendto(const uint8_t command[], uint8_t response[])
   addr.sin_port = port;
 
   errno = 0;
-  int16_t ret = lwip_sendto_r(sock, &command[18], size, 0, (struct sockaddr*)&addr, sizeof(addr));
+  int16_t ret = lwip_sendto(sock, &command[18], size, 0, (struct sockaddr*)&addr, sizeof(addr));
   ret = (ret < 0) ? 0 : ret;
 
   response[2] = 1; // number of parameters
@@ -1879,7 +1881,7 @@ int socket_recvfrom(const uint8_t command[], uint8_t response[])
   socklen_t addr_len = sizeof(addr);
 
   errno = 0;
-  int16_t ret = lwip_recvfrom_r(sock, &response[15], size, 0, (struct sockaddr *) &addr, &addr_len);
+  int16_t ret = lwip_recvfrom(sock, &response[15], size, 0, (struct sockaddr *) &addr, &addr_len);
   ret = (ret < 0) ? 0 : ret;
 
   response[2] = 3; // number of parameters
@@ -1920,7 +1922,7 @@ int socket_ioctl(const uint8_t command[], uint8_t response[])
   memcpy(argval, &command[11], size);
 
   errno = 0;
-  int ret = lwip_ioctl_r(sock, cmd, argval);
+  int ret = lwip_ioctl(sock, cmd, argval);
   if (ret == -1) {
       size = 0;
   }
@@ -2004,7 +2006,7 @@ int socket_setsockopt(const uint8_t command[], uint8_t response[])
   memcpy(&optval, &command[11], optlen);
 
   errno = 0;
-  int ret = lwip_setsockopt_r(sock, SOL_SOCKET, optname, optval, optlen);
+  int ret = lwip_setsockopt(sock, SOL_SOCKET, optname, optval, optlen);
 
   response[2] = 1; // number of parameters
   response[3] = 1; // parameter 1 length
@@ -2029,7 +2031,7 @@ int socket_getsockopt(const uint8_t command[], uint8_t response[])
   uint8_t optval[LWIP_SETGETSOCKOPT_MAXOPTLEN];
 
   errno = 0;
-  int ret = lwip_getsockopt_r(sock, SOL_SOCKET, optname, optval, &optlen);
+  int ret = lwip_getsockopt(sock, SOL_SOCKET, optname, optval, &optlen);
   if (ret == -1) {
       optlen = 0;
   }

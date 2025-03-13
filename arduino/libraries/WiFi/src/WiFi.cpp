@@ -21,7 +21,7 @@
 
 #include <esp_wifi.h>
 #include <esp_wpa2.h>
-#include <tcpip_adapter.h>
+#include <esp_netif.h>
 
 #include <lwip/apps/sntp.h>
 #include <lwip/dns.h>
@@ -38,7 +38,7 @@ WiFiClass::WiFiClass() :
   _initialized(false),
   _status(WL_NO_SHIELD),
   _reasonCode(0),
-  _interface(ESP_IF_WIFI_STA),
+  _interface(WIFI_IF_STA),
   _onReceiveCallback(NULL),
   _onDisconnectCallback(NULL),
   _wpa2Cert(NULL),
@@ -195,7 +195,7 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   wifiConfig.sta.scan_method = WIFI_FAST_SCAN;
   _status = WL_NO_SSID_AVAIL;
 
-  _interface = ESP_IF_WIFI_STA;
+  _interface = WIFI_IF_STA;
 
   xEventGroupClearBits(_eventGroup, BIT0);
   esp_wifi_stop();
@@ -203,7 +203,7 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   esp_wifi_start();
   xEventGroupWaitBits(_eventGroup, BIT0, false, true, portMAX_DELAY);
 
-  if (esp_wifi_set_config(ESP_IF_WIFI_STA, &wifiConfig) != ESP_OK) {
+  if (esp_wifi_set_config(WIFI_IF_STA, &wifiConfig) != ESP_OK) {
     _status = WL_CONNECT_FAILED;
   }
 
@@ -229,13 +229,13 @@ uint8_t WiFiClass::beginAP(const char *ssid, uint8_t channel)
 
   _status = WL_NO_SSID_AVAIL;
 
-  _interface = ESP_IF_WIFI_AP;
+  _interface = WIFI_IF_AP;
 
   xEventGroupClearBits(_eventGroup, BIT1);
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_AP);
 
-  if (esp_wifi_set_config(ESP_IF_WIFI_AP, &wifiConfig) != ESP_OK) {
+  if (esp_wifi_set_config(WIFI_IF_AP, &wifiConfig) != ESP_OK) {
     _status = WL_AP_FAILED;
   } else {
     esp_wifi_start();
@@ -258,13 +258,13 @@ uint8_t WiFiClass::beginAP(const char *ssid, uint8_t key_idx, const char* key, u
 
   _status = WL_NO_SSID_AVAIL;
 
-  _interface = ESP_IF_WIFI_AP;
+  _interface = WIFI_IF_AP;
 
   xEventGroupClearBits(_eventGroup, BIT1);
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_AP);
 
-  if (esp_wifi_set_config(ESP_IF_WIFI_AP, &wifiConfig) != ESP_OK) {
+  if (esp_wifi_set_config(WIFI_IF_AP, &wifiConfig) != ESP_OK) {
     _status = WL_AP_FAILED;
   } else {
     esp_wifi_start();
@@ -287,13 +287,13 @@ uint8_t WiFiClass::beginAP(const char *ssid, const char* key, uint8_t channel)
 
   _status = WL_NO_SSID_AVAIL;
 
-  _interface = ESP_IF_WIFI_AP;
+  _interface = WIFI_IF_AP;
 
   xEventGroupClearBits(_eventGroup, BIT1);
   esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_AP);
 
-  if (esp_wifi_set_config(ESP_IF_WIFI_AP, &wifiConfig) != ESP_OK) {
+  if (esp_wifi_set_config(WIFI_IF_AP, &wifiConfig) != ESP_OK) {
     _status = WL_AP_FAILED;
   } else {
     esp_wifi_start();
@@ -311,9 +311,7 @@ uint8_t WiFiClass::beginEnterprise(const char* ssid, const char* username, const
   esp_wifi_sta_wpa2_ent_clear_ca_cert();
   esp_wifi_sta_wpa2_ent_clear_cert_key();
 
-  esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
-
-  esp_wifi_sta_wpa2_ent_enable(&config);
+  esp_wifi_sta_wpa2_ent_enable();
 
   int usernameLen = strlen(username);
   if (usernameLen) {
@@ -349,9 +347,7 @@ uint8_t WiFiClass::beginEnterpriseTLS(const char* ssid, const char* cert, const 
   esp_wifi_sta_wpa2_ent_clear_ca_cert();
   esp_wifi_sta_wpa2_ent_clear_cert_key();
 
-  esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
-
-  esp_wifi_sta_wpa2_ent_enable(&config);
+  esp_wifi_sta_wpa2_ent_enable();
 
   int certLen = strlen(cert);
   int keyLen = strlen(key);
@@ -388,7 +384,7 @@ void WiFiClass::config(/*IPAddress*/uint32_t local_ip, /*IPAddress*/uint32_t gat
   _ipInfo.gw.addr = gateway;
   _ipInfo.netmask.addr = subnet;
 
-  if (_interface == ESP_IF_WIFI_AP) {
+  if (_interface == WIFI_IF_AP) {
     tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
     tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &_ipInfo);
     tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP);
@@ -466,7 +462,7 @@ uint32_t WiFiClass::gatewayIP()
 
 uint32_t WiFiClass::dnsIP(int n)
 {
-  return dns_getserver(n).u_addr.ip4.addr;
+  return dns_getserver(n)->u_addr.ip4.addr;
 }
 
 char* WiFiClass::SSID()
@@ -626,7 +622,7 @@ unsigned long WiFiClass::getTime()
 
 void WiFiClass::lowPowerMode()
 {
-  esp_wifi_set_ps(WIFI_PS_MODEM);
+  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
 }
 
 void WiFiClass::noLowPowerMode()
@@ -711,7 +707,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
       struct netif* staNetif;
       if (strlen(_hostname) == 0) {
         uint8_t mac[6];
-        esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
+        esp_wifi_get_mac(WIFI_IF_STA, mac);
         sprintf(_hostname, "arduino-%.2x%.2x", mac[4], mac[5]);
       }
       tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, _hostname);
@@ -792,7 +788,7 @@ void WiFiClass::handleSystemEvent(system_event_t* event)
 
       wifi_config_t config;
 
-      esp_wifi_get_config(ESP_IF_WIFI_AP, &config);
+      esp_wifi_get_config(WIFI_IF_AP, &config);
       memcpy(_apRecord.ssid, config.ap.ssid, sizeof(config.ap.ssid));
       _apRecord.authmode = config.ap.authmode;
 

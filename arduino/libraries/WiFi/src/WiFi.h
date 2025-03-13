@@ -20,7 +20,7 @@
 #ifndef WIFI_H
 #define WIFI_H
 
-#include <esp_event_loop.h>
+#include <esp_event.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
@@ -119,7 +119,7 @@ private:
   volatile uint8_t _status;
   volatile uint8_t _reasonCode;
   EventGroupHandle_t _eventGroup;
-  esp_interface_t _interface;
+  wifi_interface_t _interface;
 
   wifi_ap_record_t _scanResults[MAX_SCAN_RESULTS];
   wifi_ap_record_t _apRecord;

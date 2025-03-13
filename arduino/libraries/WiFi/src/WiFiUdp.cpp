@@ -52,13 +52,13 @@ uint8_t WiFiUDP::begin(uint16_t port)
   addr.sin_port = htons(port);
 
   if (lwip_bind(_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-    lwip_close_r(_socket);
+    lwip_close(_socket);
     _socket = -1;
     return 0;
   }
 
   int nonBlocking = 1;
-  lwip_ioctl_r(_socket, FIONBIO, &nonBlocking);
+  lwip_ioctl(_socket, FIONBIO, &nonBlocking);
 
   return 1;
 }
@@ -74,7 +74,7 @@ uint8_t WiFiUDP::beginMulticast(/*IPAddress*/uint32_t ip, uint16_t port)
   multi.imr_multiaddr.s_addr = (uint32_t)ip;
   multi.imr_interface.s_addr = (uint32_t)0;
 
-  lwip_setsockopt_r(_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &multi, sizeof(multi));
+  lwip_setsockopt(_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &multi, sizeof(multi));
 
   return 1;
 }
@@ -89,7 +89,7 @@ int WiFiUDP::available()
 /* Release any resources being used by this WiFiUDP instance */
 void WiFiUDP::stop()
 {
-  lwip_close_r(_socket);
+  lwip_close(_socket);
   _socket = -1;
 }
 
@@ -158,7 +158,7 @@ int WiFiUDP::parsePacket()
   _rcvIndex = 0;
   _rcvSize = 0;
 
-  int result = lwip_recvfrom_r(_socket, _rcvBuffer, sizeof(_rcvBuffer), MSG_DONTWAIT, (struct sockaddr*)&addr, &addrLen);
+  int result = lwip_recvfrom(_socket, _rcvBuffer, sizeof(_rcvBuffer), MSG_DONTWAIT, (struct sockaddr*)&addr, &addrLen);
 
   if (result <= 0) {
     return 0;
