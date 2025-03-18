@@ -57,6 +57,7 @@ WiFiServer tcpServers[MAX_SOCKETS];
 
 WiFiClient bearssl_tcp_client;
 BearSSLClient bearsslClient(bearssl_tcp_client, ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM);
+br_x509_trust_anchor customTrustAnchor;
 
 int setNet(const uint8_t command[], uint8_t response[])
 {
@@ -1618,6 +1619,47 @@ ota_cleanup:
   return 6;
 }
 
+int brSetECTrustAnchor(const uint8_t command[], uint8_t response[])
+{
+  if(customTrustAnchor.dn.data != NULL){
+    free(customTrustAnchor.dn.data);
+  }
+
+  if(customTrustAnchor.pkey.key.ec.q != NULL){
+    free(customTrustAnchor.pkey.key.ec.q);
+  }
+
+  response[2] = 1;
+  response[3] = 1;
+  response[4] = 0;
+
+  uint8_t dnSize = command[4];
+  customTrustAnchor.dn.data = (unsigned char*)malloc(dnSize);
+  if(customTrustAnchor.dn.data == NULL){
+    return 6;
+  }
+  memcpy(customTrustAnchor.dn.data, &command[5], dnSize);
+  customTrustAnchor.dn.len = dnSize;
+
+  customTrustAnchor.flags = command[7 + dnSize];
+  customTrustAnchor.pkey.key_type = BR_KEYTYPE_EC;
+  customTrustAnchor.pkey.key.ec.curve = command[10 + dnSize];
+
+  uint8_t keySize = command[12 + dnSize];
+  customTrustAnchor.pkey.key.ec.q = (unsigned char*)malloc(keySize);
+  if(customTrustAnchor.pkey.key.ec.q == NULL){
+    free(customTrustAnchor.dn.data);
+    return 6;
+  }
+  memcpy(customTrustAnchor.pkey.key.ec.q, &command[13 + dnSize], keySize);
+  customTrustAnchor.pkey.key.ec.qlen = keySize;
+
+  bearsslClient.setTrustAnchors(&customTrustAnchor, 1);
+  response[4] = 1;
+
+  return 6;
+}
+
 //
 // Low-level BSD-like sockets functions
 //
@@ -2094,7 +2136,7 @@ const CommandHandlerType commandHandlers[] = {
   setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, getAnalogRead, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x60 -> 0x6f
-  writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, brSetECTrustAnchor, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // Low-level BSD-like sockets functions.
   // 0x70 -> 0x7f

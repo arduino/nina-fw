@@ -49,6 +49,7 @@ public:
 
   inline void setClient(Client& client) { _client = &client; }
   inline Client* getClient() { return _client; }
+  inline void setTrustAnchors(const br_x509_trust_anchor* myTAs, int myNumTAs) { _TAs = myTAs; _numTAs = myNumTAs; }
 
 
   virtual int connect(IPAddress ip, uint16_t port);
