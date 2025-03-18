@@ -320,6 +320,7 @@ int BearSSLClient::connectSSL(const char* host)
     } else if (state & BR_SSL_CLOSED) {
       return 0;
     }
+    delay(1);
   }
 
   return 1;
