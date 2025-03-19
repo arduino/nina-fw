@@ -1660,6 +1660,18 @@ int brSetECTrustAnchor(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int brErrorCode(const uint8_t command[], uint8_t response[])
+{
+  int result = bearsslClient.errorCode();
+  int len = sizeof(result);
+
+  response[2] = 1;   // number of parameters
+  response[3] = len; // parameter 1 length
+  memcpy(&response[4], &result, sizeof(result));
+
+  return len + 5;
+}
+
 //
 // Low-level BSD-like sockets functions
 //
@@ -2136,7 +2148,7 @@ const CommandHandlerType commandHandlers[] = {
   setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, getAnalogRead, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x60 -> 0x6f
-  writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, brSetECTrustAnchor, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  writeFile, readFile, deleteFile, existsFile, downloadFile,  applyOTA, renameFile, downloadOTA, brSetECTrustAnchor, brErrorCode, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // Low-level BSD-like sockets functions.
   // 0x70 -> 0x7f
