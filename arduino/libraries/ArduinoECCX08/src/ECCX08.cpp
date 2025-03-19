@@ -143,7 +143,12 @@ int ECCX08Class::random(byte data[], size_t length)
       return 0;
     }
 
+
+#if defined (ESP_PLATFORM)
+    delay(50);
+#else
     delay(23);
+#endif
 
     byte response[32];
 
