@@ -152,11 +152,7 @@ void setupBluetooth() {
 }
 
 unsigned long getTime() {
-  int ret = 0;
-  do {
-    ret = WiFi.getTime();
-  } while (ret == 0);
-  return ret;
+  return time(nullptr);
 }
 
 void setupWiFi() {
