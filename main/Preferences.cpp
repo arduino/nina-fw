@@ -495,11 +495,25 @@ String Preferences::getString(const char* key, const String defaultValue){
 }
 
 size_t Preferences::getBytesLength(const char* key){
-    size_t len = 0;
     if(!_started || !key){
         return 0;
     }
-    esp_err_t err = nvs_get_blob(_handle, key, NULL, &len);
+    esp_err_t err = ESP_OK;
+
+    int8_t mt1; uint8_t mt2; int16_t mt3; uint16_t mt4;
+    int32_t mt5; uint32_t mt6; int64_t mt7; uint64_t mt8;
+    size_t len = 0;
+    if       ((err = nvs_get_i8(_handle, key, &mt1)) == ESP_OK)  { len = sizeof(mt1);
+    } else if((err = nvs_get_u8(_handle, key, &mt2)) == ESP_OK)  { len = sizeof(mt2);
+    } else if((err = nvs_get_i16(_handle, key, &mt3)) == ESP_OK) { len = sizeof(mt3);
+    } else if((err = nvs_get_u16(_handle, key, &mt4)) == ESP_OK) { len = sizeof(mt4);
+    } else if((err = nvs_get_i32(_handle, key, &mt5)) == ESP_OK) { len = sizeof(mt5);
+    } else if((err = nvs_get_u32(_handle, key, &mt6)) == ESP_OK) { len = sizeof(mt6);
+    } else if((err = nvs_get_i64(_handle, key, &mt7)) == ESP_OK) { len = sizeof(mt7);
+    } else if((err = nvs_get_u64(_handle, key, &mt8)) == ESP_OK) { len = sizeof(mt8);
+    } else if((err = nvs_get_str(_handle, key, NULL, &len)) == ESP_OK) {
+    } else if((err = nvs_get_blob(_handle, key, NULL, &len)) == ESP_OK) {}
+
     if(err){
         ESP_LOGE(__FILE__, "nvs_get_blob len fail: %s %s", key, nvs_error(err));
         return 0;
