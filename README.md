@@ -21,14 +21,14 @@ This firmware uses [Espressif's IDF](https://github.com/espressif/esp-idf)
 As an alternative for building we can use the docker image from espressif idf, we can do that as follows:
 
 ```
-docker run -v $PWD:/data espressif/idf:v3.3.1 -- sh -c 'cd /data && make'
+docker run -v $PWD:/data espressif/idf:v4.4.8 -- sh -c 'cd /data && make'
 ```
 
 You can also flash the firmware with the following snippet:
 
 ```
 DEVICE=/dev/ttyACM0
-docker run --device=$DEVICE -v $PWD:/data espressif/idf:v3.3.1 -- sh -c 'cd /data && make flash ESPPORT=$DEVICE'
+docker run --device=$DEVICE -v $PWD:/data espressif/idf:v4.4.8 -- sh -c 'cd /data && make flash ESPPORT=$DEVICE'
 ```
 
 ## Notes
