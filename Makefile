@@ -27,4 +27,7 @@ include $(IDF_PATH)/make/project.mk
 firmware: all
 	python combine.py
 
-.PHONY: firmware
+clean:
+	rm -rf NINA_W102*
+
+.PHONY: firmware, clean
