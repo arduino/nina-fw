@@ -2101,7 +2101,7 @@ int pref_begin(const uint8_t command[], uint8_t response[])
   const uint8_t* command_ptr = &command[3];
 
   if(nargs < 1 && nargs > 3) {
-    ESP_LOGE(PREF_TAG, "Prefrences begin wrong number of arguments");
+    ESP_LOGE(PREF_TAG, "Preferences begin wrong number of arguments");
     response[4] = 255;
     goto error;
   }
@@ -2181,7 +2181,7 @@ int pref_remove(const uint8_t command[], uint8_t response[])
   const uint8_t* command_ptr = &command[3];
 
   if(nargs != 1) {
-    ESP_LOGE(PREF_TAG, "Prefrences remove wrong number of arguments");
+    ESP_LOGE(PREF_TAG, "Preferences remove wrong number of arguments");
     response[4] = 255;
     goto error;
   }
@@ -2219,7 +2219,7 @@ int pref_len(const uint8_t command[], uint8_t response[])
   uint32_t len = 0;
 
   if(nargs != 1) {
-    ESP_LOGE(PREF_TAG, "Prefrences length wrong number of arguments");
+    ESP_LOGE(PREF_TAG, "Preferences length wrong number of arguments");
     response[2] = 1;
     response[3] = 1;
     response[4] = 255;
@@ -2293,7 +2293,7 @@ int pref_put(const uint8_t command[], uint8_t response[])
   size_t res = 0;
 
   if(nargs != 3) {
-    ESP_LOGE(PREF_TAG, "Prefrences put wrong number of arguments");
+    ESP_LOGE(PREF_TAG, "Preferences put wrong number of arguments");
     response[2] = 1;
     response[3] = 1;
     response[4] = 255;
@@ -2355,7 +2355,7 @@ int pref_put(const uint8_t command[], uint8_t response[])
       break;
     case PT_INVALID:
     default:
-      ESP_LOGE(PREF_TAG, "Prefrences put invalid type");
+      ESP_LOGE(PREF_TAG, "Preferences put invalid type");
       response[2] = 1;
       response[3] = 1;
       response[4] = 254;
@@ -2396,7 +2396,7 @@ int pref_get(const uint8_t command[], uint8_t response[])
   uint32_t res=0;
 
   if(nargs != 2) {
-    ESP_LOGE(PREF_TAG, "Prefrences put wrong number of arguments");
+    ESP_LOGE(PREF_TAG, "Preferences put wrong number of arguments");
     response[2] = 1;
     response[3] = 0;
     return 5;
@@ -2455,7 +2455,7 @@ int pref_get(const uint8_t command[], uint8_t response[])
       goto array_return;
     case PT_INVALID:
     default:
-      ESP_LOGE(PREF_TAG, "Prefrences put invalid type");
+      ESP_LOGE(PREF_TAG, "Preferences put invalid type");
       response[2] = 1;
       response[3] = 0;
       return 5;
