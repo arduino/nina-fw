@@ -275,10 +275,6 @@ int BearSSLClient::connectSSL(const char* host)
   unsigned char entropy[32];
 
   if (ECCX08.begin() && ECCX08.locked() && ECCX08.random(entropy, sizeof(entropy))) {
-    ESP_LOGI("BearSSLClient::connectSSL", "init");
-  }
-
-  if (ECCX08.begin() && ECCX08.locked() && ECCX08.random(entropy, sizeof(entropy))) {
     // ECC508 random success, add custom ECDSA vfry and EC sign
     br_ssl_engine_set_ecdsa(&_sc.eng, eccX08_vrfy_asn1);
     br_x509_minimal_set_ecdsa(&_xc, br_ssl_engine_get_ec(&_sc.eng), br_ssl_engine_get_ecdsa(&_sc.eng));
@@ -320,6 +316,7 @@ int BearSSLClient::connectSSL(const char* host)
     } else if (state & BR_SSL_CLOSED) {
       return 0;
     }
+    delay(1);
   }
 
   return 1;
