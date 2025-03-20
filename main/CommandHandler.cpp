@@ -2506,6 +2506,227 @@ int pref_getType(const uint8_t command[], uint8_t response[]) {
   return 6;
 }
 
+/*
+ * BLE vHCI API
+ */
+#include "esp_bt.h"
+
+#define TO_HOST_BUF_SIZE                256 // bytes
+static RingbufHandle_t buf_handle       = NULL;
+static SemaphoreHandle_t vhci_send_sem  = NULL;
+
+static void controller_rcv_pkt_ready() {
+  if (vhci_send_sem) {
+    xSemaphoreGive(vhci_send_sem);
+  }
+}
+
+/*
+* The following callback is called when the bt controller has some data available
+* this data is put into a queue that is then consumed by calling ble_read
+*/
+static int host_rcv_pkt(uint8_t *data, uint16_t len) {
+  if(buf_handle == NULL) {
+    ets_printf("failed host_rcv_pkt\n");
+    return ESP_FAIL;
+  }
+
+  UBaseType_t res = xRingbufferSend(buf_handle, data, len, pdMS_TO_TICKS(2000)); // TODO verify xTicksToWait value
+
+  if (res != pdTRUE) {
+    ets_printf("unable to send data to ring buffer\n");
+  }
+  return ESP_OK;
+}
+
+static esp_bt_controller_config_t btControllerConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+static esp_vhci_host_callback_t vhciHostCb = {
+  controller_rcv_pkt_ready,
+  host_rcv_pkt
+};
+
+int ble_begin(const uint8_t command[], uint8_t response[]) {
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+
+  esp_err_t ret = ESP_OK;
+
+  if((ret = esp_bt_controller_init(&btControllerConfig)) != ESP_OK) {
+    ets_printf("failed esp_bt_controller_init %s\n", esp_err_to_name(ret));
+
+    goto exit;
+  }
+
+  while (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE);
+
+  if((ret = esp_bt_controller_enable(ESP_BT_MODE_BLE)) != ESP_OK) {
+    ets_printf("failed esp_bt_controller_enable %s\n", esp_err_to_name(ret));
+
+    goto exit;
+  }
+
+  if((buf_handle = xRingbufferCreate(TO_HOST_BUF_SIZE, RINGBUF_TYPE_BYTEBUF)) == NULL) {
+    ret = ESP_ERR_NO_MEM;
+    ets_printf("failed xRingbufferCreate\n");
+
+    goto exit;
+  }
+
+  vhci_send_sem = xSemaphoreCreateBinary();
+  if (vhci_send_sem == NULL) {
+    ets_printf("Failed to create VHCI send sem\n");
+    ret =  ESP_ERR_NO_MEM;
+    goto exit;
+  }
+  xSemaphoreGive(vhci_send_sem);
+
+  esp_bt_sleep_enable();
+
+  esp_vhci_host_register_callback(&vhciHostCb);
+
+exit:
+  response[2] = 1;          // number of parameters
+  response[3] = 1;          // length of first parameter
+  response[4] = ret;
+
+  return 6;
+}
+
+int ble_end(const uint8_t command[], uint8_t response[]) {
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+
+  esp_bt_controller_disable();
+  esp_bt_controller_deinit();
+
+  if(buf_handle != NULL) {
+    vRingbufferDelete(buf_handle);
+  }
+
+  if (vhci_send_sem != NULL) {
+    /* Dummy take and give sema before deleting it */
+    xSemaphoreTake(vhci_send_sem, pdMS_TO_TICKS(2000));
+    xSemaphoreGive(vhci_send_sem);
+    vSemaphoreDelete(vhci_send_sem);
+    vhci_send_sem = NULL;
+  }
+
+  response[2] = 1;          // number of parameters
+  response[3] = 1;          // length of first parameter
+  response[4] = 1;
+
+  return 6;
+}
+
+int ble_available(const uint8_t command[], uint8_t response[]) {
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  uint16_t available = 0;
+  if(buf_handle != NULL) {
+    available = TO_HOST_BUF_SIZE - xRingbufferGetCurFreeSize(buf_handle);
+  }
+
+  response[2] = 1;          // number of parameters
+  response[3] = 2;          // length of first parameter
+  response[4] = (available >> 8)  & 0xff;
+  response[5] = (available >> 0)  & 0xff;
+
+  return 7;
+}
+
+int ble_peek(const uint8_t command[], uint8_t response[]) {
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         the number 2                < 1 byte >
+  //[4..5]      size                        < 2 byte >
+  // this could be useless xQueuePeek
+  uint8_t nargs = command[2];
+  // if nargs != 1 -> error
+  size_t res = 0;
+  // uint16_t size = ntohs(*((uint16_t *) &command[4]));
+  uint16_t size = *((uint16_t *) &command[4]);
+  uint8_t* received = nullptr;
+
+  if(size > TO_HOST_BUF_SIZE - xRingbufferGetCurFreeSize(buf_handle)) {
+    size = 0;
+    goto exit;
+  }
+
+  received = (uint8_t*)xRingbufferReceiveUpTo(buf_handle, &res, pdMS_TO_TICKS(2000), size);
+
+  memcpy(&response[5], received, res);
+
+exit:
+  response[2] = 1;          // number of parameters
+  response[3] = (size >> 8)  & 0xff;
+  response[4] = (size >> 0)  & 0xff;
+
+  return 6 + res;
+}
+
+int ble_read(const uint8_t command[], uint8_t response[]) {
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3]         the number 2                < 1 byte >
+  //[4..5]      size                        < 2 byte >
+  uint8_t nargs = command[2];
+  // if nargs != 1 -> error
+  size_t res = 0;
+  // uint16_t size = ntohs(*((uint16_t *) &command[4]));
+  uint16_t size = *((uint16_t *) &command[4]);
+  uint8_t* received = nullptr;
+
+  if(size > TO_HOST_BUF_SIZE - xRingbufferGetCurFreeSize(buf_handle)) {
+    size = 0;
+    goto exit;
+  }
+
+  received = (uint8_t*)xRingbufferReceiveUpTo(buf_handle, &res, pdMS_TO_TICKS(2000), size);
+
+  memcpy(&response[5], received, res);
+
+  vRingbufferReturnItem(buf_handle, received);
+
+exit:
+  response[2] = 1;          // number of parameters
+  response[3] = (size >> 8)  & 0xff;
+  response[4] = (size >> 0)  & 0xff;
+
+  return 6 + res;
+}
+
+int ble_write(const uint8_t command[], uint8_t response[]) {
+  //[0]         CMD_START                   < 0xE0   >
+  //[1]         Command                     < 1 byte >
+  //[2]         N args                      < 1 byte >
+  //[3..4]      size                        < 2 byte >
+  //[4..4+size] buffer                      < size byte >
+
+  uint8_t nargs = command[2];
+  // if nargs != 1 -> error
+
+  uint16_t size = ntohs(*((uint16_t *) &command[3]));
+
+  while(!esp_vhci_host_check_send_available()) { // TODO add timeout
+    // TODO delay
+  }
+
+  if (vhci_send_sem && xSemaphoreTake(vhci_send_sem, pdMS_TO_TICKS(2000)) == pdTRUE) {
+    esp_vhci_host_send_packet((uint8_t*)&command[5], size);
+  }
+
+  response[2] = 1;          // number of parameters
+  response[3] = 2;          // length of first parameter
+  response[4] = (size >> 0)  & 0xff;
+  response[5] = (size >> 8)  & 0xff;
+
+  return 7;
+}
+
+
+
 typedef int (*CommandHandlerType)(const uint8_t command[], uint8_t response[]);
 
 const CommandHandlerType commandHandlers[] = {
@@ -2522,7 +2743,15 @@ const CommandHandlerType commandHandlers[] = {
   disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, NULL, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
 
   // 0x40 -> 0x4f
-  setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+  setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL,
+
+  // BLE functions 0x4a -> 0x4f
+  ble_begin,      // 0x4a
+  ble_end,        // 0x4b
+  ble_available,  // 0x4c
+  ble_peek,       // 0x4d
+  ble_read,       // 0x4e
+  ble_write,      // 0x4f
 
   // 0x50 -> 0x54
   setPinMode, setDigitalWrite, setAnalogWrite, getDigitalRead, getAnalogRead,
