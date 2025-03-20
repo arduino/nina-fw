@@ -17,7 +17,7 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <rom/uart.h>
+#include <esp32/rom/uart.h>
 
 extern "C" {
   #include <driver/periph_ctrl.h>
@@ -31,6 +31,7 @@ extern "C" {
   #include <sys/types.h>
   #include <dirent.h>
   #include "esp_partition.h"
+  #include "soc/gpio_periph.h"
 }
 
 #include <Arduino.h>
@@ -41,6 +42,8 @@ extern "C" {
 #include "CommandHandler.h"
 
 #define SPI_BUFFER_LEN SPI_MAX_DMA_LEN
+
+#define CONFIG_CONSOLE_UART_NUM 0
 
 int debug = 0;
 

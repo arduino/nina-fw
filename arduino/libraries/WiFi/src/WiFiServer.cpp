@@ -50,19 +50,19 @@ uint8_t WiFiServer::begin(uint16_t port)
   addr.sin_port = htons(port);
 
   if (lwip_bind(_socket, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-    lwip_close_r(_socket);
+    lwip_close(_socket);
     _socket = -1;
     return 0;
   }
 
   if (lwip_listen(_socket, 1) < 0) {
-    lwip_close_r(_socket);
+    lwip_close(_socket);
     _socket = -1;
     return 0;
   }
 
   int nonBlocking = 1;
-  lwip_ioctl_r(_socket, FIONBIO, &nonBlocking);
+  lwip_ioctl(_socket, FIONBIO, &nonBlocking);
 
   // Set port.
   _port = port;
