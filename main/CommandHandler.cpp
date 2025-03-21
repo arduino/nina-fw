@@ -438,6 +438,32 @@ int startServerTcp(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int stopServerTcp(const uint8_t command[], uint8_t response[])
+{
+  uint8_t socket = command[4];
+
+  for (int i = 0; i < CONFIG_LWIP_MAX_SOCKETS; i++) {
+    WiFiClient c(tcpServers[socket].getSpawnedClient(i));
+    if (c) {
+      for (int j = 0; j < MAX_SOCKETS; j++) {
+        if (tcpClients[j] == c) {
+          socketTypes[j] = 255;
+          tcpClients[i] = WiFiClient();
+          break;
+        }
+      }
+    }
+  }
+  tcpServers[socket].end();
+  socketTypes[socket] = 255;
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1; // parameter 1 length
+
+  return 6;
+}
+
 int getStateTcp(const uint8_t command[], uint8_t response[])
 {
   uint8_t socket = command[4];
@@ -2083,7 +2109,7 @@ const CommandHandlerType commandHandlers[] = {
   getConnStatus, getIPaddr, getMACaddr, getCurrSSID, getCurrBSSID, getCurrRSSI, getCurrEnct, scanNetworks, startServerTcp, getStateTcp, dataSentTcp, availDataTcp, getDataTcp, startClientTcp, stopClientTcp, getClientStateTcp,
 
   // 0x30 -> 0x3f
-  disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, NULL, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
+  disconnect, NULL, getIdxRSSI, getIdxEnct, reqHostByName, getHostByName, startScanNetworks, getFwVersion, stopServerTcp, sendUDPdata, getRemoteData, getTime, getIdxBSSID, getIdxChannel, ping, getSocket,
 
   // 0x40 -> 0x4f
   setEnt, NULL, NULL, NULL, sendDataTcp, getDataBufTcp, insertDataBuf, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
