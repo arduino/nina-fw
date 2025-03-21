@@ -23,6 +23,10 @@
 
 #include "WiFiSSLClient.h"
 
+extern "C" {
+  #include "esp_log.h"
+}
+
 class __Guard {
 public:
   __Guard(SemaphoreHandle_t handle) {
@@ -49,6 +53,8 @@ WiFiSSLClient::WiFiSSLClient() :
 
   _mbedMutex = xSemaphoreCreateRecursiveMutex();
 }
+
+static int net_connect( mbedtls_net_context *ctx, const char *host, const char *port, int proto, uint16_t timeout);
 
 int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
 {
@@ -113,7 +119,8 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
     char portStr[6];
     itoa(port, portStr, 10);
 
-    if (mbedtls_net_connect(&_netContext, host, portStr, MBEDTLS_NET_PROTO_TCP) != 0) {
+    if (_connTimeout ? net_connect(&_netContext, host, portStr, MBEDTLS_NET_PROTO_TCP, _connTimeout)
+        : mbedtls_net_connect(&_netContext, host, portStr, MBEDTLS_NET_PROTO_TCP)) {
       stop();
       return 0;
     }
@@ -293,3 +300,79 @@ uint16_t WiFiSSLClient::remotePort()
 
   return ntohs(((struct sockaddr_in *)&addr)->sin_port);
 }
+
+
+/*
+ * based on mbedtls_net_connect, but with timeout support
+ */
+int net_connect(mbedtls_net_context *ctx, const char *host, const char *port, int proto, uint16_t timeout) {
+  int ret;
+  struct addrinfo hints, *addr_list, *cur;
+
+  /* Do name resolution with both IPv6 and IPv4 */
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = proto == MBEDTLS_NET_PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM;
+  hints.ai_protocol =
+      proto == MBEDTLS_NET_PROTO_UDP ? IPPROTO_UDP : IPPROTO_TCP;
+
+  if ( getaddrinfo( host, port, &hints, &addr_list ) != 0) {
+    return ( MBEDTLS_ERR_NET_UNKNOWN_HOST);
+  }
+
+  /* Try the sockaddrs until a connection succeeds */
+  ret = MBEDTLS_ERR_NET_UNKNOWN_HOST;
+  for (cur = addr_list; cur != NULL; cur = cur->ai_next) {
+    int fd = socket(cur->ai_family, cur->ai_socktype, cur->ai_protocol);
+
+    if (fd < 0) {
+      ret = MBEDTLS_ERR_NET_SOCKET_FAILED;
+      continue;
+    }
+
+    mbedtls_net_context tmpCtx;
+    tmpCtx.fd = fd;
+    mbedtls_net_set_nonblock(&tmpCtx);
+
+    int res = connect(fd,  cur->ai_addr, cur->ai_addrlen);
+    if (res < 0 && errno != EINPROGRESS) {
+      ESP_LOGW("WiFiSSLClient", "connect on fd %d, errno: %d, \"%s\"", fd, errno, strerror(errno));
+    } else {
+      struct timeval tv;
+      tv.tv_sec = timeout / 1000;
+      tv.tv_usec = (timeout % 1000) * 1000;
+
+      fd_set fdset;
+      FD_ZERO(&fdset);
+      FD_SET(fd, &fdset);
+
+      res = select(fd + 1, nullptr, &fdset, nullptr, &tv);
+      if (res < 0) {
+        ESP_LOGW("WiFiSSLClient", "select on fd %d, errno: %d, \"%s\"", fd, errno, strerror(errno));
+      } else if (res == 0) {
+        ESP_LOGW("WiFiSSLClient", "select returned due to timeout %d ms for fd %d", timeout, fd);
+      } else {
+        int sockerr;
+        socklen_t len = (socklen_t) sizeof(int);
+        res = getsockopt(fd, SOL_SOCKET, SO_ERROR, &sockerr, &len);
+        if (res < 0) {
+          ESP_LOGW("WiFiSSLClient", "getsockopt on fd %d, errno: %d, \"%s\"", fd, errno, strerror(errno));
+        } else if (sockerr != 0) {
+          ESP_LOGW("WiFiSSLClient", "socket error on fd %d, errno: %d, \"%s\"", fd, sockerr, strerror(sockerr));
+        } else {
+          ctx->fd = fd; // connected!
+          ret = 0;
+          mbedtls_net_set_block(ctx); // back to blocking for SSL handshake
+          break;
+        }
+      }
+    }
+    close(fd);
+    ret = MBEDTLS_ERR_NET_CONNECT_FAILED;
+  }
+
+  freeaddrinfo(addr_list);
+
+  return (ret);
+}
+
