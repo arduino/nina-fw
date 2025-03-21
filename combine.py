@@ -5,7 +5,7 @@ import sys;
 booloaderData = open("build/bootloader/bootloader.bin", "rb").read()
 partitionData = open("build/partitions.bin", "rb").read()
 phyData = open("data/phy.bin", "rb").read()
-certsData = open("data/roots.pem", "rb").read()
+certsData = open("x509_crt_bundle", "rb").read()
 appData = open("build/nina-fw.bin", "rb").read()
 spiffsData = open("data/spiffs.bin", "rb").read()
 
@@ -38,9 +38,6 @@ for i in range(0, len(phyData)):
 
 for i in range(0, len(certsData)):
     outputData[0xA000 + i] = certsData[i]
-
-# zero terminate the pem file
-outputData[0xA000 + len(certsData)] = 0
 
 for i in range(0, len(appData)):
 	outputData[0x30000 + i] = appData[i]
