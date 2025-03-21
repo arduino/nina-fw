@@ -80,19 +80,24 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
     const unsigned char* certs_data = {};
 
     const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
-    if (part == NULL)
-    {
+    if (part == NULL) {
       return 0;
     }
 
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
-    if (ret != ESP_OK)
-    {
+    if (ret != ESP_OK) {
       return 0;
     }
 
-    esp_crt_bundle_attach(&_sslConfig);
-    esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
+    ret = esp_crt_bundle_attach(&_sslConfig);
+    if (ret != ESP_OK) {
+      return 0;
+    }
+
+    ret = esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
+    if (ret != ESP_OK) {
+      return 0;
+    }
 
     mbedtls_ssl_conf_rng(&_sslConfig, mbedtls_ctr_drbg_random, &_ctrDrbgContext);
 
