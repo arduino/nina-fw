@@ -439,12 +439,12 @@ uint8_t* WiFiClass::macAddress(uint8_t* mac)
 
   esp_wifi_get_mac(_interface, macTemp);
 
-  mac[0] = macTemp[5];
-  mac[1] = macTemp[4];
-  mac[2] = macTemp[3];
-  mac[3] = macTemp[2];
-  mac[4] = macTemp[1];
-  mac[5] = macTemp[0];
+  mac[0] = macTemp[0];
+  mac[1] = macTemp[1];
+  mac[2] = macTemp[2];
+  mac[3] = macTemp[3];
+  mac[4] = macTemp[4];
+  mac[5] = macTemp[5];
 
   return mac;
 }
