@@ -59,7 +59,6 @@ private:
   int connect(const char* host, uint16_t port, bool sni);
 
 private:
-  static const char* ROOT_CAs;
 
   mbedtls_entropy_context _entropyContext;
   mbedtls_ctr_drbg_context _ctrDrbgContext;
