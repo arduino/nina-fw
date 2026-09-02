@@ -183,6 +183,17 @@ int setPowerMode(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
+int setScanMode(const uint8_t command[], uint8_t response[])
+{
+  WiFi.scanMode(command[4]);
+
+  response[2] = 1; // number of parameters
+  response[3] = 1; // parameter 1 length
+  response[4] = 1;
+
+  return 6;
+}
+
 int setApNet(const uint8_t command[], uint8_t response[])
 {
   char ssid[32 + 1];
@@ -2884,7 +2895,7 @@ const CommandHandlerType commandHandlers[] = {
   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 
   // 0x10 -> 0x1f
-  setNet, setPassPhrase, setKey, NULL, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, getDNSconfig, getReasonCode,
+  setNet, setPassPhrase, setKey, setScanMode, setIPconfig, setDNSconfig, setHostname, setPowerMode, setApNet, setApPassPhrase, setDebug, getTemperature, NULL, NULL, getDNSconfig, getReasonCode,
 
   // 0x20 -> 0x2f
   getConnStatus, getIPaddr, getMACaddr, getCurrSSID, getCurrBSSID, getCurrRSSI, getCurrEnct, scanNetworks, startServerTcp, getStateTcp, dataSentTcp, availDataTcp, getDataTcp, startClientTcp, stopClientTcp, getClientStateTcp,
