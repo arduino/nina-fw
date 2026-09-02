@@ -55,6 +55,11 @@ public:
   uint8_t begin(const char* ssid, uint8_t key_idx, const char* key);
   uint8_t begin(const char* ssid, const char* key);
 
+  // Station scan mode used by the next begin(): WIFI_FAST_SCAN (default)
+  // joins the first matching AP found; WIFI_ALL_CHANNEL_SCAN scans every
+  // channel and joins the strongest matching AP.
+  void scanMode(uint8_t scanMode);
+
   uint8_t beginAP(const char *ssid, uint8_t channel);
   uint8_t beginAP(const char *ssid, uint8_t key_idx, const char* key, uint8_t channel);
   uint8_t beginAP(const char *ssid, const char* key, uint8_t channel);
@@ -116,6 +121,7 @@ private:
 
 private:
   bool _initialized;
+  uint8_t _scanMode = WIFI_FAST_SCAN;
   volatile uint8_t _status;
   volatile uint8_t _reasonCode;
   EventGroupHandle_t _eventGroup;

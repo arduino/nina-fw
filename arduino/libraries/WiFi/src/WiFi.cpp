@@ -185,6 +185,11 @@ uint8_t WiFiClass::begin(const char* ssid, uint8_t key_idx, const char* key)
   return begin(ssid, key);
 }
 
+void WiFiClass::scanMode(uint8_t scanMode)
+{
+  _scanMode = scanMode;
+}
+
 uint8_t WiFiClass::begin(const char* ssid, const char* key)
 {
   wifi_config_t wifiConfig;
@@ -192,7 +197,11 @@ uint8_t WiFiClass::begin(const char* ssid, const char* key)
   memset(&wifiConfig, 0x00, sizeof(wifiConfig));
   strncpy((char*)wifiConfig.sta.ssid, ssid, sizeof(wifiConfig.sta.ssid));
   strncpy((char*)wifiConfig.sta.password, key, sizeof(wifiConfig.sta.password));
-  wifiConfig.sta.scan_method = WIFI_FAST_SCAN;
+  wifiConfig.sta.scan_method = (wifi_scan_method_t)_scanMode;
+  if (_scanMode == WIFI_ALL_CHANNEL_SCAN) {
+    // every channel has been heard, so let the strongest AP win
+    wifiConfig.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+  }
   _status = WL_NO_SSID_AVAIL;
 
   _interface = WIFI_IF_STA;
