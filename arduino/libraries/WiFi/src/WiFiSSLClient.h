@@ -69,6 +69,7 @@ private:
   mbedtls_net_context _netContext;
   mbedtls_x509_crt _caCrt;
   bool _connected;
+  bool _contextsInitialized;
   int _peek;
   uint16_t _connTimeout = 0;
 

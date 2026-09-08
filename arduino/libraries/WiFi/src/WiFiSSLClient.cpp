@@ -19,9 +19,9 @@
 
 #include <lwip/netdb.h>
 #include <lwip/sockets.h>
-#include "esp_partition.h"
 #include "esp_crt_bundle.h"
 
+#include "CertificateStore.h"
 #include "WiFiSSLClient.h"
 
 extern "C" {
@@ -48,6 +48,7 @@ private:
 
 WiFiSSLClient::WiFiSSLClient() :
   _connected(false),
+  _contextsInitialized(false),
   _peek(-1)
 {
   _netContext.fd = -1;
@@ -60,8 +61,13 @@ static int net_connect( mbedtls_net_context *ctx, const char *host, const char *
 int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
 {
   synchronized {
+    if (_contextsInitialized) {
+      stop();
+    }
+
     _netContext.fd = -1;
     _connected = false;
+    _peek = -1;
 
     mbedtls_ssl_init(&_sslContext);
     mbedtls_ctr_drbg_init(&_ctrDrbgContext);
@@ -69,6 +75,7 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
     mbedtls_entropy_init(&_entropyContext);
     mbedtls_x509_crt_init(&_caCrt);
     mbedtls_net_init(&_netContext);
+    _contextsInitialized = true;
 
     if (mbedtls_ctr_drbg_seed(&_ctrDrbgContext, mbedtls_entropy_func, &_entropyContext, NULL, 0) != 0) {
       stop();
@@ -82,46 +89,32 @@ int WiFiSSLClient::connect(const char* host, uint16_t port, bool sni)
 
     mbedtls_ssl_conf_authmode(&_sslConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
 
-    spi_flash_mmap_handle_t handle;
-    const unsigned char* certs_data = {};
-
-    const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
-    if (part == NULL) {
+    if (nina_certificate_store_init() != ESP_OK) {
+      stop();
       return 0;
     }
 
-    int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
-    if (ret != ESP_OK) {
+    const nina_certificate_store_format_t certificateFormat = nina_certificate_store_format();
+    const unsigned char *certsData = nina_certificate_store_data();
+    const size_t certsSize = nina_certificate_store_size();
+    if (certificateFormat == NINA_CERTIFICATE_STORE_UNAVAILABLE || certsData == NULL) {
+      stop();
       return 0;
     }
 
-    /* Starting from firmware 3.x.x cert partition starts at address 0xA000.
-     * The arduino-fw-uploader tool uploads user certificates in PEM format to a
-     * fixed flash address 0x10000. If you change again the partition table make
-     * sure 0x10000 is in the range of your certs partition.
-     * To make fimrware 3.x.x compatible with arduino-fw-uploader we first check
-     * for PEM certificate at address 0x10000, if no valid certificate is found
-     * we try to load the default certificate bundle from address 0xA000
-     */
-    const bool hasPEM = (memcmp(&certs_data[0x6000], "-----BEGIN CERTIFICATE-----", 26) == 0);
-
-    if (hasPEM) {
+    int ret;
+    if (certificateFormat == NINA_CERTIFICATE_STORE_PEM) {
       ets_printf("Using provided certificate in pem format\n");
-      ret = mbedtls_x509_crt_parse(&_caCrt, &certs_data[0x6000], strlen((const char*)&certs_data[0x6000]) + 1);
+      ret = mbedtls_x509_crt_parse(&_caCrt, certsData, certsSize);
       if (ret < 0) {
         ets_printf("mbedtls_x509_crt_parse failed: %d\n", ret);
         stop();
+        return 0;
       }
       mbedtls_ssl_conf_ca_chain(&_sslConfig, &_caCrt, NULL);
     } else {
       ets_printf("Using bundled certificate\n");
       ret = esp_crt_bundle_attach(&_sslConfig);
-      if (ret != ESP_OK) {
-        stop();
-        return 0;
-      }
-
-      ret = esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
       if (ret != ESP_OK) {
         stop();
         return 0;
@@ -267,19 +260,19 @@ void WiFiSSLClient::flush()
 void WiFiSSLClient::stop()
 {
   synchronized {
-    if (_netContext.fd > 0) {
-      mbedtls_ssl_session_reset(&_sslContext);    
-
+    if (_contextsInitialized) {
       mbedtls_net_free(&_netContext);
       mbedtls_x509_crt_free(&_caCrt);
       mbedtls_entropy_free(&_entropyContext);
       mbedtls_ssl_config_free(&_sslConfig);
       mbedtls_ctr_drbg_free(&_ctrDrbgContext);
       mbedtls_ssl_free(&_sslContext);
+      _contextsInitialized = false;
     }
 
     _connected = false;
     _netContext.fd = -1;
+    _peek = -1;
   }
 
   vTaskDelay(1);
@@ -399,4 +392,3 @@ int net_connect(mbedtls_net_context *ctx, const char *host, const char *port, in
 
   return (ret);
 }
-
