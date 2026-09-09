@@ -1,1 +1,3 @@
 build/
+.qemu-work/
+__pycache__/

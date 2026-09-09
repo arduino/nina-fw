@@ -1,3 +1,23 @@
+ifneq ($(filter qemu-prepare qemu-test qemu-test-https,$(MAKECMDGOALS)),)
+
+QEMU_TLS_HOST ?= example.com
+QEMU_TLS_PORT ?= 443
+QEMU_TLS_PATH ?= /
+
+.PHONY: qemu-prepare qemu-test qemu-test-https
+
+qemu-prepare:
+	python3 tools/qemu/qemu_test.py prepare
+
+qemu-test:
+	python3 tools/qemu/qemu_test.py test
+
+qemu-test-https:
+	@test -n "$(QEMU_WIFI_SSID)" || (echo "QEMU_WIFI_SSID is required"; exit 2)
+	python3 tools/qemu/qemu_test.py https --ssid "$(QEMU_WIFI_SSID)" --password "$(QEMU_WIFI_PASSWORD)" --host "$(QEMU_TLS_HOST)" --port "$(QEMU_TLS_PORT)" --path "$(QEMU_TLS_PATH)"
+
+else
+
 PROJECT_NAME := nina-fw
 
 EXTRA_COMPONENT_DIRS := $(PWD)/arduino
@@ -40,3 +60,5 @@ clean:
 	rm -rf x509_crt_bundle
 
 .PHONY: firmware, clean
+
+endif
