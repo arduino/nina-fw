@@ -1,5 +1,5 @@
 QEMU_GOALS := qemu-prepare qemu-test qemu-test-https qemu-clean
-TOOLING_GOALS := firmware-container $(QEMU_GOALS)
+TOOLING_GOALS := firmware-container firmware-clean $(QEMU_GOALS)
 
 ifneq ($(filter $(TOOLING_GOALS),$(MAKECMDGOALS)),)
 

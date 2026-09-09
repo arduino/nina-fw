@@ -21,3 +21,12 @@ make firmware-container \
 
 By default, Make uses the CPU count visible inside the container. Limit
 `FIRMWARE_JOBS` when the container has constrained memory.
+
+Remove the firmware object cache, generated certificate bundle, and combined
+images with:
+
+```sh
+make firmware-clean
+```
+
+This preserves `build/qemu`, which is managed separately by `qemu-prepare`.
