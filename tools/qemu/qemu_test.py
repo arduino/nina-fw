@@ -2,11 +2,13 @@
 """Build and run the NINA TLS leak regression under Ebiroll's ESP32 QEMU."""
 
 import argparse
+import filecmp
 import io
 import os
 import pathlib
 import selectors
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -19,7 +21,7 @@ WORK = ROOT / ".qemu-work"
 QEMU_ROOT = pathlib.Path(os.environ.get("QEMU_ROOT", ROOT / "build/qemu"))
 DEFAULT_QEMU = QEMU_ROOT / "build/qemu-system-xtensa"
 DEFAULT_BIOS = QEMU_ROOT / "source/pc-bios"
-BUILD_FIRMWARE = ROOT / "tools/qemu/build_firmware.sh"
+BUILD_FIRMWARE = ROOT / "tools/firmware/build_container.sh"
 FLASH_SIZE = 4 * 1024 * 1024
 
 
@@ -74,7 +76,6 @@ def preflight(qemu, bios, need_container=True):
 
 
 def extract(ref, destination):
-    destination.mkdir(parents=True, exist_ok=True)
     archive = git("archive", "--format=tar", ref, stdout=subprocess.PIPE).stdout
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as bundle:
         destination_root = destination.resolve()
@@ -83,16 +84,76 @@ def extract(ref, destination):
             if destination_root not in (target, *target.parents):
                 raise RuntimeError(f"unsafe path in Git archive: {member.name}")
         bundle.extractall(destination)
-    (destination / "main/sketch.ino.cpp").write_bytes(
-        (ROOT / "tests/qemu/sketch.ino.cpp").read_bytes()
+
+
+def same_file(left, right):
+    return (
+        left.is_file()
+        and not left.is_symlink()
+        and filecmp.cmp(left, right, shallow=False)
     )
+
+
+def remove_path(path):
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    elif path.exists() or path.is_symlink():
+        path.unlink()
+
+
+def synchronize(source, staged):
+    preserved = {"build", "x509_crt_bundle", ".x509_crt_bundle.mk"}
+    desired = {
+        path.relative_to(staged)
+        for path in staged.rglob("*")
+    }
+
+    if source.exists():
+        managed_paths = []
+        for child in source.iterdir():
+            if child.name in preserved or child.name.startswith("NINA_W102"):
+                continue
+            managed_paths.append(child.relative_to(source))
+            if child.is_dir() and not child.is_symlink():
+                managed_paths.extend(path.relative_to(source) for path in child.rglob("*"))
+        existing = sorted(managed_paths, key=lambda path: len(path.parts), reverse=True)
+        for relative in existing:
+            target = source / relative
+            if relative not in desired:
+                if target.is_dir() and not target.is_symlink():
+                    target.rmdir()
+                else:
+                    target.unlink()
+    else:
+        source.mkdir(parents=True)
+
+    for relative in sorted(desired, key=lambda path: len(path.parts)):
+        incoming = staged / relative
+        target = source / relative
+        if incoming.is_dir() and not incoming.is_symlink():
+            if target.exists() and (not target.is_dir() or target.is_symlink()):
+                remove_path(target)
+            target.mkdir(exist_ok=True)
+        elif incoming.is_symlink():
+            link_target = os.readlink(incoming)
+            if not target.is_symlink() or os.readlink(target) != link_target:
+                remove_path(target)
+                target.symlink_to(link_target)
+        elif not same_file(target, incoming):
+            if target.is_dir() or target.is_symlink():
+                remove_path(target)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            # Changed inputs need a fresh timestamp so Make sees them as newer
+            # than preserved objects and generated files.
+            shutil.copyfile(incoming, target)
+            shutil.copymode(incoming, target)
 
 
 def c_string(value):
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def write_config(source, args, https=False):
+def config_text(args, https=False):
     lines = [
         "#pragma once",
         f"#define QEMU_TLS_ITERATIONS {args.iterations}",
@@ -108,15 +169,21 @@ def write_config(source, args, https=False):
             f"#define QEMU_WIFI_PASSWORD {c_string(args.password)}",
             f"#define QEMU_TLS_PATH {c_string(args.path)}",
         ])
-    (source / "main/QemuTestConfig.h").write_text("\n".join(lines) + "\n")
+    return "\n".join(lines) + "\n"
 
 
 def build(ref, name, args, https=False):
     source = WORK / name / "source"
-    if source.exists():
-        raise RuntimeError(f"stale work directory exists: {source}; run prepare first")
-    extract(ref, source)
-    write_config(source, args, https)
+    variant = WORK / name
+    variant.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="source-", dir=variant) as temporary:
+        staged = pathlib.Path(temporary)
+        extract(ref, staged)
+        (staged / "main/sketch.ino.cpp").write_bytes(
+            (ROOT / "tests/qemu/sketch.ino.cpp").read_bytes()
+        )
+        (staged / "main/QemuTestConfig.h").write_text(config_text(args, https))
+        synchronize(source, staged)
     run(["sh", BUILD_FIRMWARE, source])
     firmware = source / "NINA_W102_ALL.bin"
     require_file(firmware, "combined firmware")
@@ -181,27 +248,23 @@ def run_qemu(name, flash, args):
     return log
 
 
-def clean_work():
-    # Keep deletion tightly scoped to the ignored harness directory.
-    if WORK.exists():
-        import shutil
-        shutil.rmtree(WORK)
-    WORK.mkdir()
+def ensure_work():
+    WORK.mkdir(exist_ok=True)
 
 
 def command_prepare(args):
-    clean_work()
-    preflight(args.qemu, args.bios)
+    preflight(args.qemu, args.bios, need_container=False)
     print(f"Ready: QEMU={args.qemu}; BIOS={args.bios}")
 
 
 def command_test(args):
-    clean_work()
+    ensure_work()
     preflight(args.qemu, args.bios)
-    baseline_ref = args.baseline_ref or find_baseline()
-    print(f"Comparing baseline {baseline_ref} with {args.patched_ref}")
+    baseline_ref = resolve_ref(args.baseline_ref or find_baseline())
+    patched_ref = resolve_ref(args.patched_ref)
+    print(f"Comparing baseline {baseline_ref} with {patched_ref}")
     baseline_flash = build(baseline_ref, "baseline", args)
-    patched_flash = build(args.patched_ref, "patched", args)
+    patched_flash = build(patched_ref, "patched", args)
     baseline_log = run_qemu("baseline", baseline_flash, args)
     patched_log = run_qemu("patched", patched_flash, args)
     result = subprocess.run([
@@ -212,11 +275,25 @@ def command_test(args):
 
 
 def command_https(args):
-    clean_work()
+    ensure_work()
     preflight(args.qemu, args.bios)
-    flash = build(args.patched_ref, "https", args, https=True)
+    flash = build(resolve_ref(args.patched_ref), "https", args, https=True)
     log = run_qemu("https", flash, args)
     print(f"HTTPS run log: {log}")
+
+
+def command_clean(_args):
+    if WORK.exists():
+        shutil.rmtree(WORK)
+        print(f"Removed {WORK}")
+
+
+def resolve_ref(ref):
+    result = subprocess.run(
+        ["git", "-C", ROOT, "rev-parse", "--verify", f"{ref}^{{commit}}"],
+        check=True, stdout=subprocess.PIPE, text=True,
+    )
+    return result.stdout.strip()
 
 
 def find_baseline():
@@ -247,6 +324,7 @@ def parser():
     result = argparse.ArgumentParser(description=__doc__)
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("prepare", parents=[common]).set_defaults(function=command_prepare)
+    commands.add_parser("clean").set_defaults(function=command_clean)
     test = commands.add_parser("test", parents=[common])
     test.add_argument("--baseline-ref")
     test.set_defaults(function=command_test)

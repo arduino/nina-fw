@@ -51,6 +51,10 @@ Build and run the baseline and patched firmware:
 make qemu-test
 ```
 
+Firmware source and object trees remain in `.qemu-work/` between runs.
+Unchanged files retain their timestamps, allowing ESP-IDF Make to reuse cached
+objects. Remove this cache explicitly with `make qemu-clean`.
+
 The baseline defaults to the merge base of `HEAD` and `origin/master`, falling
 back to local `master`. The patched ref defaults to `HEAD`. Artifacts and
 serial logs are written below `.qemu-work/`.
@@ -65,26 +69,27 @@ Make variables provide reproducible defaults and optional overrides:
 
 ```sh
 make qemu-test \
-  QEMU_CONTAINER_ENGINE=docker \
+  FIRMWARE_CONTAINER_ENGINE=docker \
   QEMU_BASELINE_REF=origin/master \
-  QEMU_FIRMWARE_JOBS=2
+  FIRMWARE_JOBS=2
 ```
 
 Useful variables include:
 
-| Variable                | Default                                        |
-| ----------------------- | ---------------------------------------------- |
-| `QEMU_ROOT`             | `build/qemu`                                   |
-| `CALIB_REPOSITORY`      | `https://github.com/Ebiroll/calib.git`         |
-| `CALIB_REF`             | pinned tested commit                           |
-| `QEMU_JOBS`             | host CPU count                                 |
-| `QEMU_FIRMWARE_JOBS`    | CPU count visible inside the container         |
-| `QEMU_CONTAINER_ENGINE` | auto-detect Apple container, Docker, or Podman |
-| `QEMU_IDF_IMAGE`        | `espressif/idf:v4.4.8`                         |
-| `QEMU_BASELINE_REF`     | detected branch merge base                     |
-| `QEMU_PATCHED_REF`      | `HEAD`                                         |
+| Variable                    | Default                                        |
+| --------------------------- | ---------------------------------------------- |
+| `QEMU_ROOT`                 | `build/qemu`                                   |
+| `CALIB_REPOSITORY`          | `https://github.com/Ebiroll/calib.git`         |
+| `CALIB_REF`                 | pinned tested commit                           |
+| `QEMU_JOBS`                 | host CPU count                                 |
+| `FIRMWARE_JOBS`             | CPU count visible inside the container         |
+| `FIRMWARE_CONTAINER_ENGINE` | auto-detect Apple container, Docker, or Podman |
+| `FIRMWARE_IMAGE`            | `espressif/idf:v4.4.8`                         |
+| `QEMU_BASELINE_REF`         | detected branch merge base                     |
+| `QEMU_PATCHED_REF`          | `HEAD`                                         |
 
-Reducing `QEMU_FIRMWARE_JOBS` can help when the container has limited memory.
+Reducing `FIRMWARE_JOBS` can help when the container has limited memory. The
+same container builder is independently available as `make firmware-container`.
 
 ## Optional HTTPS run
 
