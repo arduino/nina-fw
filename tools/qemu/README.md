@@ -1,12 +1,8 @@
-# ESP32 QEMU TLS regression harness
+# ESP32 QEMU firmware tests
 
-This harness compares the firmware on the branch base with the current tree.
-It repeatedly exercises the TLS connection-failure path and verifies that the
-baseline loses heap while the patched firmware remains stable.
-
-`make qemu-prepare` downloads and builds a pinned revision of
-[Ebiroll/calib](https://github.com/Ebiroll/calib). Firmware is built in an
-ESP-IDF container, while QEMU runs natively on the host.
+`make qemu-test` incrementally builds each firmware test under `tests/qemu/`
+from the current working tree and runs the resulting images in
+[Ebiroll/calib](https://github.com/Ebiroll/calib).
 
 ## Prerequisites
 
@@ -22,94 +18,72 @@ sudo apt install build-essential git libglib2.0-dev libgcrypt20-dev \
   libpixman-1-dev libslirp-dev ninja-build pkg-config python3
 ```
 
-One supported container engine must be installed and running:
-
-- Apple `container` (`container system start`)
-- Docker
-- Podman
-
-The firmware image is `espressif/idf:v4.4.8`, which runs as `linux/amd64`.
-Apple `container` automatically receives `--rosetta` on Apple silicon.
+Firmware builds require a running Apple `container`, Docker, or Podman engine.
+The default image is `espressif/idf:v4.4.8` on `linux/amd64`; Apple
+`container` receives `--rosetta` automatically on Apple silicon.
 
 ## Prepare and run
 
-Build and validate native ESP32 QEMU:
+Build and validate the pinned native ESP32 QEMU independently:
 
 ```sh
 make qemu-prepare
 ```
 
-The pinned source is fetched with depth one, and the source and build are
-stored under `build/qemu/`. Re-running the target skips configuration when its
-revision and options are unchanged, then performs an incremental build check.
-The source contains the V3 ROM pair required by this QEMU machine; a separately
-downloaded R0 ROM is not needed.
-
-Build and run the baseline and patched firmware:
+Run every firmware test:
 
 ```sh
 make qemu-test
 ```
 
-Firmware source and object trees remain in `.qemu-work/` between runs.
-Unchanged files retain their timestamps, allowing ESP-IDF Make to reuse cached
-objects. Remove this cache explicitly with `make qemu-clean`.
+Build the test firmware images without running QEMU:
 
-The baseline defaults to the merge base of `HEAD` and `origin/master`, falling
-back to local `master`. The patched ref defaults to `HEAD`. Artifacts and
-serial logs are written below `.qemu-work/`.
+```sh
+make firmware-test-images-container
+```
 
-The test passes when the baseline loses at least 16 KiB (or reaches sustained
-resource exhaustion), the patched run completes 6,000 attempts with no more
-than 4 KiB of heap loss, and the patched loss is at least four times smaller.
+Tests run alphabetically. ESP-IDF reuses the normal component objects and
+archives under `build/`, while each test gets a separate ELF, map, application
+binary, and flash image under `build/qemu-tests/<name>/`. The normal
+`build/nina-fw.elf` and `build/nina-fw.bin` are not replaced. QEMU serial logs
+are written under `.qemu-work/tests/<name>/`.
 
-## Configuration
+Remove QEMU logs explicitly with:
 
-Make variables provide reproducible defaults and optional overrides:
+```sh
+make qemu-clean
+```
+
+Use `make firmware-clean` to remove normal and test firmware build outputs.
+
+Useful overrides include:
 
 ```sh
 make qemu-test \
   FIRMWARE_CONTAINER_ENGINE=docker \
-  QEMU_BASELINE_REF=origin/master \
-  FIRMWARE_JOBS=2
+  FIRMWARE_JOBS=2 \
+  QEMU_RUN_TIMEOUT=900
 ```
 
-Useful variables include:
+## Adding a test
 
-| Variable                    | Default                                        |
-| --------------------------- | ---------------------------------------------- |
-| `QEMU_ROOT`                 | `build/qemu`                                   |
-| `CALIB_REPOSITORY`          | `https://github.com/Ebiroll/calib.git`         |
-| `CALIB_REF`                 | pinned tested commit                           |
-| `QEMU_JOBS`                 | host CPU count                                 |
-| `FIRMWARE_JOBS`             | CPU count visible inside the container         |
-| `FIRMWARE_CONTAINER_ENGINE` | auto-detect Apple container, Docker, or Podman |
-| `FIRMWARE_IMAGE`            | `espressif/idf:v4.4.8`                         |
-| `QEMU_BASELINE_REF`         | detected branch merge base                     |
-| `QEMU_PATCHED_REF`          | `HEAD`                                         |
+Create `tests/qemu/<name>/sketch.ino.cpp`. ESP-IDF compiles it as a separate
+entry point and links it against the existing firmware component archives.
+The test must define `setup()` and `loop()` and must not depend on symbols from
+the production `main/sketch.ino.cpp`.
 
-Reducing `FIRMWARE_JOBS` can help when the container has limited memory. The
-same container builder is independently available as `make firmware-container`.
+Every test must emit exactly one terminal serial record:
 
-## Optional HTTPS run
-
-Once the emulated Wi-Fi access-point details are known, run the patched image
-against a reachable TLS endpoint:
-
-```sh
-make qemu-test-https \
-  QEMU_WIFI_SSID=SSID \
-  QEMU_WIFI_PASSWORD=PASSWORD \
-  QEMU_TLS_HOST=example.com \
-  QEMU_TLS_PORT=443 \
-  QEMU_TLS_PATH=/
+```text
+QEMU_TEST,PASS,name=<name>,...
+QEMU_TEST,FAIL,name=<name>,reason=...
+QEMU_TEST,SKIP,name=<name>,reason=...
 ```
 
-This mode reports `SKIP` if Wi-Fi association times out. It supplements the
-deterministic connection-failure regression test.
+`FAIL`, a timeout, an emulator exit without a terminal record, or a mismatched
+test name fails the suite. `SKIP` is reported without failing it.
 
 ## Limitations
 
-QEMU exercises the ESP32 certificate mapping and cleanup paths without a NINA
-host board. It does not emulate the complete NINA SPI integration and does not
-replace a hardware soak test.
+QEMU exercises ESP32 firmware without a NINA host board. It does not emulate
+the complete NINA SPI integration and does not replace hardware testing.

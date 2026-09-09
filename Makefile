@@ -1,5 +1,5 @@
-QEMU_GOALS := qemu-prepare qemu-test qemu-test-https qemu-clean
-TOOLING_GOALS := firmware-container firmware-clean $(QEMU_GOALS)
+QEMU_GOALS := qemu-prepare qemu-test qemu-clean
+TOOLING_GOALS := firmware-container firmware-test-images-container firmware-clean $(QEMU_GOALS)
 
 ifneq ($(filter $(TOOLING_GOALS),$(MAKECMDGOALS)),)
 
@@ -54,6 +54,7 @@ $(info NANO_RP2040_CONNECT)
 endif
 
 include $(IDF_PATH)/make/project.mk
+include tools/firmware/test_images.mk
 
 firmware: all
 	python combine.py

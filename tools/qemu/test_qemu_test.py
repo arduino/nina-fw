@@ -2,57 +2,59 @@
 
 import pathlib
 import tempfile
-import time
 import unittest
 
-from qemu_test import synchronize
+from qemu_test import classify_output, discover_images
 
 
-class SynchronizeTest(unittest.TestCase):
-    def test_updates_sources_without_touching_unchanged_files_or_build(self):
+class DiscoveryTest(unittest.TestCase):
+    def test_discovers_built_test_images_in_order(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
-            source = root / "source"
-            staged = root / "staged"
-            (source / "build").mkdir(parents=True)
-            staged.mkdir()
+            for name in ("zeta", "alpha"):
+                (root / name).mkdir()
+                (root / name / f"{name}.flash.bin").write_bytes(b"image")
+            (root / "documentation").mkdir()
 
-            unchanged = source / "unchanged.cpp"
-            unchanged.write_text("same")
-            original_mtime = unchanged.stat().st_mtime_ns
-            changed = source / "changed.cpp"
-            changed.write_text("old")
-            changed_mtime = changed.stat().st_mtime_ns
-            (source / "removed.cpp").write_text("removed")
-            (source / "build/object.o").write_text("cached")
+            self.assertEqual(
+                ["alpha", "zeta"],
+                [image.parent.name for image in discover_images(root)],
+            )
 
-            time.sleep(0.01)
-            (staged / "unchanged.cpp").write_text("same")
-            (staged / "changed.cpp").write_text("new")
-            (staged / "added.cpp").write_text("added")
-
-            synchronize(source, staged)
-
-            self.assertEqual(original_mtime, unchanged.stat().st_mtime_ns)
-            self.assertEqual("new", (source / "changed.cpp").read_text())
-            self.assertGreater(changed.stat().st_mtime_ns, changed_mtime)
-            self.assertEqual("added", (source / "added.cpp").read_text())
-            self.assertFalse((source / "removed.cpp").exists())
-            self.assertEqual("cached", (source / "build/object.o").read_text())
-
-    def test_handles_file_type_changes(self):
+    def test_ignores_incomplete_test_outputs(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
-            source = root / "source"
-            staged = root / "staged"
-            source.mkdir()
-            (source / "entry").write_text("file")
-            (staged / "entry").mkdir(parents=True)
-            (staged / "entry/child").write_text("child")
+            (root / "complete").mkdir()
+            (root / "complete/complete.flash.bin").write_bytes(b"image")
+            (root / "incomplete").mkdir()
+            (root / "incomplete/incomplete.bin").write_bytes(b"image")
 
-            synchronize(source, staged)
+            self.assertEqual(
+                ["complete"],
+                [image.parent.name for image in discover_images(root)],
+            )
 
-            self.assertEqual("child", (source / "entry/child").read_text())
+    def test_rejects_an_empty_test_root(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaises(RuntimeError):
+                discover_images(pathlib.Path(temporary))
+
+
+class ResultTest(unittest.TestCase):
+    def test_classifies_terminal_results(self):
+        for status in ("PASS", "FAIL", "SKIP"):
+            result = classify_output(
+                "sample", f"boot\nQEMU_TEST,{status},name=sample,detail=value\n"
+            )
+            self.assertEqual(status, result.status)
+
+    def test_rejects_wrong_name_and_missing_result(self):
+        wrong = classify_output("sample", "QEMU_TEST,PASS,name=other\n")
+        missing = classify_output("sample", "boot failed\n", returncode=1)
+        timed_out = classify_output("sample", "still running\n", timed_out=True)
+        self.assertEqual("ERROR", wrong.status)
+        self.assertEqual("ERROR", missing.status)
+        self.assertEqual("ERROR", timed_out.status)
 
 
 if __name__ == "__main__":
