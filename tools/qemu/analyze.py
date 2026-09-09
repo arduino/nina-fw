@@ -7,7 +7,6 @@ import re
 import sys
 from dataclasses import dataclass
 
-
 FIELD = re.compile(r"([a-z]+)=([^,\r\n]+)")
 
 
@@ -24,8 +23,9 @@ class Result:
 
 
 def parse(name: str, text: str) -> Result:
-    records = [line.strip() for line in text.splitlines() if "QEMU_TLS," in line]
-    records = [line[line.index("QEMU_TLS,") :] for line in records]
+    records = [line.strip()
+               for line in text.splitlines() if "QEMU_TLS," in line]
+    records = [line[line.index("QEMU_TLS,"):] for line in records]
     if not records:
         return Result(name, "INFRA_ERROR", detail="no harness output")
 
@@ -35,9 +35,11 @@ def parse(name: str, text: str) -> Result:
         if line.startswith("QEMU_TLS,SKIP"):
             return Result(name, "SKIP", detail=line)
 
-    done = next((line for line in reversed(records) if line.startswith("QEMU_TLS,DONE")), None)
+    done = next((line for line in reversed(records)
+                if line.startswith("QEMU_TLS,DONE")), None)
     if done is None:
-        samples = [line for line in records if ",SAMPLE," in line or ",WARMUP_DONE," in line]
+        samples = [
+            line for line in records if ",SAMPLE," in line or ",WARMUP_DONE," in line]
         attempts = 0
         if samples:
             attempts = int(dict(FIELD.findall(samples[-1])).get("attempt", 0))

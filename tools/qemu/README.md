@@ -1,83 +1,110 @@
 # ESP32 QEMU TLS regression harness
 
-This harness compares the parent of the certificate-mapping fix with the
-patched tree. It repeatedly takes the TLS connection-failure path and verifies
-that the baseline loses heap while the patched firmware remains stable.
+This harness compares the firmware on the branch base with the current tree.
+It repeatedly exercises the TLS connection-failure path and verifies that the
+baseline loses heap while the patched firmware remains stable.
 
-It uses Apple `container` only to build the old ESP-IDF firmware. The emulator
-runs natively on Apple silicon.
+`make qemu-prepare` downloads and builds a pinned revision of
+[Ebiroll/calib](https://github.com/Ebiroll/calib). Firmware is built in an
+ESP-IDF container, while QEMU runs natively on the host.
 
 ## Prerequisites
 
-- Ebiroll/calib built for `xtensa-softmmu` at `~/src/public/calib`. The harness
-  was prepared against commit `73bee9bab5a78b0aaa584610b1564d533e7879ce`.
-- A QEMU build with libgcrypt. The current binary reports
-  `unknown type 'misc.esp32.rsa'`; fix that with `brew install libgcrypt`, then
-  configure calib with `--enable-gcrypt` and build it again from a clean build
-  directory:
+The host needs Git, GNU Make, Python 3, pkg-config, libgcrypt, and libslirp.
+For example:
 
-  ```sh
-  ../configure \
-    --target-list=xtensa-softmmu \
-    --enable-gtk \
-    --enable-slirp \
-    --enable-gcrypt \
-    --disable-werror \
-    --disable-fuse-lseek \
-    --disable-fuse
-  make -j10
-  ```
-- The bundled `esp32-v3-rom.bin` and `esp32-v3-rom-app.bin` in
-  `~/src/public/calib/pc-bios`. The downloaded `esp32-r0-rom.bin` is not the ROM
-  selected by this machine model.
-- Apple `container` running (`container system start`). The build image is
-  `espressif/idf:v4.4.8` under Rosetta because that tag is amd64-only.
+```sh
+# macOS with Homebrew
+brew install libgcrypt libslirp pkg-config
 
-## Run
+# Debian or Ubuntu
+sudo apt install build-essential git libglib2.0-dev libgcrypt20-dev \
+  libpixman-1-dev libslirp-dev ninja-build pkg-config python3
+```
 
-First check the emulator, ROM files, and container service:
+One supported container engine must be installed and running:
+
+- Apple `container` (`container system start`)
+- Docker
+- Podman
+
+The firmware image is `espressif/idf:v4.4.8`, which runs as `linux/amd64`.
+Apple `container` automatically receives `--rosetta` on Apple silicon.
+
+## Prepare and run
+
+Build and validate native ESP32 QEMU:
 
 ```sh
 make qemu-prepare
 ```
 
-Then build and run the baseline and patch:
+The pinned source is fetched with depth one, and the source and build are
+stored under `build/qemu/`. Re-running the target skips configuration when its
+revision and options are unchanged, then performs an incremental build check.
+The source contains the V3 ROM pair required by this QEMU machine; a separately
+downloaded R0 ROM is not needed.
+
+Build and run the baseline and patched firmware:
 
 ```sh
 make qemu-test
 ```
 
-Artifacts and serial logs are written below `.qemu-work/`. The test passes
-when the baseline loses at least 16 KiB (or exhausts memory after producing
-samples), the patched run completes 6,000 attempts, loses no more than 4 KiB,
-and improves on the baseline by at least 4x.
+The baseline defaults to the merge base of `HEAD` and `origin/master`, falling
+back to local `master`. The patched ref defaults to `HEAD`. Artifacts and
+serial logs are written below `.qemu-work/`.
 
-Paths and thresholds can be overridden directly:
+The test passes when the baseline loses at least 16 KiB (or reaches sustained
+resource exhaustion), the patched run completes 6,000 attempts with no more
+than 4 KiB of heap loss, and the patched loss is at least four times smaller.
+
+## Configuration
+
+Make variables provide reproducible defaults and optional overrides:
 
 ```sh
-python3 tools/qemu/qemu_test.py test \
-  --qemu ~/src/public/calib/build/qemu-system-xtensa \
-  --bios ~/src/public/calib/pc-bios \
-  --iterations 6000
+make qemu-test \
+  QEMU_CONTAINER_ENGINE=docker \
+  QEMU_BASELINE_REF=origin/master \
+  QEMU_FIRMWARE_JOBS=2
 ```
 
-## Optional emulated-network HTTPS run
+Useful variables include:
 
-Once the QEMU Wi-Fi access point details are known, run the patched firmware
+| Variable                | Default                                        |
+| ----------------------- | ---------------------------------------------- |
+| `QEMU_ROOT`             | `build/qemu`                                   |
+| `CALIB_REPOSITORY`      | `https://github.com/Ebiroll/calib.git`         |
+| `CALIB_REF`             | pinned tested commit                           |
+| `QEMU_JOBS`             | host CPU count                                 |
+| `QEMU_FIRMWARE_JOBS`    | CPU count visible inside the container         |
+| `QEMU_CONTAINER_ENGINE` | auto-detect Apple container, Docker, or Podman |
+| `QEMU_IDF_IMAGE`        | `espressif/idf:v4.4.8`                         |
+| `QEMU_BASELINE_REF`     | detected branch merge base                     |
+| `QEMU_PATCHED_REF`      | `HEAD`                                         |
+
+Reducing `QEMU_FIRMWARE_JOBS` can help when the container has limited memory.
+
+## Optional HTTPS run
+
+Once the emulated Wi-Fi access-point details are known, run the patched image
 against a reachable TLS endpoint:
 
 ```sh
-python3 tools/qemu/qemu_test.py https \
-  --ssid SSID --password PASSWORD \
-  --host example.com --port 443 --path /
+make qemu-test-https \
+  QEMU_WIFI_SSID=SSID \
+  QEMU_WIFI_PASSWORD=PASSWORD \
+  QEMU_TLS_HOST=example.com \
+  QEMU_TLS_PORT=443 \
+  QEMU_TLS_PATH=/
 ```
 
-This mode reports `SKIP` if Wi-Fi association times out. It is supplemental:
-the deterministic connection-failure test is the regression gate.
+This mode reports `SKIP` if Wi-Fi association times out. It supplements the
+deterministic connection-failure regression test.
 
-## Scope
+## Limitations
 
-QEMU exercises the ESP32 firmware and the certificate partition mapping and
-cleanup paths without a NINA host board. It does not emulate the complete NINA
-SPI integration and is not a replacement for the hardware procedure in
-`HW_TESTING.md`.
+QEMU exercises the ESP32 certificate mapping and cleanup paths without a NINA
+host board. It does not emulate the complete NINA SPI integration and does not
+replace a hardware soak test.

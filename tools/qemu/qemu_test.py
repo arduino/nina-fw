@@ -14,13 +14,12 @@ import tarfile
 import tempfile
 import time
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORK = ROOT / ".qemu-work"
-DEFAULT_QEMU = pathlib.Path.home() / "src/public/calib/build/qemu-system-xtensa"
-DEFAULT_BIOS = pathlib.Path.home() / "src/public/calib/pc-bios"
-BASELINE = "23b7f9ba9f68e51eb5e5be468b901296b36f0c4f"
-IMAGE = "espressif/idf:v4.4.8"
+QEMU_ROOT = pathlib.Path(os.environ.get("QEMU_ROOT", ROOT / "build/qemu"))
+DEFAULT_QEMU = QEMU_ROOT / "build/qemu-system-xtensa"
+DEFAULT_BIOS = QEMU_ROOT / "source/pc-bios"
+BUILD_FIRMWARE = ROOT / "tools/qemu/build_firmware.sh"
 FLASH_SIZE = 4 * 1024 * 1024
 
 
@@ -71,14 +70,19 @@ def preflight(qemu, bios, need_container=True):
     require_file(bios / "esp32-v3-rom-app.bin", "ESP32 V3 app ROM")
     probe_qemu(qemu, bios)
     if need_container:
-        run(["container", "system", "status"], stdout=subprocess.DEVNULL)
+        run(["sh", BUILD_FIRMWARE, "--check"])
 
 
 def extract(ref, destination):
     destination.mkdir(parents=True, exist_ok=True)
     archive = git("archive", "--format=tar", ref, stdout=subprocess.PIPE).stdout
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as bundle:
-        bundle.extractall(destination, filter="data")
+        destination_root = destination.resolve()
+        for member in bundle.getmembers():
+            target = (destination / member.name).resolve()
+            if destination_root not in (target, *target.parents):
+                raise RuntimeError(f"unsafe path in Git archive: {member.name}")
+        bundle.extractall(destination)
     (destination / "main/sketch.ino.cpp").write_bytes(
         (ROOT / "tests/qemu/sketch.ino.cpp").read_bytes()
     )
@@ -113,11 +117,7 @@ def build(ref, name, args, https=False):
         raise RuntimeError(f"stale work directory exists: {source}; run prepare first")
     extract(ref, source)
     write_config(source, args, https)
-    run([
-        "container", "run", "--rm", "--platform", "linux/amd64", "--rosetta",
-        "--volume", f"{source}:/data", "--workdir", "/data", IMAGE,
-        "sh", "-c", "RELEASE=1 make firmware",
-    ])
+    run(["sh", BUILD_FIRMWARE, source])
     firmware = source / "NINA_W102_ALL.bin"
     require_file(firmware, "combined firmware")
     flash = WORK / name / "flash.bin"
@@ -192,13 +192,15 @@ def clean_work():
 def command_prepare(args):
     clean_work()
     preflight(args.qemu, args.bios)
-    print(f"Ready: QEMU={args.qemu}; BIOS={args.bios}; container image={IMAGE}")
+    print(f"Ready: QEMU={args.qemu}; BIOS={args.bios}")
 
 
 def command_test(args):
     clean_work()
     preflight(args.qemu, args.bios)
-    baseline_flash = build(args.baseline_ref, "baseline", args)
+    baseline_ref = args.baseline_ref or find_baseline()
+    print(f"Comparing baseline {baseline_ref} with {args.patched_ref}")
+    baseline_flash = build(baseline_ref, "baseline", args)
     patched_flash = build(args.patched_ref, "patched", args)
     baseline_log = run_qemu("baseline", baseline_flash, args)
     patched_log = run_qemu("patched", patched_flash, args)
@@ -217,6 +219,19 @@ def command_https(args):
     print(f"HTTPS run log: {log}")
 
 
+def find_baseline():
+    for candidate in ("origin/master", "master"):
+        result = subprocess.run(
+            ["git", "-C", ROOT, "merge-base", "HEAD", candidate],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    raise RuntimeError(
+        "cannot determine a baseline; pass --baseline-ref or set QEMU_BASELINE_REF"
+    )
+
+
 def parser():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--qemu", type=pathlib.Path, default=DEFAULT_QEMU)
@@ -233,7 +248,7 @@ def parser():
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("prepare", parents=[common]).set_defaults(function=command_prepare)
     test = commands.add_parser("test", parents=[common])
-    test.add_argument("--baseline-ref", default=BASELINE)
+    test.add_argument("--baseline-ref")
     test.set_defaults(function=command_test)
     https = commands.add_parser("https", parents=[common])
     https.add_argument("--ssid", required=True)
