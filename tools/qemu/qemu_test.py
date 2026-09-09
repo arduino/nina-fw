@@ -22,6 +22,7 @@ QEMU_ROOT = pathlib.Path(os.environ.get("QEMU_ROOT", ROOT / "build/qemu"))
 DEFAULT_QEMU = QEMU_ROOT / "build/qemu-system-xtensa"
 DEFAULT_BIOS = QEMU_ROOT / "source/pc-bios"
 FLASH_SIZE = 4 * 1024 * 1024
+TRANSCRIPT_LIMIT = 64 * 1024
 TERMINAL = re.compile(r"QEMU_TEST,(PASS|FAIL|SKIP)(?:,|$)")
 
 
@@ -91,6 +92,15 @@ def classify_output(name, text, log=None, timed_out=False, returncode=0):
     return TestResult(name, "ERROR", log, f"QEMU exited with {returncode} without a terminal result")
 
 
+def print_test_output(text):
+    try:
+        print(text, end="", flush=True)
+    except BlockingIOError:
+        # Some terminals use non-blocking output. The complete stream remains
+        # available in the per-test log even if live output must be dropped.
+        pass
+
+
 def run_qemu(name, flash, args):
     log = WORK / name / "qemu.log"
     log.parent.mkdir(parents=True, exist_ok=True)
@@ -108,33 +118,45 @@ def run_qemu(name, flash, args):
     )
     deadline = time.monotonic() + args.run_timeout
     transcript = ""
+    pending_line = ""
     terminal_seen = False
-    with log.open("w") as output:
-        selector = selectors.DefaultSelector()
-        selector.register(process.stdout, selectors.EVENT_READ)
-        while time.monotonic() < deadline:
-            ready = selector.select(timeout=min(1, max(0, deadline - time.monotonic())))
-            chunk = os.read(process.stdout.fileno(), 4096).decode(errors="replace") if ready else ""
-            if chunk:
-                print(chunk, end="", flush=True)
-                output.write(chunk)
-                output.flush()
-                transcript += chunk
-                if TERMINAL.search(transcript):
-                    terminal_seen = True
-                    break
-            if process.poll() is not None:
-                break
-        selector.close()
+    selector = selectors.DefaultSelector()
+    try:
+        with log.open("w") as output:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            while time.monotonic() < deadline:
+                ready = selector.select(timeout=min(1, max(0, deadline - time.monotonic())))
+                chunk = os.read(process.stdout.fileno(), 4096).decode(errors="replace") if ready else ""
+                if chunk:
+                    output.write(chunk)
+                    output.flush()
+                    transcript = (transcript + chunk)[-TRANSCRIPT_LIMIT:]
 
-    timed_out = not terminal_seen and process.poll() is None and time.monotonic() >= deadline
-    if process.poll() is None:
-        os.killpg(process.pid, signal.SIGTERM)
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+                    pending_line += chunk
+                    lines = pending_line.splitlines(keepends=True)
+                    pending_line = ""
+                    if lines and not lines[-1].endswith(("\n", "\r")):
+                        pending_line = lines.pop()
+                    for line in lines:
+                        if "QEMU_TEST," in line:
+                            print_test_output(line)
+
+                    if TERMINAL.search(transcript):
+                        terminal_seen = True
+                        break
+                if process.poll() is not None:
+                    break
+    finally:
+        selector.close()
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+
+    timed_out = not terminal_seen and time.monotonic() >= deadline
     return classify_output(name, transcript, log, timed_out, process.returncode or 0)
 
 
@@ -161,7 +183,9 @@ def command_test(args):
 
     print("\nQEMU test summary")
     for result in results:
-        suffix = f" ({result.log})" if result.log else f": {result.detail}"
+        suffix = f": {result.detail}" if result.detail else ""
+        if result.log:
+            suffix += f" ({result.log})"
         print(f"  {result.status:5} {result.name}{suffix}")
     return 1 if any(result.status in ("FAIL", "ERROR") for result in results) else 0
 

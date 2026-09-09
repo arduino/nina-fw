@@ -3,8 +3,9 @@
 import pathlib
 import tempfile
 import unittest
+from unittest import mock
 
-from qemu_test import classify_output, discover_images
+from qemu_test import classify_output, discover_images, print_test_output
 
 
 class DiscoveryTest(unittest.TestCase):
@@ -55,6 +56,10 @@ class ResultTest(unittest.TestCase):
         self.assertEqual("ERROR", wrong.status)
         self.assertEqual("ERROR", missing.status)
         self.assertEqual("ERROR", timed_out.status)
+
+    def test_nonblocking_console_does_not_abort_the_runner(self):
+        with mock.patch("builtins.print", side_effect=BlockingIOError):
+            print_test_output("QEMU_TEST,PASS,name=sample\n")
 
 
 if __name__ == "__main__":
