@@ -5,7 +5,6 @@ import argparse
 import os
 import pathlib
 import re
-import selectors
 import shlex
 import shutil
 import signal
@@ -23,7 +22,9 @@ DEFAULT_QEMU = QEMU_ROOT / "build/qemu-system-xtensa"
 DEFAULT_BIOS = QEMU_ROOT / "source/pc-bios"
 FLASH_SIZE = 4 * 1024 * 1024
 TRANSCRIPT_LIMIT = 64 * 1024
-TERMINAL = re.compile(r"QEMU_TEST,(PASS|FAIL|SKIP)(?:,|$)")
+TERMINAL = re.compile(
+    r"^QEMU_TEST,(PASS|FAIL|SKIP),name=([^,\r\n]+)(?:,.*)?$"
+)
 
 
 @dataclass
@@ -78,13 +79,16 @@ def discover_images(image_root=IMAGE_ROOT):
 
 def classify_output(name, text, log=None, timed_out=False, returncode=0):
     terminal = None
-    for line in text.splitlines():
-        match = TERMINAL.search(line)
+    for line in text.splitlines(keepends=True):
+        if not line.endswith(("\n", "\r")):
+            continue
+        record = line.rstrip("\r\n")
+        match = TERMINAL.fullmatch(record)
         if match:
-            terminal = (match.group(1), line[line.index("QEMU_TEST,"):])
+            terminal = (match.group(1), match.group(2), record)
     if terminal:
-        status, detail = terminal
-        if f"name={name}" not in detail:
+        status, record_name, detail = terminal
+        if record_name != name:
             return TestResult(name, "ERROR", log, "terminal record has the wrong test name")
         return TestResult(name, status, log, detail)
     if timed_out:
@@ -103,58 +107,59 @@ def print_test_output(text):
 
 def run_qemu(name, flash, args):
     log = WORK / name / "qemu.log"
+    trace = WORK / name / "qemu.trace.log"
     log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_bytes(b"")
     command = [
         str(args.qemu), "-M", "esp32",
         "-drive", f"file={flash},if=mtd,format=raw",
-        "-nographic", "-monitor", "none", "-no-reboot",
+        "-display", "none", "-serial", f"file:{log}",
+        "-monitor", "none", "-no-reboot",
         "-nic", "user,model=esp32_wifi", "-L", str(args.bios),
         "-global", "driver=timer.esp32.timg,property=wdt_disable,value=true",
     ]
     print("+", shlex.join(command), flush=True)
-    process = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        start_new_session=True,
-    )
     deadline = time.monotonic() + args.run_timeout
     transcript = ""
     pending_line = ""
     terminal_seen = False
-    selector = selectors.DefaultSelector()
-    try:
-        with log.open("w") as output:
-            selector.register(process.stdout, selectors.EVENT_READ)
-            while time.monotonic() < deadline:
-                ready = selector.select(timeout=min(1, max(0, deadline - time.monotonic())))
-                chunk = os.read(process.stdout.fileno(), 4096).decode(errors="replace") if ready else ""
-                if chunk:
-                    output.write(chunk)
-                    output.flush()
-                    transcript = (transcript + chunk)[-TRANSCRIPT_LIMIT:]
+    with trace.open("wb") as trace_output:
+        process = subprocess.Popen(
+            command, stdout=trace_output, stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        try:
+            with log.open("r", errors="replace") as serial:
+                while time.monotonic() < deadline:
+                    chunk = serial.read()
+                    if chunk:
+                        transcript = (transcript + chunk)[-TRANSCRIPT_LIMIT:]
 
-                    pending_line += chunk
-                    lines = pending_line.splitlines(keepends=True)
-                    pending_line = ""
-                    if lines and not lines[-1].endswith(("\n", "\r")):
-                        pending_line = lines.pop()
-                    for line in lines:
-                        if "QEMU_TEST," in line:
-                            print_test_output(line)
-
-                    if TERMINAL.search(transcript):
-                        terminal_seen = True
+                        pending_line += chunk
+                        lines = pending_line.splitlines(keepends=True)
+                        pending_line = ""
+                        if lines and not lines[-1].endswith(("\n", "\r")):
+                            pending_line = lines.pop()
+                        for line in lines:
+                            record = line.rstrip("\r\n")
+                            if "QEMU_TEST," in record:
+                                print_test_output(line)
+                            if TERMINAL.fullmatch(record):
+                                terminal_seen = True
+                                break
+                        if terminal_seen:
+                            break
+                    if process.poll() is not None:
                         break
-                if process.poll() is not None:
-                    break
-    finally:
-        selector.close()
-        if process.poll() is None:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
+                    time.sleep(0.05)
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
 
     timed_out = not terminal_seen and time.monotonic() >= deadline
     return classify_output(name, transcript, log, timed_out, process.returncode or 0)

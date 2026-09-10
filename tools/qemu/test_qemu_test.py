@@ -51,9 +51,11 @@ class ResultTest(unittest.TestCase):
 
     def test_rejects_wrong_name_and_missing_result(self):
         wrong = classify_output("sample", "QEMU_TEST,PASS,name=other\n")
+        partial = classify_output("sample", "QEMU_TEST,PASS,name=sample")
         missing = classify_output("sample", "boot failed\n", returncode=1)
         timed_out = classify_output("sample", "still running\n", timed_out=True)
         self.assertEqual("ERROR", wrong.status)
+        self.assertEqual("ERROR", partial.status)
         self.assertEqual("ERROR", missing.status)
         self.assertEqual("ERROR", timed_out.status)
 

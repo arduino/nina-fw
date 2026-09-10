@@ -46,7 +46,8 @@ Tests run alphabetically. ESP-IDF reuses the normal component objects and
 archives under `build/`, while each test gets a separate ELF, map, application
 binary, and flash image under `build/qemu-tests/<name>/`. The normal
 `build/nina-fw.elf` and `build/nina-fw.bin` are not replaced. QEMU serial logs
-are written under `.qemu-work/tests/<name>/`.
+are written to `.qemu-work/tests/<name>/qemu.log`; emulator diagnostics are
+kept separately in `qemu.trace.log` so they cannot corrupt serial records.
 
 Remove QEMU logs explicitly with:
 
