@@ -108,6 +108,16 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     return -1;
   }
 
+  int status_code = esp_http_client_get_status_code(client);
+  if (status_code != 200 && status_code != 206) {
+    ESP_LOGE(TAG, "HTTP request failed with status: %d", status_code);
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    if (is_mapped) spi_flash_munmap(handle);
+    free(buffer);
+    return -1;
+  }
+
   int total_read_len = 0;
   int read_len = 0;
   while (true) {
