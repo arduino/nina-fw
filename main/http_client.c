@@ -74,6 +74,14 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     return -1;
   }
   int content_length = esp_http_client_fetch_headers(client);
+  int status_code = esp_http_client_get_status_code(client);
+  if (status_code < 200 || status_code >= 300) {
+    ESP_LOGE(TAG, "HTTP download failed with status %d", status_code);
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    free(buffer);
+    return -1;
+  }
   int total_read_len = 0, read_len;
   while (total_read_len < content_length) {
     read_len = esp_http_client_read(client, buffer, MAX_HTTP_RECV_BUFFER);
