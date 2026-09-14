@@ -1515,7 +1515,7 @@ int existsFile(const uint8_t command[], uint8_t response[]) {
   response[2] = 1; // number of parameters
   response[3] = sizeof(st.st_size); // parameter 1 length
 
-  return 10;
+  return 5 + sizeof(st.st_size);
 }
 
 int downloadFile(const uint8_t command[], uint8_t response[]) {
