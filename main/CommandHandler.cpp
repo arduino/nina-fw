@@ -1627,9 +1627,10 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
   /* Download the OTA file */
   FILE * f = fopen(OTA_TEMP_FILE, "w+");
   if (!f) {
-    ESP_LOGE(OTA_TAG, "fopen(..., \"w+\") error: %d", ferror(f));
+    ESP_LOGE(OTA_TAG, "fopen(..., \"w+\") error: %d", errno);
     response[4] = ERR_OPEN;
-    goto ota_cleanup;
+    unlink(OTA_TEMP_FILE);
+    return 6;
   }
   downloadAndSaveFile(url, f, 0);
 
@@ -1669,6 +1670,7 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
 
   /* Close the file. */
   fclose(f);
+  f = NULL;
 
   /* Rename in case of success. */
   errno = 0;
@@ -1682,7 +1684,9 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
   return 6;
 
 ota_cleanup:
-  fclose(f);
+  if (f != NULL) {
+    fclose(f);
+  }
   unlink(OTA_TEMP_FILE);
   return 6;
 }
