@@ -74,20 +74,35 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     return -1;
   }
   int content_length = esp_http_client_fetch_headers(client);
-  int total_read_len = 0, read_len;
-  while (total_read_len < content_length) {
+  if (content_length < 0) {
+    ESP_LOGE(TAG, "failed to fetch HTTP response headers");
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    free(buffer);
+    return -1;
+  }
+
+  int total_read_len = 0;
+  int read_len = 0;
+  while (true) {
     read_len = esp_http_client_read(client, buffer, MAX_HTTP_RECV_BUFFER);
-    fwrite(buffer, sizeof(uint8_t), read_len, f);
     if (read_len <= 0) {
+      break;
+    }
+    if (fwrite(buffer, sizeof(uint8_t), (size_t)read_len, f) !=
+        (size_t)read_len) {
+      read_len = -1;
       break;
     }
     total_read_len += read_len;
     ESP_LOGV(TAG, "esp_http_client_read data received: %d, total %d", read_len, total_read_len);
   }
+  const bool complete = esp_http_client_is_complete_data_received(client);
   ESP_LOGV(TAG, "connection closed, cleaning up, total %d bytes received", total_read_len);
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
   free(buffer);
 
-  return 0;
+  return (read_len < 0 || !complete ||
+          (content_length > 0 && total_read_len != content_length)) ? -1 : 0;
 }
