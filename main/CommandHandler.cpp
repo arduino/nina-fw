@@ -1521,19 +1521,46 @@ int existsFile(const uint8_t command[], uint8_t response[]) {
 int downloadFile(const uint8_t command[], uint8_t response[]) {
   char url[64 + 1];
   char filename[64 + 1];
+  const size_t filenamePrefixLength = strlen("/fs/");
+
+  response[2] = 1;
+  response[3] = 1;
+  response[4] = 1;
+
+  if (command[2] != 2) {
+    return 6;
+  }
+
+  const uint8_t urlLength = command[3];
+  if (urlLength > sizeof(url) - 1) {
+    return 6;
+  }
+
+  const uint8_t filenameLength = command[4 + urlLength];
+  if (filenameLength > sizeof(filename) - filenamePrefixLength - 1) {
+    return 6;
+  }
 
   memset(url, 0x00, sizeof(url));
   memset(filename, 0x00, sizeof(filename));
 
-  memcpy(url, &command[4], command[3]);
-  memcpy(filename, "/fs/", strlen("/fs/"));
-  memcpy(&filename[strlen("/fs/")], &command[5 + command[3]], command[4 + command[3]]);
+  memcpy(url, &command[4], urlLength);
+  memcpy(filename, "/fs/", filenamePrefixLength);
+  memcpy(&filename[filenamePrefixLength], &command[5 + urlLength], filenameLength);
 
   FILE* f = fopen(filename, "w");
-  downloadAndSaveFile(url, f, 0);
+  if (f == NULL) {
+    return 6;
+  }
+  const int result = downloadAndSaveFile(url, f, 0);
   fclose(f);
+  if (result != 0) {
+    unlink(filename);
+    return 6;
+  }
 
-  return 0;
+  response[4] = 0;
+  return 6;
 }
 
 /**
