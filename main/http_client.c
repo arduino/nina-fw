@@ -74,11 +74,15 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     return -1;
   }
   int content_length = esp_http_client_fetch_headers(client);
-  int total_read_len = 0, read_len;
+  int total_read_len = 0, read_len = 0;
   while (total_read_len < content_length) {
     read_len = esp_http_client_read(client, buffer, MAX_HTTP_RECV_BUFFER);
-    fwrite(buffer, sizeof(uint8_t), read_len, f);
     if (read_len <= 0) {
+      break;
+    }
+    if (fwrite(buffer, sizeof(uint8_t), (size_t)read_len, f) !=
+        (size_t)read_len) {
+      read_len = -1;
       break;
     }
     total_read_len += read_len;
@@ -89,5 +93,5 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
   esp_http_client_cleanup(client);
   free(buffer);
 
-  return 0;
+  return (read_len < 0 || total_read_len != content_length) ? -1 : 0;
 }
