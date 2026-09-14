@@ -14,10 +14,11 @@ static const char* TAG = "HTTP_CLIENT";
 
 int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 {
-  char *buffer = (char*)malloc(MAX_HTTP_RECV_BUFFER);
-  if (buffer == NULL) {
-    return -1;
-  }
+  int result = -1;
+  bool partition_mapped = false;
+  bool client_open = false;
+  char *buffer = NULL;
+  esp_http_client_handle_t client = NULL;
   esp_http_client_config_t config = {
     .url = url,
     .timeout_ms = 20000,
@@ -31,13 +32,16 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
   } else {
     const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
     if (part == NULL) {
-      return 0;
+      ESP_LOGE(TAG, "certificate partition not found");
+      goto cleanup;
     }
 
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
     if (ret != ESP_OK) {
-      return 0;
+      ESP_LOGE(TAG, "certificate partition mapping failed: %d", ret);
+      goto cleanup;
     }
+    partition_mapped = true;
 
     /* Starting from firmware 3.x.x cert partition starts at address 0xA000.
      * The arduino-fw-uploader tool uploads user certificates in PEM format to a
@@ -56,23 +60,35 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 
       ret = esp_crt_bundle_attach(&config);
       if (ret != ESP_OK) {
-        return 0;
+        ESP_LOGE(TAG, "certificate bundle attach failed: %d", ret);
+        goto cleanup;
       }
 
       ret = esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
       if (ret != ESP_OK) {
-        return 0;
+        ESP_LOGE(TAG, "certificate bundle setup failed: %d", ret);
+        goto cleanup;
       }
     }
   }
 
-  esp_http_client_handle_t client = esp_http_client_init(&config);
+  buffer = (char*)malloc(MAX_HTTP_RECV_BUFFER);
+  if (buffer == NULL) {
+    ESP_LOGE(TAG, "receive buffer allocation failed");
+    goto cleanup;
+  }
+
+  client = esp_http_client_init(&config);
+  if (client == NULL) {
+    ESP_LOGE(TAG, "esp_http_client_init failed");
+    goto cleanup;
+  }
   esp_err_t err;
   if ((err = esp_http_client_open(client, 0)) != ESP_OK) {
     ESP_LOGE(TAG, "esp_http_client_open failed: %d", err);
-    free(buffer);
-    return -1;
+    goto cleanup;
   }
+  client_open = true;
   int content_length = esp_http_client_fetch_headers(client);
   int total_read_len = 0, read_len;
   while (total_read_len < content_length) {
@@ -85,9 +101,18 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     ESP_LOGV(TAG, "esp_http_client_read data received: %d, total %d", read_len, total_read_len);
   }
   ESP_LOGV(TAG, "connection closed, cleaning up, total %d bytes received", total_read_len);
-  esp_http_client_close(client);
-  esp_http_client_cleanup(client);
-  free(buffer);
+  result = 0;
 
-  return 0;
+cleanup:
+  if (client_open) {
+    esp_http_client_close(client);
+  }
+  if (client != NULL) {
+    esp_http_client_cleanup(client);
+  }
+  if (partition_mapped) {
+    spi_flash_munmap(handle);
+  }
+  free(buffer);
+  return result;
 }
