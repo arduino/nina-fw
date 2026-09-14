@@ -1522,6 +1522,10 @@ int downloadFile(const uint8_t command[], uint8_t response[]) {
   char url[64 + 1];
   char filename[64 + 1];
 
+  response[2] = 1;
+  response[3] = 1;
+  response[4] = 1;
+
   memset(url, 0x00, sizeof(url));
   memset(filename, 0x00, sizeof(filename));
 
@@ -1530,10 +1534,18 @@ int downloadFile(const uint8_t command[], uint8_t response[]) {
   memcpy(&filename[strlen("/fs/")], &command[5 + command[3]], command[4 + command[3]]);
 
   FILE* f = fopen(filename, "w");
-  downloadAndSaveFile(url, f, 0);
+  if (f == NULL) {
+    return 6;
+  }
+  const int result = downloadAndSaveFile(url, f, 0);
   fclose(f);
+  if (result != 0) {
+    unlink(filename);
+    return 6;
+  }
 
-  return 0;
+  response[4] = 0;
+  return 6;
 }
 
 /**
@@ -1600,6 +1612,7 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
     ERR_LENGTH   = 2,
     ERR_CRC      = 3,
     ERR_RENAME   = 4,
+    ERR_DOWNLOAD = 5,
   };
 
   union {
@@ -1631,7 +1644,11 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
     response[4] = ERR_OPEN;
     goto ota_cleanup;
   }
-  downloadAndSaveFile(url, f, 0);
+  if (downloadAndSaveFile(url, f, 0) != 0) {
+    ESP_LOGE(OTA_TAG, "firmware download failed");
+    response[4] = ERR_DOWNLOAD;
+    goto ota_cleanup;
+  }
 
   /* Determine size of downloaded file. */
   ota_size = ftell(f) - sizeof(ota_header.buf);
