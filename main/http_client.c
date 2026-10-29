@@ -14,6 +14,10 @@ static const char* TAG = "HTTP_CLIENT";
 
 int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 {
+  if (url == NULL || strlen(url) == 0) {
+    return -1;
+  }
+
   char *buffer = (char*)malloc(MAX_HTTP_RECV_BUFFER);
   if (buffer == NULL) {
     return -1;
