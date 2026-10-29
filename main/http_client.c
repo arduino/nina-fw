@@ -38,6 +38,11 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
       return 0;
     }
 
+    if (part->size < 0x6000 + 26) {
+      free(buffer);
+      return -1;
+    }
+
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
     if (ret != ESP_OK) {
       return 0;
