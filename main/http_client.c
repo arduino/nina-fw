@@ -29,6 +29,7 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 
   spi_flash_mmap_handle_t handle;
   const unsigned char* certs_data = NULL;
+  bool is_mapped = false;
 
   if(cert_pem != NULL) {
     config.cert_pem = cert_pem;
@@ -47,6 +48,7 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     if (ret != ESP_OK) {
       return 0;
     }
+    is_mapped = true;
 
     /* Starting from firmware 3.x.x cert partition starts at address 0xA000.
      * The arduino-fw-uploader tool uploads user certificates in PEM format to a
@@ -65,20 +67,34 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 
       ret = esp_crt_bundle_attach(&config);
       if (ret != ESP_OK) {
-        return 0;
+        if (is_mapped) spi_flash_munmap(handle);
+        return -1;
       }
 
       ret = esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
       if (ret != ESP_OK) {
-        return 0;
+        if (is_mapped) spi_flash_munmap(handle);
+        return -1;
       }
+
+      /* The global bundle retains pointers into this mapping. Keep it mapped
+       * after registration, including when the download subsequently fails. */
+      is_mapped = false;
     }
   }
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
+  if (client == NULL) {
+    if (is_mapped) spi_flash_munmap(handle);
+    free(buffer);
+    return -1;
+  }
+
   esp_err_t err;
   if ((err = esp_http_client_open(client, 0)) != ESP_OK) {
     ESP_LOGE(TAG, "esp_http_client_open failed: %d", err);
+    esp_http_client_cleanup(client);
+    if (is_mapped) spi_flash_munmap(handle);
     free(buffer);
     return -1;
   }
@@ -87,6 +103,7 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     ESP_LOGE(TAG, "failed to fetch HTTP response headers");
     esp_http_client_close(client);
     esp_http_client_cleanup(client);
+    if (is_mapped) spi_flash_munmap(handle);
     free(buffer);
     return -1;
   }
@@ -110,6 +127,7 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
   ESP_LOGV(TAG, "connection closed, cleaning up, total %d bytes received", total_read_len);
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
+  if (is_mapped) spi_flash_munmap(handle);
   free(buffer);
 
   return (read_len < 0 || !complete ||
