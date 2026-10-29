@@ -1611,6 +1611,7 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
     ERR_LENGTH   = 2,
     ERR_CRC      = 3,
     ERR_RENAME   = 4,
+    ERR_INVALID_ARGUMENT = 5,
   };
 
   union {
@@ -1624,16 +1625,21 @@ int downloadOTA(const uint8_t command[], uint8_t response[])
   int ota_size, c;
   uint32_t crc32;
 
+  /* Set up the response packet. */
+  response[2] = 1; /* Number of parameters */
+  response[3] = 1; /* Length of parameter 1 */
+  response[4] = ERR_NO_ERROR; /* The actual payload */
+
+  if (command[2] != 1 || command[3] > 128) {
+    response[4] = ERR_INVALID_ARGUMENT;
+    return 6;
+  }
+
   /* Retrieve the URL parameter. */
   char url[128 + 1];
   memset(url, 0, sizeof(url));
   memcpy(url, &command[4], command[3]);
   ESP_LOGI(OTA_TAG, "url: %s", url);
-
-  /* Set up the response packet. */
-  response[2] = 1; /* Number of parameters */
-  response[3] = 1; /* Length of parameter 1 */
-  response[4] = ERR_NO_ERROR; /* The actual payload */
 
   /* Download the OTA file */
   FILE * f = fopen(OTA_TEMP_FILE, "w+");
