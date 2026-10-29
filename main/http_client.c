@@ -36,7 +36,8 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
   } else {
     const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
     if (part == NULL) {
-      return 0;
+      free(buffer);
+      return -1;
     }
 
     if (part->size < 0x6000 + 26) {
@@ -46,7 +47,8 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
     if (ret != ESP_OK) {
-      return 0;
+      free(buffer);
+      return -1;
     }
     is_mapped = true;
 
@@ -68,12 +70,14 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
       ret = esp_crt_bundle_attach(&config);
       if (ret != ESP_OK) {
         if (is_mapped) spi_flash_munmap(handle);
+        free(buffer);
         return -1;
       }
 
       ret = esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
       if (ret != ESP_OK) {
         if (is_mapped) spi_flash_munmap(handle);
+        free(buffer);
         return -1;
       }
 
