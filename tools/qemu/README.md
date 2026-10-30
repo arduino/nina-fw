@@ -4,6 +4,12 @@
 from the current working tree and runs the resulting images in
 [Ebiroll/calib](https://github.com/Ebiroll/calib).
 
+This emulator is used because its `esp32_wifi` device and Bluetooth-related
+emulation can run the normal NINA WiFi initialization path. Espressif's QEMU
+fork documents networking through the OpenCores Ethernet device, which needs
+an emulator-specific `CONFIG_ETH_USE_OPENETH` firmware configuration instead
+of exercising the ESP32 WiFi path used by NINA.
+
 ## Prerequisites
 
 The host needs Git, GNU Make, Python 3, pkg-config, libgcrypt, and libslirp.
