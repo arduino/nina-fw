@@ -106,7 +106,7 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
   }
 
   int status_code = esp_http_client_get_status_code(client);
-  if (status_code != 200 && status_code != 206) {
+  if (status_code != 200) {
     ESP_LOGE(TAG, "HTTP request failed with status: %d", status_code);
     esp_http_client_close(client);
     esp_http_client_cleanup(client);
