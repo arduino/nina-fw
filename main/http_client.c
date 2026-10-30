@@ -14,6 +14,10 @@ static const char* TAG = "HTTP_CLIENT";
 
 int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 {
+  if (url == NULL || strlen(url) == 0) {
+    return -1;
+  }
+
   char *buffer = (char*)malloc(MAX_HTTP_RECV_BUFFER);
   if (buffer == NULL) {
     return -1;
@@ -25,19 +29,28 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
 
   spi_flash_mmap_handle_t handle;
   const unsigned char* certs_data = NULL;
+  bool is_mapped = false;
 
   if(cert_pem != NULL) {
     config.cert_pem = cert_pem;
   } else {
     const esp_partition_t* part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "certs");
     if (part == NULL) {
-      return 0;
+      free(buffer);
+      return -1;
+    }
+
+    if (part->size < 0x6000 + 26) {
+      free(buffer);
+      return -1;
     }
 
     int ret = esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&certs_data, &handle);
     if (ret != ESP_OK) {
-      return 0;
+      free(buffer);
+      return -1;
     }
+    is_mapped = true;
 
     /* Starting from firmware 3.x.x cert partition starts at address 0xA000.
      * The arduino-fw-uploader tool uploads user certificates in PEM format to a
@@ -54,40 +67,76 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     } else {
       config.crt_bundle_attach = esp_crt_bundle_attach;
 
-      ret = esp_crt_bundle_attach(&config);
-      if (ret != ESP_OK) {
-        return 0;
-      }
-
       ret = esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
       if (ret != ESP_OK) {
-        return 0;
+        if (is_mapped) spi_flash_munmap(handle);
+        free(buffer);
+        return -1;
       }
+
+      /* The global bundle retains pointers into this mapping. Keep it mapped
+       * after registration, including when the download subsequently fails. */
+      is_mapped = false;
     }
   }
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
+  if (client == NULL) {
+    if (is_mapped) spi_flash_munmap(handle);
+    free(buffer);
+    return -1;
+  }
+
   esp_err_t err;
   if ((err = esp_http_client_open(client, 0)) != ESP_OK) {
     ESP_LOGE(TAG, "esp_http_client_open failed: %d", err);
+    esp_http_client_cleanup(client);
+    if (is_mapped) spi_flash_munmap(handle);
     free(buffer);
     return -1;
   }
   int content_length = esp_http_client_fetch_headers(client);
-  int total_read_len = 0, read_len;
-  while (total_read_len < content_length) {
+  if (content_length < 0) {
+    ESP_LOGE(TAG, "failed to fetch HTTP response headers");
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    if (is_mapped) spi_flash_munmap(handle);
+    free(buffer);
+    return -1;
+  }
+
+  int status_code = esp_http_client_get_status_code(client);
+  if (status_code != 200) {
+    ESP_LOGE(TAG, "HTTP request failed with status: %d", status_code);
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
+    if (is_mapped) spi_flash_munmap(handle);
+    free(buffer);
+    return -1;
+  }
+
+  int total_read_len = 0;
+  int read_len = 0;
+  while (true) {
     read_len = esp_http_client_read(client, buffer, MAX_HTTP_RECV_BUFFER);
-    fwrite(buffer, sizeof(uint8_t), read_len, f);
     if (read_len <= 0) {
+      break;
+    }
+    if (fwrite(buffer, sizeof(uint8_t), (size_t)read_len, f) !=
+        (size_t)read_len) {
+      read_len = -1;
       break;
     }
     total_read_len += read_len;
     ESP_LOGV(TAG, "esp_http_client_read data received: %d, total %d", read_len, total_read_len);
   }
+  const bool complete = esp_http_client_is_complete_data_received(client);
   ESP_LOGV(TAG, "connection closed, cleaning up, total %d bytes received", total_read_len);
   esp_http_client_close(client);
   esp_http_client_cleanup(client);
+  if (is_mapped) spi_flash_munmap(handle);
   free(buffer);
 
-  return 0;
+  return (read_len < 0 || !complete ||
+          (content_length > 0 && total_read_len != content_length)) ? -1 : 0;
 }
