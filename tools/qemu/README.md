@@ -92,6 +92,12 @@ QEMU_TEST,SKIP,name=<name>,reason=...
 `FAIL`, a timeout, an emulator exit without a terminal record, or a mismatched
 test name fails the suite. `SKIP` is reported without failing it.
 
+The `tls_certificate_mapping` regression test intentionally connects to an
+unused guest-loopback port. Certificate mapping and TLS setup happen before
+the refused TCP connection, allowing the test to exercise repeated failed-
+connection cleanup without an external server. It requires every connection
+attempt to fail and does not cover a completed TLS handshake.
+
 ## Limitations
 
 QEMU exercises ESP32 firmware without a NINA host board. It does not emulate

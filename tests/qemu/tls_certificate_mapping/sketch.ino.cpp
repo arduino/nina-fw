@@ -1,4 +1,4 @@
-/* Verify that repeated TLS connections do not leak certificate mappings. */
+/* Verify that repeated failed TLS connections do not leak certificate mappings. */
 
 #include <esp_heap_caps.h>
 #include <esp_spi_flash.h>
@@ -86,9 +86,12 @@ void loop() {
         measuredStartHeap > freeHeap ? measuredStartHeap - freeHeap : 0;
     const uint32_t pageLoss =
         measuredStartPages > freePages ? measuredStartPages - freePages : 0;
-    const char *status =
-        freePages == measuredStartPages && loss <= MAXIMUM_HEAP_LOSS ? "PASS"
-                                                                     : "FAIL";
+    const bool exercisedFailurePath = successes == 0 && failures == ITERATIONS;
+    const char *status = exercisedFailurePath &&
+                                 freePages == measuredStartPages &&
+                                 loss <= MAXIMUM_HEAP_LOSS
+                             ? "PASS"
+                             : "FAIL";
     ets_printf("QEMU_TEST,%s,name=tls_certificate_mapping,attempt=%lu,"
                "connection_successes=%lu,connection_failures=%lu,start=%u,free="
                "%u,min=%u,largest=%u,loss=%u,maximum_loss=%u,start_pages=%u,"
