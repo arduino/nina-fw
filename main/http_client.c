@@ -67,13 +67,6 @@ int downloadAndSaveFile(char * url, FILE * f, const char * cert_pem)
     } else {
       config.crt_bundle_attach = esp_crt_bundle_attach;
 
-      ret = esp_crt_bundle_attach(&config);
-      if (ret != ESP_OK) {
-        if (is_mapped) spi_flash_munmap(handle);
-        free(buffer);
-        return -1;
-      }
-
       ret = esp_crt_bundle_set(certs_data, CRT_BUNDLE_SIZE);
       if (ret != ESP_OK) {
         if (is_mapped) spi_flash_munmap(handle);
