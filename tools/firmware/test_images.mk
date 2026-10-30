@@ -1,6 +1,7 @@
 FIRMWARE_TEST_SOURCES := $(wildcard $(CURDIR)/tests/qemu/*/sketch.ino.cpp)
 FIRMWARE_TEST_NAMES := $(notdir $(patsubst %/,%,$(dir $(FIRMWARE_TEST_SOURCES))))
 FIRMWARE_TEST_ROOT := $(BUILD_DIR_BASE)/qemu-tests
+FIRMWARE_TEST_CRT_BUNDLE := $(CURDIR)/x509_crt_bundle
 FIRMWARE_COMPONENT_ARCHIVES := $(foreach component,$(COMPONENT_LIBRARIES),$(BUILD_DIR_BASE)/$(component)/lib$(component).a)
 FIRMWARE_TEST_FLASHES := $(foreach test,$(FIRMWARE_TEST_NAMES),$(FIRMWARE_TEST_ROOT)/$(test)/$(test).flash.bin)
 
@@ -28,13 +29,13 @@ $$(FIRMWARE_TEST_$(1)_BIN): $$(FIRMWARE_TEST_$(1)_ELF) $(ESPTOOLPY_SRC) | check_
 	$$(summary) BIN $$(patsubst $$(PWD)/%,%,$$@)
 	$$(ESPTOOLPY) elf2image $$(ESPTOOL_FLASH_OPTIONS) $$(ESPTOOL_ELF2IMAGE_OPTIONS) -o $$@ $$<
 
-$$(FIRMWARE_TEST_$(1)_FLASH): $$(FIRMWARE_TEST_$(1)_BIN) $(CURDIR)/data/phy.bin $(CRT_BUNDLE) $(CURDIR)/data/spiffs.bin | $(BUILD_DIR_BASE)/bootloader/bootloader.bin $(BUILD_DIR_BASE)/partitions.bin
+$$(FIRMWARE_TEST_$(1)_FLASH): $$(FIRMWARE_TEST_$(1)_BIN) $(CURDIR)/data/phy.bin $(FIRMWARE_TEST_CRT_BUNDLE) $(CURDIR)/data/spiffs.bin | $(BUILD_DIR_BASE)/bootloader/bootloader.bin $(BUILD_DIR_BASE)/partitions.bin
 	$$(summary) MERGE $$(patsubst $$(PWD)/%,%,$$@)
 	$$(ESPTOOLPY) merge_bin --fill-flash-size 4MB -o $$@ \
 		0x1000 $(BUILD_DIR_BASE)/bootloader/bootloader.bin \
 		0x8000 $(BUILD_DIR_BASE)/partitions.bin \
 		0x9000 $(CURDIR)/data/phy.bin \
-		0xA000 $(CRT_BUNDLE) \
+		0xA000 $(FIRMWARE_TEST_CRT_BUNDLE) \
 		0x30000 $$(FIRMWARE_TEST_$(1)_BIN) \
 		0x1B0000 $(CURDIR)/data/spiffs.bin
 endef

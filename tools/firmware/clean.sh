@@ -15,7 +15,6 @@ fi
 
 rm -f -- \
   "$repo_root/x509_crt_bundle" \
-  "$repo_root/.x509_crt_bundle.mk" \
   "$repo_root"/NINA_W102*
 
 echo "Removed firmware build artifacts; preserved $build_dir/qemu"

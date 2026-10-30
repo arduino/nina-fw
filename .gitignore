@@ -2,5 +2,4 @@ build/
 .qemu-work/
 __pycache__/
 x509_crt_bundle
-.x509_crt_bundle.mk
 NINA_W102*

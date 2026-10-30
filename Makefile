@@ -14,25 +14,17 @@ else
 
 PROJECT_NAME := nina-fw
 
-EXTRA_COMPONENT_DIRS := $(CURDIR)/arduino
+EXTRA_COMPONENT_DIRS := $(PWD)/arduino
 
-CRT_BUNDLE := $(CURDIR)/x509_crt_bundle
-CRT_BUNDLE_CONFIG := $(CURDIR)/.x509_crt_bundle.mk
-CRT_BUNDLE_INPUT := $(CURDIR)/data/cacrt_all.pem
-CRT_BUNDLE_GENERATOR := $(CURDIR)/tools/gen_crt_bundle.py
+CMD_GEN_BUNDLE = $(shell python $(PWD)/tools/gen_crt_bundle.py -i $(PWD)/data/cacrt_all.pem)
+CMD_BUNDLE_SIZE = $(shell stat -L -c %s ./x509_crt_bundle)
+READ_BUNDLE_SIZE = $(eval BUNDLE_SIZE=$(CMD_BUNDLE_SIZE))
 
-ifneq ($(filter clean,$(MAKECMDGOALS)),clean)
--include $(CRT_BUNDLE_CONFIG)
+$(CMD_GEN_BUNDLE)
+$(READ_BUNDLE_SIZE)
 $(info SIZEIS $(BUNDLE_SIZE))
 
-$(CRT_BUNDLE): $(CRT_BUNDLE_INPUT) $(CRT_BUNDLE_GENERATOR)
-	cd "$(CURDIR)" && python "$(CRT_BUNDLE_GENERATOR)" -i "$(CRT_BUNDLE_INPUT)"
-
-$(CRT_BUNDLE_CONFIG): $(CRT_BUNDLE)
-	@printf 'BUNDLE_SIZE := %s\n' "$$(wc -c < "$(CRT_BUNDLE)")" > "$@"
-
 CPPFLAGS += -DARDUINO -DCRT_BUNDLE_SIZE=$(BUNDLE_SIZE)
-endif
 
 
 ifeq ($(RELEASE),1)
@@ -62,7 +54,6 @@ firmware: all
 clean:
 	rm -rf NINA_W102*
 	rm -rf x509_crt_bundle
-	rm -rf .x509_crt_bundle.mk
 
 .PHONY: firmware, clean
 
