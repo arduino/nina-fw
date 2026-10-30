@@ -1,3 +1,17 @@
+QEMU_GOALS := qemu-prepare qemu-test qemu-clean
+TOOLING_GOALS := firmware-container firmware-test-images-container firmware-clean $(QEMU_GOALS)
+
+ifneq ($(filter $(TOOLING_GOALS),$(MAKECMDGOALS)),)
+
+include tools/firmware/firmware.mk
+ifneq ($(filter $(QEMU_GOALS),$(MAKECMDGOALS)),)
+include tools/qemu/qemu.mk
+endif
+
+else
+
+.DEFAULT_GOAL := all
+
 PROJECT_NAME := nina-fw
 
 EXTRA_COMPONENT_DIRS := $(PWD)/arduino
@@ -11,6 +25,7 @@ $(READ_BUNDLE_SIZE)
 $(info SIZEIS $(BUNDLE_SIZE))
 
 CPPFLAGS += -DARDUINO -DCRT_BUNDLE_SIZE=$(BUNDLE_SIZE)
+
 
 ifeq ($(RELEASE),1)
 CFLAGS += -DNDEBUG -DCONFIG_FREERTOS_ASSERT_DISABLE -DLOG_LOCAL_LEVEL=0
@@ -31,6 +46,7 @@ $(info NANO_RP2040_CONNECT)
 endif
 
 include $(IDF_PATH)/make/project.mk
+include tools/firmware/test_images.mk
 
 firmware: all
 	python combine.py
@@ -40,3 +56,5 @@ clean:
 	rm -rf x509_crt_bundle
 
 .PHONY: firmware, clean
+
+endif

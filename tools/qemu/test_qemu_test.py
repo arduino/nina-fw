@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+
+import pathlib
+import tempfile
+import unittest
+from unittest import mock
+
+from qemu_test import (
+    classify_output,
+    discover_images,
+    print_test_output,
+    qemu_command,
+)
+
+
+class DiscoveryTest(unittest.TestCase):
+    def test_discovers_built_test_images_in_order(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            for name in ("zeta", "alpha"):
+                (root / name).mkdir()
+                (root / name / f"{name}.flash.bin").write_bytes(b"image")
+            (root / "documentation").mkdir()
+
+            self.assertEqual(
+                ["alpha", "zeta"],
+                [image.parent.name for image in discover_images(root)],
+            )
+
+    def test_ignores_incomplete_test_outputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / "complete").mkdir()
+            (root / "complete/complete.flash.bin").write_bytes(b"image")
+            (root / "incomplete").mkdir()
+            (root / "incomplete/incomplete.bin").write_bytes(b"image")
+
+            self.assertEqual(
+                ["complete"],
+                [image.parent.name for image in discover_images(root)],
+            )
+
+    def test_rejects_an_empty_test_root(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaises(RuntimeError):
+                discover_images(pathlib.Path(temporary))
+
+
+class ResultTest(unittest.TestCase):
+    def test_classifies_terminal_results(self):
+        for status in ("PASS", "FAIL", "SKIP"):
+            result = classify_output(
+                "sample", f"boot\nQEMU_TEST,{status},name=sample,detail=value\n"
+            )
+            self.assertEqual(status, result.status)
+
+    def test_rejects_wrong_name_and_missing_result(self):
+        wrong = classify_output("sample", "QEMU_TEST,PASS,name=other\n")
+        partial = classify_output("sample", "QEMU_TEST,PASS,name=sample")
+        missing = classify_output("sample", "boot failed\n", returncode=1)
+        timed_out = classify_output("sample", "still running\n", timed_out=True)
+        self.assertEqual("ERROR", wrong.status)
+        self.assertEqual("ERROR", partial.status)
+        self.assertEqual("ERROR", missing.status)
+        self.assertEqual("ERROR", timed_out.status)
+
+    def test_nonblocking_console_does_not_abort_the_runner(self):
+        with mock.patch("builtins.print", side_effect=BlockingIOError):
+            print_test_output("QEMU_TEST,PASS,name=sample\n")
+
+
+class CommandTest(unittest.TestCase):
+    def test_runs_flash_image_in_snapshot_mode(self):
+        command = qemu_command(
+            pathlib.Path("qemu"),
+            pathlib.Path("bios"),
+            pathlib.Path("test.flash.bin"),
+            pathlib.Path("qemu.log"),
+        )
+
+        drive = command[command.index("-drive") + 1]
+        self.assertEqual(
+            "file=test.flash.bin,if=mtd,format=raw,snapshot=on", drive
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
