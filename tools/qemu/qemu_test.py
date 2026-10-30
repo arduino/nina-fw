@@ -105,19 +105,23 @@ def print_test_output(text):
         pass
 
 
+def qemu_command(qemu, bios, flash, log):
+    return [
+        str(qemu), "-M", "esp32",
+        "-drive", f"file={flash},if=mtd,format=raw,snapshot=on",
+        "-display", "none", "-serial", f"file:{log}",
+        "-monitor", "none", "-no-reboot",
+        "-nic", "user,model=esp32_wifi", "-L", str(bios),
+        "-global", "driver=timer.esp32.timg,property=wdt_disable,value=true",
+    ]
+
+
 def run_qemu(name, flash, args):
     log = WORK / name / "qemu.log"
     trace = WORK / name / "qemu.trace.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     log.write_bytes(b"")
-    command = [
-        str(args.qemu), "-M", "esp32",
-        "-drive", f"file={flash},if=mtd,format=raw",
-        "-display", "none", "-serial", f"file:{log}",
-        "-monitor", "none", "-no-reboot",
-        "-nic", "user,model=esp32_wifi", "-L", str(args.bios),
-        "-global", "driver=timer.esp32.timg,property=wdt_disable,value=true",
-    ]
+    command = qemu_command(args.qemu, args.bios, flash, log)
     print("+", shlex.join(command), flush=True)
     deadline = time.monotonic() + args.run_timeout
     transcript = ""

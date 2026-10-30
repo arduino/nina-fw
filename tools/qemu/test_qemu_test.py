@@ -5,7 +5,12 @@ import tempfile
 import unittest
 from unittest import mock
 
-from qemu_test import classify_output, discover_images, print_test_output
+from qemu_test import (
+    classify_output,
+    discover_images,
+    print_test_output,
+    qemu_command,
+)
 
 
 class DiscoveryTest(unittest.TestCase):
@@ -62,6 +67,21 @@ class ResultTest(unittest.TestCase):
     def test_nonblocking_console_does_not_abort_the_runner(self):
         with mock.patch("builtins.print", side_effect=BlockingIOError):
             print_test_output("QEMU_TEST,PASS,name=sample\n")
+
+
+class CommandTest(unittest.TestCase):
+    def test_runs_flash_image_in_snapshot_mode(self):
+        command = qemu_command(
+            pathlib.Path("qemu"),
+            pathlib.Path("bios"),
+            pathlib.Path("test.flash.bin"),
+            pathlib.Path("qemu.log"),
+        )
+
+        drive = command[command.index("-drive") + 1]
+        self.assertEqual(
+            "file=test.flash.bin,if=mtd,format=raw,snapshot=on", drive
+        )
 
 
 if __name__ == "__main__":

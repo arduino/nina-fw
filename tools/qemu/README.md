@@ -48,6 +48,8 @@ binary, and flash image under `build/qemu-tests/<name>/`. The normal
 `build/nina-fw.elf` and `build/nina-fw.bin` are not replaced. QEMU serial logs
 are written to `.qemu-work/tests/<name>/qemu.log`; emulator diagnostics are
 kept separately in `qemu.trace.log` so they cannot corrupt serial records.
+Flash images are attached in snapshot mode, so writes made by the emulated
+firmware do not modify the built test artifacts.
 
 Remove QEMU logs explicitly with:
 
