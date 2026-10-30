@@ -96,11 +96,13 @@ case "$engine" in
     ;;
   docker)
     exec docker run --rm --platform linux/amd64 \
+      --user "$(id -u):$(id -g)" --env HOME=/tmp \
       --volume "$source_dir:/data" --workdir /data "$image" \
       sh -c "$build_command" firmware-build "$firmware_jobs" "$make_target"
     ;;
   podman)
     exec podman run --rm --platform linux/amd64 \
+      --user "$(id -u):$(id -g)" --env HOME=/tmp \
       --volume "$source_dir:/data:rw" --workdir /data "$image" \
       sh -c "$build_command" firmware-build "$firmware_jobs" "$make_target"
     ;;
