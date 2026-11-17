@@ -28,8 +28,10 @@
 
 WiFiUDP::WiFiUDP() :
   _socket(-1),
-  _remoteIp(0),
-  _remotePort(0),
+  _rxRemoteIp(0),
+  _rxRemotePort(0),
+  _txRemoteIp(0),
+  _txRemotePort(0),
   _rcvIndex(0),
   _rcvSize(0),
   _sndSize(0)
@@ -106,8 +108,8 @@ int WiFiUDP::beginPacket(const char *host, uint16_t port)
 
 int WiFiUDP::beginPacket(/*IPAddress*/uint32_t ip, uint16_t port)
 {
-  _remoteIp = ip;
-  _remotePort = port;
+  _txRemoteIp = ip;
+  _txRemotePort = port;
 
   _sndSize = 0;
 
@@ -120,8 +122,8 @@ int WiFiUDP::endPacket()
   memset(&addr, 0x00, sizeof(addr));
 
   addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = _remoteIp;
-  addr.sin_port = htons(_remotePort);
+  addr.sin_addr.s_addr = _txRemoteIp;
+  addr.sin_port = htons(_txRemotePort);
 
   if (lwip_sendto(_socket, _sndBuffer, _sndSize, 0, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
     return 0;
@@ -168,8 +170,8 @@ int WiFiUDP::parsePacket()
   vTaskDelay(1);
 
   _rcvSize = result;
-  _remoteIp = addr.sin_addr.s_addr;
-  _remotePort = ntohs(addr.sin_port);
+  _rxRemoteIp = addr.sin_addr.s_addr;
+  _rxRemotePort = ntohs(addr.sin_port);
 
   return result;
 }
@@ -213,10 +215,10 @@ void WiFiUDP::flush()
 
 /*IPAddress*/uint32_t WiFiUDP::remoteIP()
 {
-  return _remoteIp;
+  return _rxRemoteIp;
 }
 
 uint16_t  WiFiUDP::remotePort()
 {
-  return _remotePort;
+  return _rxRemotePort;
 }
