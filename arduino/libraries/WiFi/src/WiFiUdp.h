@@ -53,8 +53,10 @@ public:
 
 private:
   int _socket;
-  uint32_t _remoteIp;
-  uint16_t _remotePort;
+  uint32_t _rxRemoteIp;
+  uint16_t _rxRemotePort;
+  uint32_t _txRemoteIp;
+  uint16_t _txRemotePort;
 
   uint8_t _rcvBuffer[1500];
   uint16_t _rcvIndex;
