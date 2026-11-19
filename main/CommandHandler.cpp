@@ -44,6 +44,7 @@ int errno;
 #endif
 
 const char FIRMWARE_VERSION[6] = "3.0.2";
+#define CUSTOM_FIRMWARE_BUILD "3.0.2-pktinfo-01"
 
 /*IPAddress*/uint32_t resolvedHostname;
 
@@ -58,6 +59,11 @@ WiFiServer tcpServers[MAX_SOCKETS];
 WiFiClient bearssl_tcp_client;
 BearSSLClient bearsslClient(bearssl_tcp_client, ArduinoIoTCloudTrustAnchor, ArduinoIoTCloudTrustAnchor_NUM);
 br_x509_trust_anchor customTrustAnchor;
+
+//#define STR2(x) #x
+//#define STR(x) STR2(x)
+//
+//#pragma message("SPI_MAX_DMA_LEN = " STR(SPI_MAX_DMA_LEN))
 
 int setNet(const uint8_t command[], uint8_t response[])
 {
@@ -950,7 +956,7 @@ int getRemoteData(const uint8_t command[], uint8_t response[])
     ip = static_cast<WiFiClient*>(bearsslClient.getClient())->remoteIP();
     port = static_cast<WiFiClient*>(bearsslClient.getClient())->remotePort();
   }
-
+  
   response[2] = 2; // number of parameters
 
   response[3] = 4; // parameter 1 length
@@ -959,6 +965,23 @@ int getRemoteData(const uint8_t command[], uint8_t response[])
   response[8] = 2; // parameter 2 length
   response[9] = (port >> 8) & 0xff;
   response[10] = (port >> 0) & 0xff;
+
+// MODIFICATION START  
+  if ((socketTypes[socket] == 0x01) // UDP
+    && (command[2] == 2) // 2 params
+    && (command[3] == 1) // first param len 1 (socket number)
+    && (command[5] == 1) && (command[6] == 1)) // last param length 1 content 1
+  {
+    uint32_t dstIp = udps[socket].destinationIP();
+//    uint32_t dstIp = 0x04030201;  // TEST
+    
+    response[2] = 3; // number of parameters
+    
+    response[11] = 4;
+    memcpy(&response[12], &dstIp, sizeof(dstIp));
+    return 12 + 5;  // Including END_CMD byte
+  }
+// MODIFICATION END   
 
   return 12;
 }

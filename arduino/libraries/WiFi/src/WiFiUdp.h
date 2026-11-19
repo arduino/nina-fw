@@ -48,6 +48,7 @@ public:
 
   virtual /*IPAddress*/ uint32_t remoteIP();
   virtual uint16_t remotePort();
+  /*IPAddress*/ uint32_t destinationIP();
 
   virtual operator bool() { return _socket != -1; }
 
@@ -63,6 +64,12 @@ private:
   uint16_t _rcvSize;
   uint8_t _sndBuffer[1500];
   uint16_t _sndSize;
+  
+  uint32_t _rxDestinationIp;
+  bool _rxDestinationValid;
+  bool _rxIsMulticast;
+  int _pktInfoSetRc = -999; // TEST
+//  int _pktInfoErrno = 0;    // TEST
 };
 
 #endif // WIFIUDP_H
