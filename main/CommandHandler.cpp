@@ -936,7 +936,7 @@ int sendUDPdata(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
-int getRemoteData(const uint8_t command[], uint8_t response[])
+int getRemoteData_old(const uint8_t command[], uint8_t response[])
 {
   uint8_t socket = command[4];
 
@@ -984,6 +984,76 @@ int getRemoteData(const uint8_t command[], uint8_t response[])
 // MODIFICATION END   
 
   return 12;
+}
+
+int getRemoteData(const uint8_t command[], uint8_t response[])
+{
+  uint8_t socket = command[4];
+
+  uint32_t ip = 0;  /*IPAddress(0, 0, 0, 0)*/
+  uint16_t port = 0;
+  uint32_t dstIp = 0;
+  
+  if (socketTypes[socket] == 0x00) {
+    ip = tcpClients[socket].remoteIP();
+    port = tcpClients[socket].remotePort();
+  } else if (socketTypes[socket] == 0x01) {
+    ip = udps[socket].remoteIP();
+    port = udps[socket].remotePort();
+  } else if (socketTypes[socket] == 0x02) {
+    ip = tlsClients[socket].remoteIP();
+    port = tlsClients[socket].remotePort();
+  } else if (socketTypes[socket] == 0x04) {
+    WiFiClient *client =
+      static_cast<WiFiClient*>(bearsslClient.getClient());
+
+    ip = client->remoteIP();
+    port = client->remotePort();
+  }
+
+  // Is the extended UDP response requested?
+  bool extended =
+    (socketTypes[socket] == 0x01) &&  // UDP
+    (command[2] == 2) &&  // 2 params
+    (command[3] == 1) &&  // first param len 1 (socket number)
+    (command[5] == 1) &&  // last param length 1
+    (command[6] == 1);    // last param content 1
+
+  if (extended)
+    dstIp = udps[socket].destinationIP();
+    
+   // Preserve the original SPI port byte order.
+    uint8_t portBytes[2] = {
+        (uint8_t)(port >> 8),
+        (uint8_t)(port & 0xFF)
+    };
+    
+    const uint8_t sizes[] = {
+        sizeof(ip),
+        sizeof(portBytes),
+        sizeof(dstIp)
+    };
+
+    const void *values[] = {
+        &ip,
+        portBytes,
+        &dstIp
+    };
+    
+    const uint8_t numParams = extended ? 3 : 2;
+
+    response[2] = numParams;
+
+    uint8_t pos = 3;
+
+    for (uint8_t i = 0; i < numParams; i++) {
+        response[pos++] = sizes[i];
+        memcpy(&response[pos], values[i], sizes[i]);
+        pos += sizes[i];
+    }
+
+    // Leave room for END_CMD, appended by the caller.
+    return pos + 1;
 }
 
 int getTime(const uint8_t command[], uint8_t response[])
