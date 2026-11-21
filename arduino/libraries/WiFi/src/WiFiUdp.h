@@ -68,8 +68,6 @@ private:
   uint32_t _rxDestinationIp;
   bool _rxDestinationValid;
   bool _rxIsMulticast;
-  int _pktInfoSetRc = -999; // TEST
-//  int _pktInfoErrno = 0;    // TEST
 };
 
 #endif // WIFIUDP_H

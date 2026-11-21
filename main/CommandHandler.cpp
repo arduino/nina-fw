@@ -936,56 +936,6 @@ int sendUDPdata(const uint8_t command[], uint8_t response[])
   return 6;
 }
 
-int getRemoteData_old(const uint8_t command[], uint8_t response[])
-{
-  uint8_t socket = command[4];
-
-  /*IPAddress*/uint32_t ip = /*IPAddress(0, 0, 0, 0)*/0;
-  uint16_t port = 0;
-
-  if (socketTypes[socket] == 0x00) {
-    ip = tcpClients[socket].remoteIP();
-    port = tcpClients[socket].remotePort();
-  } else if (socketTypes[socket] == 0x01) {
-    ip = udps[socket].remoteIP();
-    port = udps[socket].remotePort();
-  } else if (socketTypes[socket] == 0x02) {
-    ip = tlsClients[socket].remoteIP();
-    port = tlsClients[socket].remotePort();
-  } else if (socketTypes[socket] == 0x04) {
-    ip = static_cast<WiFiClient*>(bearsslClient.getClient())->remoteIP();
-    port = static_cast<WiFiClient*>(bearsslClient.getClient())->remotePort();
-  }
-  
-  response[2] = 2; // number of parameters
-
-  response[3] = 4; // parameter 1 length
-  memcpy(&response[4], &ip, sizeof(ip));
-
-  response[8] = 2; // parameter 2 length
-  response[9] = (port >> 8) & 0xff;
-  response[10] = (port >> 0) & 0xff;
-
-// MODIFICATION START  
-  if ((socketTypes[socket] == 0x01) // UDP
-    && (command[2] == 2) // 2 params
-    && (command[3] == 1) // first param len 1 (socket number)
-    && (command[5] == 1) && (command[6] == 1)) // last param length 1 content 1
-  {
-    uint32_t dstIp = udps[socket].destinationIP();
-//    uint32_t dstIp = 0x04030201;  // TEST
-    
-    response[2] = 3; // number of parameters
-    
-    response[11] = 4;
-    memcpy(&response[12], &dstIp, sizeof(dstIp));
-    return 12 + 5;  // Including END_CMD byte
-  }
-// MODIFICATION END   
-
-  return 12;
-}
-
 int getRemoteData(const uint8_t command[], uint8_t response[])
 {
   uint8_t socket = command[4];
@@ -1010,6 +960,9 @@ int getRemoteData(const uint8_t command[], uint8_t response[])
     ip = client->remoteIP();
     port = client->remotePort();
   }
+  
+  // Preserve the original one-parameter SPI response for
+  // compatibility with existing WiFiNINA libraries.
 
   // Is the extended UDP response requested?
   bool extended =
