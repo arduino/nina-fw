@@ -28,11 +28,16 @@
 
 WiFiUDP::WiFiUDP() :
   _socket(-1),
-  _remoteIp(0),
-  _remotePort(0),
+  _rxRemoteIp(0),
+  _rxRemotePort(0),
+  _txRemoteIp(0),
+  _txRemotePort(0),
   _rcvIndex(0),
   _rcvSize(0),
-  _sndSize(0)
+  _sndSize(0),
+  _rxDestinationIp(0),
+  _rxDestinationValid(false),
+  _rxIsMulticast(false)
 {
 }
 
@@ -43,6 +48,12 @@ uint8_t WiFiUDP::begin(uint16_t port)
   if (_socket < 0) {
     return 0;
   }
+  
+  int enable = 1;
+  int rc = lwip_setsockopt(
+    _socket, IPPROTO_IP, IP_PKTINFO,
+    &enable, sizeof(enable)
+  );
 
   struct sockaddr_in addr;
   memset(&addr, 0x00, sizeof(addr));
@@ -106,8 +117,8 @@ int WiFiUDP::beginPacket(const char *host, uint16_t port)
 
 int WiFiUDP::beginPacket(/*IPAddress*/uint32_t ip, uint16_t port)
 {
-  _remoteIp = ip;
-  _remotePort = port;
+  _txRemoteIp = ip;
+  _txRemotePort = port;
 
   _sndSize = 0;
 
@@ -120,8 +131,8 @@ int WiFiUDP::endPacket()
   memset(&addr, 0x00, sizeof(addr));
 
   addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = _remoteIp;
-  addr.sin_port = htons(_remotePort);
+  addr.sin_addr.s_addr = _txRemoteIp;
+  addr.sin_port = htons(_txRemotePort);
 
   if (lwip_sendto(_socket, _sndBuffer, _sndSize, 0, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
     return 0;
@@ -152,25 +163,70 @@ size_t WiFiUDP::write(const uint8_t *buffer, size_t size)
 
 int WiFiUDP::parsePacket()
 {
-  struct sockaddr_in addr;
-  socklen_t addrLen = sizeof(addr);
-
   _rcvIndex = 0;
   _rcvSize = 0;
 
-  int result = lwip_recvfrom(_socket, _rcvBuffer, sizeof(_rcvBuffer), MSG_DONTWAIT, (struct sockaddr*)&addr, &addrLen);
+  struct sockaddr_in source = {};
+  struct iovec iov = {};
 
-  if (result <= 0) {
+  char control[CMSG_SPACE(sizeof(struct in_pktinfo))] = {};
+
+  struct msghdr msg = {};
+
+  iov.iov_base = _rcvBuffer;
+  iov.iov_len = sizeof(_rcvBuffer);
+
+  msg.msg_name = &source;
+  msg.msg_namelen = sizeof(source);
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+  msg.msg_control = control;
+  msg.msg_controllen = sizeof(control);
+
+  int result = lwip_recvmsg(_socket, &msg, MSG_DONTWAIT);
+
+  if (result <= 0)
     return 0;
+
+  uint32_t destinationIp = 0;
+  bool destinationValid = false;
+
+  if (!(msg.msg_flags & MSG_CTRUNC)) {
+    for (struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+      cmsg != nullptr;
+      cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+
+      if (cmsg->cmsg_level == IPPROTO_IP &&
+        cmsg->cmsg_type == IP_PKTINFO &&
+        cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in_pktinfo))) {
+
+        struct in_pktinfo *info =
+          (struct in_pktinfo *)CMSG_DATA(cmsg);
+
+        destinationIp = info->ipi_addr.s_addr;
+        destinationValid = true;
+        break;
+      }
+    }
   }
 
-  // delay a bit to allow other tasks to run ...
+  // Preserve the original scheduling behavior.
   vTaskDelay(1);
 
   _rcvSize = result;
-  _remoteIp = addr.sin_addr.s_addr;
-  _remotePort = ntohs(addr.sin_port);
+  _rxRemoteIp = source.sin_addr.s_addr;
+  _rxRemotePort = ntohs(source.sin_port);
 
+  _rxDestinationIp = destinationIp;   
+  
+  _rxDestinationValid = destinationValid;
+
+  if (destinationValid) {
+    uint32_t ip = ntohl(destinationIp);
+
+    _rxIsMulticast = (ip & 0xF0000000UL) == 0xE0000000UL;
+  }
+           
   return result;
 }
 
@@ -213,10 +269,15 @@ void WiFiUDP::flush()
 
 /*IPAddress*/uint32_t WiFiUDP::remoteIP()
 {
-  return _remoteIp;
+  return _rxRemoteIp;
 }
 
 uint16_t  WiFiUDP::remotePort()
 {
-  return _remotePort;
+  return _rxRemotePort;
+}
+
+uint32_t WiFiUDP::destinationIP()
+{
+  return _rxDestinationIp;
 }
